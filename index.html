@@ -12,6 +12,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #f8fafc; }
 
+    /* 상단 헤더 */
     #header {
       position: absolute; top: 0; left: 0; right: 0; height: 72px;
       background: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.12);
@@ -41,13 +42,16 @@
       border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem;
     }
 
+    /* 메인 분할 뷰 */
     #main-container {
       position: absolute; top: 72px; bottom: 0; left: 0; right: 0;
       display: flex; width: 100%; height: calc(100vh - 72px);
     }
 
-    #map { flex: 1; height: 100%; position: relative; }
+    /* 지도 영역 */
+    #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
+    /* 우측 정류장 시간표 사이드바 */
     #sidebar {
       width: 380px; height: 100%; background: #ffffff;
       box-shadow: -2px 0 10px rgba(0,0,0,0.08); overflow-y: auto;
@@ -82,14 +86,64 @@
     }
     .stop-info .desc { font-size: 0.8rem; color: #64748b; margin-top: 4px; line-height: 1.4; }
 
+    /* 정류장 번호 뱃지 마커 */
     .bus-marker-badge {
       width: 28px; height: 28px; border-radius: 50%;
       background: #2563eb; color: #ffffff; font-weight: 800; font-size: 13px;
       display: flex; align-items: center; justify-content: center;
       border: 2px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.35);
       cursor: pointer; transform: translate(-50%, -50%);
+      transition: transform 0.15s ease;
     }
+    .bus-marker-badge:hover { transform: translate(-50%, -50%) scale(1.15); }
     .bus-marker-badge.복지관 { background: #dc2626 !important; width: 34px; height: 34px; font-size: 14px; }
+
+    /* ⭐️ 정류장 번호 바로 위에 밀착되는 고급 말풍선 팝업 */
+    .bubble-popup {
+      position: relative;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 24px rgba(15,23,42,0.22);
+      border: 1px solid #e2e8f0;
+      min-width: 220px;
+      max-width: 280px;
+      transform: translateY(-14px); /* 핀 바로 윗부분으로 띄움 */
+    }
+    /* 말풍선 아래쪽 화살표 꼬리 */
+    .bubble-popup::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 8px 8px 0 8px;
+      border-style: solid;
+      border-color: #ffffff transparent transparent transparent;
+    }
+    .bubble-popup .popup-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .bubble-popup .popup-title {
+      font-size: 0.95rem; font-weight: 800; color: #0f172a;
+    }
+    .bubble-popup .close-btn {
+      background: none; border: none; font-size: 16px; color: #94a3b8;
+      cursor: pointer; padding: 0 4px; font-weight: bold;
+    }
+    .bubble-popup .close-btn:hover { color: #0f172a; }
+    .bubble-popup .popup-time {
+      display: inline-block; background: #eff6ff; color: #1d4ed8;
+      font-size: 0.8rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-bottom: 6px;
+    }
+    .bubble-popup .popup-addr {
+      font-size: 0.78rem; color: #64748b; line-height: 1.35;
+    }
+    .bubble-popup .popup-desc {
+      font-size: 0.78rem; color: #0f172a; margin-top: 6px; line-height: 1.4;
+      background: #f8fafc; padding: 6px 8px; border-radius: 6px;
+    }
 
     #loadingModal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -146,9 +200,8 @@
   </div>
 
   <script>
-    // ⭐️ 2단계에서 복사한 본인의 구글 스프레드시트 ID를 여기에 넣으세요!
-    const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
-    const SHEET_NAME = "노선데이터"; // 시트 탭 이름
+    // ⭐️ 본인의 구글 시트 ID를 확인해 주세요
+    const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw"; 
 
     let routeData = {};
     const COURSE_COLORS = ["#2563eb", "#16a34a", "#ea580c", "#9333ea", "#0891b2"];
@@ -156,11 +209,11 @@
     let map = null;
     let geocoder = null;
     let places = null;
-    let overlays = [];
+    let markerOverlays = [];
+    let activeBubbleOverlay = null; // 활성화된 말풍선 오버레이
     let polyline = null;
-    let activeInfoWindow = null;
 
-    // ⭐️ 구글 시트 GViz 공식 API 콜백 함수 (CORS 에러 원천 차단)
+    // 구글 시트 GViz 콜백
     window.googleSheetCallback = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -168,18 +221,16 @@
         const rows = json.table.rows;
         const result = {};
 
-        // 구글 시트 행 순회
         rows.forEach(r => {
           const c = r.c;
           if (!c) return;
 
-          const course = c[0] ? String(c[0].v || '').trim() : '';
-          const name   = c[1] ? String(c[1].v || '').trim() : '';
-          const addr   = c[2] ? String(c[2].v || '').trim() : '';
+          const course = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
+          const name   = c[1] ? String(c[1].f || c[1].v || '').trim() : '';
+          const addr   = c[2] ? String(c[2].f || c[2].v || '').trim() : '';
           const time   = c[3] ? String(c[3].f || c[3].v || '').trim() : '';
-          const desc   = c[4] ? String(c[4].v || '').trim() : '';
+          const desc   = c[4] ? String(c[4].f || c[4].v || '').trim() : '';
 
-          // 1행 헤더(코스명 등) 제외 및 빈 행 제외
           if (!course || !name || course === "코스명" || course === "코스구분") return;
 
           if (!result[course]) result[course] = [];
@@ -194,7 +245,7 @@
         routeData = result;
         initTabs();
       } catch (err) {
-        alert("데이터 파싱 실패: " + err.message);
+        alert("데이터 변환 오류: " + err.message);
       }
     };
 
@@ -203,29 +254,27 @@
       const mapContainer = document.getElementById('map');
       map = new kakao.maps.Map(mapContainer, {
         center: new kakao.maps.LatLng(34.8872, 128.625),
-        level: 7
+        level: 6
       });
+
+      // ⭐️ 확대/축소 시 타일 깨짐 방지 설정
+      map.setMinLevel(1);
+      map.setMaxLevel(10);
       map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+
+      // 리사이즈 시 지도 타일 재계산
+      window.addEventListener('resize', () => {
+        if (map) map.relayout();
+      });
+      setTimeout(() => { if (map) map.relayout(); }, 500);
 
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
 
-      // 2. 구글 시트 GViz API 호출 (Apps Script 불필요, 100% 동작)
-      const encodedSheet = encodeURIComponent(SHEET_NAME);
-      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedSheet}&tqx=responseHandler:googleSheetCallback&_t=${Date.now()}`;
-
+      // 2. 구글 시트 데이터 로드
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=0&tqx=responseHandler:googleSheetCallback&_t=${Date.now()}`;
       const script = document.createElement('script');
       script.src = url;
-      script.onerror = function() {
-        document.getElementById('loadingModal').innerHTML = `
-          <div style="text-align:center;">
-            ❌ 구글 시트를 불러올 수 없습니다.<br>
-            <span style="font-size:0.85rem; font-weight:normal;">
-              구글 시트의 [공유] 설정이 '링크가 있는 모든 사용자 - 뷰어'로 되어 있는지 확인해주세요.
-            </span>
-          </div>
-        `;
-      };
       document.body.appendChild(script);
     };
 
@@ -233,11 +282,6 @@
       const tabBar = document.getElementById('tabBar');
       tabBar.innerHTML = '';
       const courses = Object.keys(routeData);
-
-      if (courses.length === 0) {
-        alert("시트에서 읽어온 노선 데이터가 없습니다. 탭 이름과 데이터를 확인해주세요.");
-        return;
-      }
 
       courses.forEach((cName, idx) => {
         const btn = document.createElement('button');
@@ -247,17 +291,20 @@
         tabBar.appendChild(btn);
       });
 
-      selectCourse(courses[0], 0, tabBar.firstElementChild);
+      if (courses.length > 0) {
+        selectCourse(courses[0], 0, tabBar.firstElementChild);
+      }
     }
 
     async function selectCourse(courseName, colorIdx, btnElem) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
 
-      overlays.forEach(o => o.setMap(null));
-      overlays = [];
+      // 기존 핀 및 선 제거
+      markerOverlays.forEach(o => o.setMap(null));
+      markerOverlays = [];
+      if (activeBubbleOverlay) { activeBubbleOverlay.setMap(null); activeBubbleOverlay = null; }
       if (polyline) { polyline.setMap(null); polyline = null; }
-      if (activeInfoWindow) activeInfoWindow.close();
 
       const stops = routeData[courseName] || [];
       const color = COURSE_COLORS[colorIdx % COURSE_COLORS.length];
@@ -274,6 +321,7 @@
         const stop = stops[i];
         const isBokji = stop.name.indexOf('복지관') > -1;
 
+        // 우측 사이드바 카드 추가
         const card = document.createElement('div');
         card.className = 'stop-card';
         card.id = `card-${i}`;
@@ -287,6 +335,7 @@
         `;
         list.appendChild(card);
 
+        // 시트 C열 주소/명칭 검색
         const coords = await searchCoordinate(stop.addr, stop.name);
 
         if (coords) {
@@ -294,37 +343,55 @@
           validStops.push(stop);
           bounds.extend(coords);
 
+          // 지도 핀 뱃지
           const badge = document.createElement('div');
           badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''}`;
           badge.style.backgroundColor = isBokji ? '#dc2626' : color;
           badge.innerText = (i + 1);
 
-          const overlay = new kakao.maps.CustomOverlay({
+          const markerOverlay = new kakao.maps.CustomOverlay({
             position: coords,
             content: badge,
             yAnchor: 0.5,
             xAnchor: 0.5,
             zIndex: isBokji ? 10 : 3
           });
-          overlay.setMap(map);
-          overlays.push(overlay);
+          markerOverlay.setMap(map);
+          markerOverlays.push(markerOverlay);
 
-          const infoWindow = new kakao.maps.InfoWindow({
-            content: `
-              <div style="padding:14px; min-width:220px; font-size:13px; line-height:1.5;">
-                <b style="font-size:14px; color:#0f172a;">${i + 1}. ${stop.name}</b><br>
-                ${stop.time ? `<span style="color:#2563eb; font-weight:bold;">🕒 ${stop.time}</span><br>` : ''}
-                <span style="color:#64748b;">📍 ${stop.addr}</span>
-                ${stop.desc ? `<br><span style="color:#475569; font-size:12px;">💡 ${stop.desc}</span>` : ''}
-              </div>
-            `,
-            removable: true
+          // ⭐️ 핀 바로 위(yAnchor: 1.25)에 밀착되어 뜨는 말풍선 엘리먼트
+          const bubbleDiv = document.createElement('div');
+          bubbleDiv.className = 'bubble-popup';
+          bubbleDiv.innerHTML = `
+            <div class="popup-header">
+              <div class="popup-title">${i + 1}. ${stop.name}</div>
+              <button class="close-btn" title="닫기">&times;</button>
+            </div>
+            ${stop.time ? `<div class="popup-time">🕒 ${stop.time}</div>` : ''}
+            <div class="popup-addr">📍 ${stop.addr}</div>
+            ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
+          `;
+
+          const bubbleOverlay = new kakao.maps.CustomOverlay({
+            position: coords,
+            content: bubbleDiv,
+            yAnchor: 1.25, // 핀 머리 바로 위에 오도록 설정
+            xAnchor: 0.5,
+            zIndex: 100
           });
 
-          const onSelect = () => {
-            if (activeInfoWindow) activeInfoWindow.close();
-            infoWindow.open(map, overlay);
-            activeInfoWindow = infoWindow;
+          // 팝업 닫기 버튼
+          bubbleDiv.querySelector('.close-btn').onclick = function(e) {
+            e.stopPropagation();
+            bubbleOverlay.setMap(null);
+            activeBubbleOverlay = null;
+          };
+
+          // 핀이나 카드를 클릭했을 때 실행
+          const openBubble = () => {
+            if (activeBubbleOverlay) activeBubbleOverlay.setMap(null);
+            bubbleOverlay.setMap(map);
+            activeBubbleOverlay = bubbleOverlay;
             map.panTo(coords);
 
             document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
@@ -332,17 +399,21 @@
             card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           };
 
-          badge.onclick = onSelect;
-          card.onclick = onSelect;
+          badge.onclick = openBubble;
+          card.onclick = openBubble;
         }
       }
 
+      // 도로 기반 경로선 그리기
       if (validStops.length > 1) {
         map.setBounds(bounds);
         await drawRoadLine(validStops, color);
       } else if (validStops.length === 1) {
         map.setCenter(validStops[0].coords);
       }
+
+      // 렌더링 완료 후 지도 타일 강제 재정렬
+      setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
     async function drawRoadLine(stops, color) {
