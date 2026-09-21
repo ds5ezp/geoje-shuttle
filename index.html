@@ -98,19 +98,18 @@
     .bus-marker-badge:hover { transform: translate(-50%, -50%) scale(1.15); }
     .bus-marker-badge.복지관 { background: #dc2626 !important; width: 34px; height: 34px; font-size: 14px; }
 
-    /* ⭐️ 번호 핀 바로 위에 밀착되는 커스텀 말풍선 오버레이 */
+    /* 번호 핀 위 밀착형 말풍선 */
     .bubble-popup {
       position: relative;
       background: #ffffff;
       border-radius: 12px;
       padding: 12px 14px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
       border: 1px solid #cbd5e1;
       min-width: 210px;
       max-width: 270px;
-      bottom: 22px; /* 핀 머리 위로 띄움 */
+      bottom: 22px;
     }
-    /* 말풍선 아래쪽 꼭지(화살표) */
     .bubble-popup::after {
       content: '';
       position: absolute;
@@ -200,7 +199,7 @@
   </div>
 
   <script>
-    // ⭐️ 본인의 구글 시트 ID 확인
+    // ⭐️ 본인의 구글 스프레드시트 ID
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
 
     let routeData = {};
@@ -210,7 +209,7 @@
     let geocoder = null;
     let places = null;
     let markerOverlays = [];
-    let currentBubbleOverlay = null; // 활성화된 말풍선 오버레이
+    let currentBubbleOverlay = null;
     let polyline = null;
 
     // 구글 시트 GViz 콜백
@@ -257,12 +256,18 @@
         level: 6
       });
 
-      // ⭐️ 확대/축소 시 타일이 깨지지 않도록 최소/최대 레벨 지정 및 줌컨트롤러 부착
+      // ⭐️ 1) 지도 / 스카이뷰(위성지도) 전환 버튼 컨트롤러 추가
+      const mapTypeControl = new kakao.maps.MapTypeControl();
+      map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
+
+      // ⭐️ 2) 확대/축소 줌 컨트롤러 추가
+      const zoomControl = new kakao.maps.ZoomControl();
+      map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
+
+      // 확대/축소 범위 설정 및 타일 안정화
       map.setMinLevel(1);
       map.setMaxLevel(10);
-      map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
 
-      // ⭐️ 확대/축소(zoom_changed)나 크기 변경 시 지도 타일 레이아웃 자동 복구
       kakao.maps.event.addListener(map, 'zoom_changed', function() {
         setTimeout(() => { if (map) map.relayout(); }, 100);
       });
@@ -302,7 +307,6 @@
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
 
-      // 기존 핀 및 말풍선, 선 제거
       markerOverlays.forEach(o => o.setMap(null));
       markerOverlays = [];
       if (currentBubbleOverlay) { currentBubbleOverlay.setMap(null); currentBubbleOverlay = null; }
@@ -323,7 +327,6 @@
         const stop = stops[i];
         const isBokji = stop.name.indexOf('복지관') > -1;
 
-        // 사이드바 카드 추가
         const card = document.createElement('div');
         card.className = 'stop-card';
         card.id = `card-${i}`;
@@ -337,7 +340,6 @@
         `;
         list.appendChild(card);
 
-        // 시트 C열 주소 검색
         const coords = await searchCoordinate(stop.addr, stop.name);
 
         if (coords) {
@@ -345,7 +347,6 @@
           validStops.push(stop);
           bounds.extend(coords);
 
-          // 지도 동그라미 번호 뱃지 생성
           const badge = document.createElement('div');
           badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''}`;
           badge.style.backgroundColor = isBokji ? '#dc2626' : color;
@@ -361,7 +362,7 @@
           markerOverlay.setMap(map);
           markerOverlays.push(markerOverlay);
 
-          // ⭐️ 번호 핀 바로 머리 위에 붙는 전용 말풍선 DOM
+          // 말풍선 카드 엘리먼트
           const bubbleDiv = document.createElement('div');
           bubbleDiv.className = 'bubble-popup';
           bubbleDiv.innerHTML = `
@@ -377,19 +378,17 @@
           const bubbleOverlay = new kakao.maps.CustomOverlay({
             position: coords,
             content: bubbleDiv,
-            yAnchor: 1.0, // 핀 바로 윗부분에 꼬리가 닿도록 설정
+            yAnchor: 1.0,
             xAnchor: 0.5,
             zIndex: 100
           });
 
-          // 닫기 버튼 이벤트
           bubbleDiv.querySelector('.close-btn').onclick = function(e) {
             e.stopPropagation();
             bubbleOverlay.setMap(null);
             currentBubbleOverlay = null;
           };
 
-          // 클릭 시 실행 함수
           const showDetail = () => {
             if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
             bubbleOverlay.setMap(map);
@@ -406,7 +405,6 @@
         }
       }
 
-      // 도로 기반 경로선 그리기 및 지도 영역 맞춤
       if (validStops.length > 1) {
         map.setBounds(bounds);
         await drawRoadLine(validStops, color);
