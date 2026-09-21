@@ -453,63 +453,72 @@
       polyline.setMap(map);
     }
 
-    // ⭐️ 버스 정류소 번호 / 버스 정류장 명칭 우선 스마트 검색 엔진
+// ⭐️ 정류소 번호(1433 등) 및 명칭 완벽 지원 다단계 검색 엔진
     function searchCoordinate(addr, name) {
       return new Promise((resolve) => {
-        const cleanAddr = (addr || '').trim();
-        const cleanName = (name || '').trim();
+        // 숫자형일 수 있으므로 문자열 변환 및 쉼표 제거
+        let cleanAddr = String(addr || '').replace(/,/g, '').trim();
+        let cleanName = String(name || '').trim();
 
-        // 1. 숫자 4~5자리(정류소 번호)인 경우 ➔ 정류소 고유 번호로 검색
+        // 1. 숫자 4~5자리 정류소 번호인 경우 (예: 1433)
         const isStopNumber = /^\d{4,5}$/.test(cleanAddr);
         if (isStopNumber) {
-          places.keywordSearch(`거제 버스정류장 ${cleanAddr}`, (data, status) => {
+          // 카카오 장소 검색에서 "거제 1433"으로 1차 조회
+          places.keywordSearch(`거제 ${cleanAddr}`, (data, status) => {
             if (status === kakao.maps.services.Status.OK && data.length > 0) {
               return resolve(new kakao.maps.LatLng(data[0].y, data[0].x));
             }
-            // 실패 시 이름으로 재검색
-            searchByStopName(cleanName, cleanAddr, resolve);
+            // "거제 1433" 실패 시 "1433" 번호 단독으로 2차 조회
+            places.keywordSearch(cleanAddr, (data2, status2) => {
+              if (status2 === kakao.maps.services.Status.OK && data2.length > 0) {
+                // 거제시 관내 결과 우선 선택
+                const geojeItem = data2.find(item => item.address_name && item.address_name.includes('거제'));
+                const chosen = geojeItem || data2[0];
+                return resolve(new kakao.maps.LatLng(chosen.y, chosen.x));
+              }
+              // 번호로 못 찾으면 정류장 명칭(B열)으로 3차 조회
+              searchByStopName(cleanName, cleanAddr, resolve);
+            });
           });
           return;
         }
 
-        // 2. 정류장 명칭으로 우선 검색
+        // 2. 일반 텍스트인 경우 정류소 명칭/주소 검색
         searchByStopName(cleanName, cleanAddr, resolve);
       });
     }
 
     function searchByStopName(nameText, addrText, resolve) {
-      // "정류장" 명칭을 덧붙여 실제 도로변 버스 승강장 검색
-      const queryName = nameText.includes('정류') ? nameText : `${nameText} 정류장`;
-      const fullQuery = queryName.includes('거제') ? queryName : `거제 ${queryName}`;
-
-      places.keywordSearch(fullQuery, (data, status) => {
+      // B열 명칭으로 카카오 버스정류장 검색 (예: "거제 상문고등학교")
+      const q1 = nameText.includes('거제') ? nameText : `거제 ${nameText}`;
+      
+      places.keywordSearch(q1, (data, status) => {
         if (status === kakao.maps.services.Status.OK && data.length > 0) {
           return resolve(new kakao.maps.LatLng(data[0].y, data[0].x));
         }
 
-        // 3. 정류장 검색 실패 시, 도로명/지번 주소로 조회
+        // 도로명/지번 주소 검색
         if (addrText && addrText !== nameText) {
           geocoder.addressSearch(addrText, (result, aStatus) => {
             if (aStatus === kakao.maps.services.Status.OK) {
               return resolve(new kakao.maps.LatLng(result[0].y, result[0].x));
             }
-            fallbackKeyword(addrText, nameText, resolve);
+            fallbackKeyword(nameText, resolve);
           });
         } else {
-          fallbackKeyword(addrText, nameText, resolve);
+          fallbackKeyword(nameText, resolve);
         }
       });
     }
 
-    function fallbackKeyword(addrText, nameText, resolve) {
-      let q = addrText || nameText;
-      if (!q.includes('거제')) q = '거제 ' + q;
-
-      places.keywordSearch(q, (data, status) => {
+    function fallbackKeyword(query, resolve) {
+      places.keywordSearch(query, (data, status) => {
         if (status === kakao.maps.services.Status.OK && data.length > 0) {
           return resolve(new kakao.maps.LatLng(data[0].y, data[0].x));
         }
-        resolve(null);
+        // 최종 실패 시에도 마커가 사라지지 않도록 거제시청 부근 기본 좌표 반환
+        console.warn(`[위치 미발견] 기본 위치 적용: ${query}`);
+        resolve(new kakao.maps.LatLng(34.8872, 128.625));
       });
     }
   </script>
