@@ -220,13 +220,13 @@
     let currentBubbleOverlay = null;
     let polyline = null;
 
-    // 거제시 관내 영역 바운더리 락 (외지 이탈 원천 차단)
+    // 거제 관내 영역 락
     const GEOJE_BOUNDS = new kakao.maps.LatLngBounds(
       new kakao.maps.LatLng(34.7000, 128.4500),
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // ⭐️ 구글 시트 GViz 콜백 (F열 정류소 번호 파싱 포함)
+    // ⭐️ 구글 시트 GViz 콜백 (F열: 정류소번호, G열: 위도, H열: 경도 자동 파싱)
     window.googleSheetCallback = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -243,8 +243,11 @@
           const addr   = c[2] ? String(c[2].f || c[2].v || '').trim() : '';
           const time   = c[3] ? String(c[3].f || c[3].v || '').trim() : '';
           const desc   = c[4] ? String(c[4].f || c[4].v || '').trim() : '';
-          // ⭐️ F열: 정류소 번호 (c[5])
           const stopNo = c[5] ? String(c[5].f || c[5].v || '').replace(/,/g, '').trim() : '';
+          
+          // ⭐️ G열(위도), H열(경도) 값 추출
+          const latVal = c[6] ? parseFloat(c[6].v || c[6].f) : null;
+          const lngVal = c[7] ? parseFloat(c[7].v || c[7].f) : null;
 
           if (!course || !name || course === "코스명" || course === "코스구분") return;
 
@@ -254,7 +257,9 @@
             addr: addr || name,
             time: time,
             desc: desc,
-            stopNo: stopNo // 정류장 번호
+            stopNo: stopNo,
+            lat: (!isNaN(latVal) && latVal > 30) ? latVal : null,
+            lng: (!isNaN(lngVal) && lngVal > 120) ? lngVal : null
           });
         });
 
@@ -343,7 +348,7 @@
         const stop = stops[i];
         const isBokji = stop.name.indexOf('복지관') > -1;
 
-        // 사이드바 카드 추가 (정류소 번호 뱃지 포함)
+        // 사이드바 카드 추가
         const card = document.createElement('div');
         card.className = 'stop-card';
         card.id = `card-${i}`;
@@ -360,8 +365,8 @@
         `;
         list.appendChild(card);
 
-        // ⭐️ F열 정류소 번호 우선, 없으면 주소 기반 검색
-        const coords = await resolveStopLocation(stop);
+        // ⭐️ [위치 결정] 시트에 등록된 위도/경도 우선 참조
+        const coords = await getStopCoordinates(stop);
 
         if (coords) {
           stop.coords = coords;
@@ -475,91 +480,48 @@
       polyline.setMap(map);
     }
 
-    // ⭐️ [핵심] F열 정류소 번호 우선, 미입력 시 주소 확인 로직
-   function resolveStopLocation(stop) {
+    // ⭐️ [핵심] 시트의 위도(lat), 경도(lng) 직접 참조 ➔ 없으면 주소 검색 fallback
+    function getStopCoordinates(stop) {
       return new Promise((resolve) => {
-        const stopNo = (stop.stopNo || '').trim();
-        const name = (stop.name || '').trim();
-        const addr = (stop.addr || '').trim();
+        // 1. 시트 G, H열에 유효한 위·경도가 있는 경우 즉시 반환 (오차 0%, 속도 10배)
+        if (stop.lat && stop.lng) {
+          return resolve(new kakao.maps.LatLng(stop.lat, stop.lng));
+        }
 
-        const geojeOptions = {
-          bounds: GEOJE_BOUNDS,
-          location: new kakao.maps.LatLng(34.8872, 128.625),
-          radius: 20000
-        };
+        // 2. 좌표가 없을 때만 C열 주소 또는 이름 검색
+        const addrText = (stop.addr || '').trim();
+        const nameText = (stop.name || '').trim();
 
-        // 1. "덕산아내 정류장" 또는 "덕산아내 버스정류소"를 1순위로 엄격 검색
-        const busQuery = name.includes('정류') ? `거제 ${name}` : `거제 ${name} 정류장`;
-        
-        places.keywordSearch(busQuery, (data, status) => {
-          // 카테고리나 장소명에 '정류장' 또는 '정류소'가 들어간 거제 관내 위치 우선 필터링
-          const busStopItem = (data || []).find(item => {
-            const isGeoje = getGeojeMatch([item]);
-            const isStation = (item.category_name && item.category_name.includes('버스')) || 
-                              item.place_name.includes('정류장') || 
-                              item.place_name.includes('정류소');
-            return isGeoje && isStation;
+        if (addrText && addrText !== nameText) {
+          const cleanAddr = addrText.includes('거제') ? addrText : `거제시 ${addrText}`;
+          geocoder.addressSearch(cleanAddr, (result, status) => {
+            if (status === kakao.maps.services.Status.OK) {
+              return resolve(new kakao.maps.LatLng(result[0].y, result[0].x));
+            }
+            searchByName(nameText, resolve);
           });
-
-          if (status === kakao.maps.services.Status.OK && busStopItem) {
-            return resolve(new kakao.maps.LatLng(busStopItem.y, busStopItem.x));
-          }
-
-          // 2. 정류장 키워드로 못 찾았을 때 정류소 번호 시도
-          if (stopNo) {
-            places.keywordSearch(`거제 ${stopNo}`, (data2, status2) => {
-              const match2 = getGeojeMatch(data2);
-              if (status2 === kakao.maps.services.Status.OK && match2) {
-                return resolve(new kakao.maps.LatLng(match2.y, match2.x));
-              }
-              fallbackToAddressOrName(addr, name, geojeOptions, resolve);
-            }, geojeOptions);
-            return;
-          }
-
-          fallbackToAddressOrName(addr, name, geojeOptions, resolve);
-        }, geojeOptions);
+        } else {
+          searchByName(nameText, resolve);
+        }
       });
     }
 
-    function fallbackToAddressOrName(addrText, nameText, options, resolve) {
-      // 주소가 있는 경우 주소 검색 우선
-      if (addrText && addrText !== nameText) {
-        const cleanAddr = addrText.includes('거제') ? addrText : `거제시 ${addrText}`;
-        geocoder.addressSearch(cleanAddr, (result, status) => {
-          if (status === kakao.maps.services.Status.OK) {
-            return resolve(new kakao.maps.LatLng(result[0].y, result[0].x));
-          }
-          // 주소 실패 시 정류장명 검색
-          searchByGeojeName(nameText, options, resolve);
-        });
-      } else {
-        searchByGeojeName(nameText, options, resolve);
-      }
-    }
-
-    function searchByGeojeName(nameText, options, resolve) {
+    function searchByName(nameText, resolve) {
       const q = nameText.includes('거제') ? nameText : `거제 ${nameText}`;
+      const geojeOptions = {
+        bounds: GEOJE_BOUNDS,
+        location: new kakao.maps.LatLng(34.8872, 128.625),
+        radius: 20000
+      };
+
       places.keywordSearch(q, (data, status) => {
-        const match = getGeojeMatch(data);
-        if (status === kakao.maps.services.Status.OK && match) {
+        if (status === kakao.maps.services.Status.OK && data.length > 0) {
+          const match = data.find(item => item.address_name && (item.address_name.includes('거제') || item.address_name.includes('경남'))) || data[0];
           return resolve(new kakao.maps.LatLng(match.y, match.x));
         }
-        // 최종 폴백: 복지관 좌표
+        // 최종 폴백: 복지관 기본 좌표
         resolve(new kakao.maps.LatLng(34.8872, 128.625));
-      }, options);
-    }
-
-    // 거제 관내 좌표 검증
-    function getGeojeMatch(items) {
-      if (!items || items.length === 0) return null;
-      return items.find(item => {
-        const lat = parseFloat(item.y);
-        const lng = parseFloat(item.x);
-        const isGeojeCoord = (lat >= 34.70 && lat <= 35.05 && lng >= 128.45 && lng <= 128.78);
-        const hasGeojeText = (item.address_name && (item.address_name.includes('거제') || item.address_name.includes('경남')));
-        return isGeojeCoord && hasGeojeText;
-      }) || null;
+      }, geojeOptions);
     }
   </script>
 </body>
