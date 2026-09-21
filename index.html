@@ -207,11 +207,10 @@
   </div>
 
   <script>
-    // ⭐️ 본인의 구글 스프레드시트 ID를 넣어주세요
+    // ⭐️ 본인의 구글 스프레드시트 ID
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
 
     let routeData = {};
-    // ⭐️ '정류소목록' 탭 마스터 DB (번호 매칭용, 이름 매칭용)
     const masterStopMapByNo = {};
     const masterStopMapByName = {};
 
@@ -229,7 +228,7 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // ⭐️ 1단계: '정류소목록' 탭 콜백 (A:정류장명, B:위도, C:경도, D:정류장번호)
+    // 1단계: '정류소목록' 탭 마스터 DB 로드
     window.handleStationList = function(json) {
       try {
         const rows = json.table.rows || [];
@@ -242,7 +241,6 @@
           const lngVal = c[2] ? parseFloat(c[2].v || c[2].f) : null;
           const stopNo = c[3] ? String(c[3].f || c[3].v || '').replace(/,/g, '').trim() : '';
 
-          // 1행 헤더 제외
           if (!name || name === "정류장명" || isNaN(latVal) || isNaN(lngVal)) return;
 
           const coordData = {
@@ -252,20 +250,17 @@
             stopNo: stopNo
           };
 
-          // 번호로 찾을 수 있게 저장 (D열)
           if (stopNo) masterStopMapByNo[stopNo] = coordData;
-          // 이름으로도 찾을 수 있게 저장 (A열)
           if (name) masterStopMapByName[name] = coordData;
         });
       } catch (e) {
         console.warn("'정류소목록' 파싱 오류:", e);
       }
 
-      // 정류소 마스터 목록 로드 완료 후 ➔ 2단계: '노선데이터' 탭 로드
       loadRouteData();
     };
 
-    // ⭐️ 2단계: '노선데이터' 탭 콜백
+    // 2단계: '노선데이터' 탭 로드 (행 순서 보존)
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -273,7 +268,8 @@
         const rows = json.table.rows || [];
         const result = {};
 
-        rows.forEach(r => {
+        // ⭐️ 순서 보장을 위해 index(idx)를 함께 저장
+        rows.forEach((r, idx) => {
           const c = r.c;
           if (!c) return;
 
@@ -288,6 +284,7 @@
 
           if (!result[course]) result[course] = [];
           result[course].push({
+            rowIdx: idx, // 시트 원본 행 순서
             name: name,
             addr: addr || name,
             time: time,
@@ -304,18 +301,15 @@
     };
 
     window.onload = function() {
-      // 카카오 지도 생성
       const mapContainer = document.getElementById('map');
       map = new kakao.maps.Map(mapContainer, {
         center: new kakao.maps.LatLng(34.8872, 128.625),
         level: 6
       });
 
-      // 지도/스카이뷰(위성) 전환 컨트롤러
       const mapTypeControl = new kakao.maps.MapTypeControl();
       map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
 
-      // 줌 컨트롤러
       const zoomControl = new kakao.maps.ZoomControl();
       map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
 
@@ -332,15 +326,13 @@
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
 
-      // 1. '정류소목록' 탭 먼저 호출
       const encodedMaster = encodeURIComponent("정류소목록");
       const masterUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedMaster}&tqx=responseHandler:handleStationList&_t=${Date.now()}`;
       
       const s1 = document.createElement('script');
       s1.src = masterUrl;
       s1.onerror = function() {
-        // 정류소목록 탭 로드 실패 시 바로 노선데이터 탭으로 진입
-        console.warn("'정류소목록' 탭을 불러올 수 없어 노선데이터로 바로 넘어갑니다.");
+        console.warn("'정류소목록' 탭 로드 실패. 노선데이터로 바로 진행합니다.");
         loadRouteData();
       };
       document.body.appendChild(s1);
@@ -385,7 +377,10 @@
       if (currentBubbleOverlay) { currentBubbleOverlay.setMap(null); currentBubbleOverlay = null; }
       if (polyline) { polyline.setMap(null); polyline = null; }
 
-      const stops = routeData[courseName] || [];
+      // ⭐️ [핵심] 시트에 입력된 행 순서대로 강제 정렬 (1, 2, 3... 순서 보장)
+      const rawStops = routeData[courseName] || [];
+      const stops = [...rawStops].sort((a, b) => a.rowIdx - b.rowIdx);
+
       const color = COURSE_COLORS[colorIdx % COURSE_COLORS.length];
       const bounds = new kakao.maps.LatLngBounds();
       const validStops = [];
@@ -396,16 +391,18 @@
       const list = document.getElementById('stopList');
       list.innerHTML = '';
 
+      // 시트 윗 행부터 차례대로 1번, 2번, 3번 부여
       for (let i = 0; i < stops.length; i++) {
         const stop = stops[i];
         const isBokji = stop.name.indexOf('복지관') > -1;
+        const displayNum = i + 1; // 1, 2, 3...
 
         // 사이드바 카드 추가
         const card = document.createElement('div');
         card.className = 'stop-card';
         card.id = `card-${i}`;
         card.innerHTML = `
-          <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${i + 1}</div>
+          <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
           <div class="stop-info">
             <div class="stop-info-header">
               <h4>${stop.name}</h4>
@@ -417,7 +414,7 @@
         `;
         list.appendChild(card);
 
-        // ⭐️ '정류소목록' 탭 마스터 DB 참조 좌표 결정
+        // 좌표 해석 (정류소목록 탭 우선)
         const coords = await resolveStopCoordinates(stop);
 
         if (coords) {
@@ -425,10 +422,11 @@
           validStops.push(stop);
           bounds.extend(coords);
 
+          // 지도 뱃지 번호 1, 2, 3...
           const badge = document.createElement('div');
           badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''}`;
           badge.style.backgroundColor = isBokji ? '#dc2626' : color;
-          badge.innerText = (i + 1);
+          badge.innerText = displayNum;
 
           const markerOverlay = new kakao.maps.CustomOverlay({
             position: coords,
@@ -440,12 +438,12 @@
           markerOverlay.setMap(map);
           markerOverlays.push(markerOverlay);
 
-          // 핀 머리 위 밀착형 말풍선
+          // 말풍선 카드
           const bubbleDiv = document.createElement('div');
           bubbleDiv.className = 'bubble-popup';
           bubbleDiv.innerHTML = `
             <div class="popup-header">
-              <div class="popup-title">${i + 1}. ${stop.name}</div>
+              <div class="popup-title">${displayNum}. ${stop.name}</div>
               ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
               <button class="close-btn" title="닫기">&times;</button>
             </div>
@@ -484,6 +482,7 @@
         }
       }
 
+      // 1번부터 마지막 번호까지 순서대로 경로선 연결
       if (validStops.length > 1) {
         map.setBounds(bounds);
         await drawRoadLine(validStops, color);
@@ -532,26 +531,25 @@
       polyline.setMap(map);
     }
 
-    // ⭐️ [핵심] '정류소목록' 탭 참조 ➔ 번호/이름 매칭 ➔ 없을 때 주소 fallback
     function resolveStopCoordinates(stop) {
       return new Promise((resolve) => {
         const stopNo = (stop.stopNo || '').trim();
         const name   = (stop.name || '').trim();
         const addr   = (stop.addr || '').trim();
 
-        // 1. [정류장번호(F열) 우선] 정류소목록 탭의 D열(번호)과 일치하는 좌표 반환
+        // 1. F열 정류소 번호 매칭 (D열 번호와 대조)
         if (stopNo && masterStopMapByNo[stopNo]) {
           const matched = masterStopMapByNo[stopNo];
           return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
         }
 
-        // 2. [정류장명(B열) 매칭] 정류소목록 탭의 A열(이름)과 일치하는 좌표 반환
+        // 2. B열 정류소 이름 매칭 (A열 이름과 대조)
         if (name && masterStopMapByName[name]) {
           const matched = masterStopMapByName[name];
           return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
         }
 
-        // 3. '정류소목록'에 없는 복지관 등 특수 장소는 C열 주소로 자동 검색
+        // 3. 없으면 C열 주소로 카카오 자동 검색
         if (addr && addr !== name) {
           const cleanAddr = addr.includes('거제') ? addr : `거제시 ${addr}`;
           geocoder.addressSearch(cleanAddr, (result, status) => {
