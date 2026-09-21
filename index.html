@@ -79,7 +79,15 @@
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .stop-num.bokji { background: #dc2626 !important; }
+    
+    .stop-info { flex: 1; }
+    .stop-info-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .stop-info h4 { font-size: 0.95rem; font-weight: 700; color: #0f172a; }
+    .stop-id-tag {
+      background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
+      font-size: 0.72rem; font-weight: bold; padding: 1px 6px; border-radius: 4px;
+    }
+
     .stop-info .time {
       display: inline-block; background: #dbeafe; color: #1e40af;
       font-size: 0.8rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-top: 4px;
@@ -106,8 +114,8 @@
       padding: 12px 14px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.25);
       border: 1px solid #cbd5e1;
-      min-width: 210px;
-      max-width: 270px;
+      min-width: 220px;
+      max-width: 280px;
       bottom: 22px;
     }
     .bubble-popup::after {
@@ -122,7 +130,7 @@
     }
     .bubble-popup .popup-header {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 4px;
+      margin-bottom: 4px; gap: 6px;
     }
     .bubble-popup .popup-title {
       font-size: 0.95rem; font-weight: 800; color: #0f172a;
@@ -212,13 +220,13 @@
     let currentBubbleOverlay = null;
     let polyline = null;
 
-    // ⭐️ 거제시 관내 좌표 바운더리 (남서단~북동단 영역 락)
+    // 거제시 관내 영역 바운더리 락 (외지 이탈 원천 차단)
     const GEOJE_BOUNDS = new kakao.maps.LatLngBounds(
-      new kakao.maps.LatLng(34.7000, 128.4500), // 거제 남서쪽 끝
-      new kakao.maps.LatLng(35.0500, 128.7800)  // 거제 북동쪽 끝
+      new kakao.maps.LatLng(34.7000, 128.4500),
+      new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // 구글 시트 GViz 콜백
+    // ⭐️ 구글 시트 GViz 콜백 (F열 정류소 번호 파싱 포함)
     window.googleSheetCallback = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -235,6 +243,8 @@
           const addr   = c[2] ? String(c[2].f || c[2].v || '').trim() : '';
           const time   = c[3] ? String(c[3].f || c[3].v || '').trim() : '';
           const desc   = c[4] ? String(c[4].f || c[4].v || '').trim() : '';
+          // ⭐️ F열: 정류소 번호 (c[5])
+          const stopNo = c[5] ? String(c[5].f || c[5].v || '').replace(/,/g, '').trim() : '';
 
           if (!course || !name || course === "코스명" || course === "코스구분") return;
 
@@ -243,7 +253,8 @@
             name: name,
             addr: addr || name,
             time: time,
-            desc: desc
+            desc: desc,
+            stopNo: stopNo // 정류장 번호
           });
         });
 
@@ -332,21 +343,25 @@
         const stop = stops[i];
         const isBokji = stop.name.indexOf('복지관') > -1;
 
+        // 사이드바 카드 추가 (정류소 번호 뱃지 포함)
         const card = document.createElement('div');
         card.className = 'stop-card';
         card.id = `card-${i}`;
         card.innerHTML = `
           <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${i + 1}</div>
           <div class="stop-info">
-            <h4>${stop.name}</h4>
+            <div class="stop-info-header">
+              <h4>${stop.name}</h4>
+              ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+            </div>
             ${stop.time ? `<div class="time">🕒 ${stop.time}</div>` : ''}
             <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
           </div>
         `;
         list.appendChild(card);
 
-        // ⭐️ 거제 한정 좌표 검색
-        const coords = await searchGeojeCoordinate(stop.addr, stop.name);
+        // ⭐️ F열 정류소 번호 우선, 없으면 주소 기반 검색
+        const coords = await resolveStopLocation(stop);
 
         if (coords) {
           stop.coords = coords;
@@ -374,6 +389,7 @@
           bubbleDiv.innerHTML = `
             <div class="popup-header">
               <div class="popup-title">${i + 1}. ${stop.name}</div>
+              ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
               <button class="close-btn" title="닫기">&times;</button>
             </div>
             ${stop.time ? `<div class="popup-time">🕒 ${stop.time}</div>` : ''}
@@ -459,79 +475,78 @@
       polyline.setMap(map);
     }
 
-    // ⭐️ 거제도 영역(bounds) 내에서만 검색하는 스마트 검색 함수
-    function searchGeojeCoordinate(addr, name) {
+    // ⭐️ [핵심] F열 정류소 번호 우선, 미입력 시 주소 확인 로직
+    function resolveStopLocation(stop) {
       return new Promise((resolve) => {
-        let cleanAddr = String(addr || '').replace(/,/g, '').trim();
-        let cleanName = String(name || '').trim();
+        const stopNo = (stop.stopNo || '').trim();
+        const name = (stop.name || '').trim();
+        const addr = (stop.addr || '').trim();
 
-        // ⭐️ 거제시 관내로 검색 영역 강제 제한 옵션
         const geojeOptions = {
-          bounds: GEOJE_BOUNDS, // 거제 영역 외부 결과 완전 차단
+          bounds: GEOJE_BOUNDS,
           location: new kakao.maps.LatLng(34.8872, 128.625),
           radius: 20000
         };
 
-        // 1. 숫자 4~5자리 정류소 번호(예: 1433)인 경우
-        const isStopNumber = /^\d{4,5}$/.test(cleanAddr);
-        if (isStopNumber) {
-          // 1차: "거제 [정류장명] [번호]" 또는 "거제 [번호]"
-          const query = cleanName ? `거제 ${cleanName}` : `거제 ${cleanAddr}`;
-          places.keywordSearch(query, (data, status) => {
-            const geojeItem = getGeojeMatch(data);
-            if (status === kakao.maps.services.Status.OK && geojeItem) {
-              return resolve(new kakao.maps.LatLng(geojeItem.y, geojeItem.x));
+        // 1. F열에 정류장 번호가 있는 경우 ➔ 정류장 번호 우선 정밀 조회
+        if (stopNo && /^\d{3,6}$/.test(stopNo)) {
+          places.keywordSearch(`거제 ${name} ${stopNo}`, (data, status) => {
+            const match = getGeojeMatch(data);
+            if (status === kakao.maps.services.Status.OK && match) {
+              return resolve(new kakao.maps.LatLng(match.y, match.x));
             }
-            // 2차: "거제 [번호]" 시도
-            places.keywordSearch(`거제 ${cleanAddr}`, (data2, status2) => {
-              const geojeItem2 = getGeojeMatch(data2);
-              if (status2 === kakao.maps.services.Status.OK && geojeItem2) {
-                return resolve(new kakao.maps.LatLng(geojeItem2.y, geojeItem2.x));
+            // "거제 [번호]" 단독 시도
+            places.keywordSearch(`거제 ${stopNo}`, (data2, status2) => {
+              const match2 = getGeojeMatch(data2);
+              if (status2 === kakao.maps.services.Status.OK && match2) {
+                return resolve(new kakao.maps.LatLng(match2.y, match2.x));
               }
-              // 3차: 정류장 명칭으로 조회
-              searchByNameOnly(cleanName, cleanAddr, geojeOptions, resolve);
+              // 번호 조회 실패 시 주소/이름으로 자동 대체
+              fallbackToAddressOrName(addr, name, geojeOptions, resolve);
             }, geojeOptions);
           }, geojeOptions);
           return;
         }
 
-        // 2. 일반 텍스트인 경우
-        searchByNameOnly(cleanName, cleanAddr, geojeOptions, resolve);
+        // 2. F열이 비어있는 경우 ➔ C열 주소 및 정류장명으로 확인
+        fallbackToAddressOrName(addr, name, geojeOptions, resolve);
       });
     }
 
-    function searchByNameOnly(nameText, addrText, options, resolve) {
-      const q = nameText.includes('거제') ? nameText : `거제 ${nameText}`;
-      
-      places.keywordSearch(q, (data, status) => {
-        const geojeItem = getGeojeMatch(data);
-        if (status === kakao.maps.services.Status.OK && geojeItem) {
-          return resolve(new kakao.maps.LatLng(geojeItem.y, geojeItem.x));
-        }
+    function fallbackToAddressOrName(addrText, nameText, options, resolve) {
+      // 주소가 있는 경우 주소 검색 우선
+      if (addrText && addrText !== nameText) {
+        const cleanAddr = addrText.includes('거제') ? addrText : `거제시 ${addrText}`;
+        geocoder.addressSearch(cleanAddr, (result, status) => {
+          if (status === kakao.maps.services.Status.OK) {
+            return resolve(new kakao.maps.LatLng(result[0].y, result[0].x));
+          }
+          // 주소 실패 시 정류장명 검색
+          searchByGeojeName(nameText, options, resolve);
+        });
+      } else {
+        searchByGeojeName(nameText, options, resolve);
+      }
+    }
 
-        // 주소 검색 (도로명/지번)
-        if (addrText && addrText !== nameText) {
-          const addrQ = addrText.includes('거제') ? addrText : `거제시 ${addrText}`;
-          geocoder.addressSearch(addrQ, (result, aStatus) => {
-            if (aStatus === kakao.maps.services.Status.OK) {
-              return resolve(new kakao.maps.LatLng(result[0].y, result[0].x));
-            }
-            // 검색 완전 실패 시에도 서울로 안 튀고 거제 복지관 부근으로 안착
-            resolve(new kakao.maps.LatLng(34.8872, 128.625));
-          });
-        } else {
-          resolve(new kakao.maps.LatLng(34.8872, 128.625));
+    function searchByGeojeName(nameText, options, resolve) {
+      const q = nameText.includes('거제') ? nameText : `거제 ${nameText}`;
+      places.keywordSearch(q, (data, status) => {
+        const match = getGeojeMatch(data);
+        if (status === kakao.maps.services.Status.OK && match) {
+          return resolve(new kakao.maps.LatLng(match.y, match.x));
         }
+        // 최종 폴백: 복지관 좌표
+        resolve(new kakao.maps.LatLng(34.8872, 128.625));
       }, options);
     }
 
-    // 거제 관내 좌표 검증 함수
+    // 거제 관내 좌표 검증
     function getGeojeMatch(items) {
       if (!items || items.length === 0) return null;
       return items.find(item => {
         const lat = parseFloat(item.y);
         const lng = parseFloat(item.x);
-        // 위도 34.7~35.05, 경도 128.45~128.78 (거제시 관내만 통과)
         const isGeojeCoord = (lat >= 34.70 && lat <= 35.05 && lng >= 128.45 && lng <= 128.78);
         const hasGeojeText = (item.address_name && (item.address_name.includes('거제') || item.address_name.includes('경남')));
         return isGeojeCoord && hasGeojeText;
