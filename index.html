@@ -476,7 +476,7 @@
     }
 
     // ⭐️ [핵심] F열 정류소 번호 우선, 미입력 시 주소 확인 로직
-    function resolveStopLocation(stop) {
+   function resolveStopLocation(stop) {
       return new Promise((resolve) => {
         const stopNo = (stop.stopNo || '').trim();
         const name = (stop.name || '').trim();
@@ -488,28 +488,37 @@
           radius: 20000
         };
 
-        // 1. F열에 정류장 번호가 있는 경우 ➔ 정류장 번호 우선 정밀 조회
-        if (stopNo && /^\d{3,6}$/.test(stopNo)) {
-          places.keywordSearch(`거제 ${name} ${stopNo}`, (data, status) => {
-            const match = getGeojeMatch(data);
-            if (status === kakao.maps.services.Status.OK && match) {
-              return resolve(new kakao.maps.LatLng(match.y, match.x));
-            }
-            // "거제 [번호]" 단독 시도
+        // 1. "덕산아내 정류장" 또는 "덕산아내 버스정류소"를 1순위로 엄격 검색
+        const busQuery = name.includes('정류') ? `거제 ${name}` : `거제 ${name} 정류장`;
+        
+        places.keywordSearch(busQuery, (data, status) => {
+          // 카테고리나 장소명에 '정류장' 또는 '정류소'가 들어간 거제 관내 위치 우선 필터링
+          const busStopItem = (data || []).find(item => {
+            const isGeoje = getGeojeMatch([item]);
+            const isStation = (item.category_name && item.category_name.includes('버스')) || 
+                              item.place_name.includes('정류장') || 
+                              item.place_name.includes('정류소');
+            return isGeoje && isStation;
+          });
+
+          if (status === kakao.maps.services.Status.OK && busStopItem) {
+            return resolve(new kakao.maps.LatLng(busStopItem.y, busStopItem.x));
+          }
+
+          // 2. 정류장 키워드로 못 찾았을 때 정류소 번호 시도
+          if (stopNo) {
             places.keywordSearch(`거제 ${stopNo}`, (data2, status2) => {
               const match2 = getGeojeMatch(data2);
               if (status2 === kakao.maps.services.Status.OK && match2) {
                 return resolve(new kakao.maps.LatLng(match2.y, match2.x));
               }
-              // 번호 조회 실패 시 주소/이름으로 자동 대체
               fallbackToAddressOrName(addr, name, geojeOptions, resolve);
             }, geojeOptions);
-          }, geojeOptions);
-          return;
-        }
+            return;
+          }
 
-        // 2. F열이 비어있는 경우 ➔ C열 주소 및 정류장명으로 확인
-        fallbackToAddressOrName(addr, name, geojeOptions, resolve);
+          fallbackToAddressOrName(addr, name, geojeOptions, resolve);
+        }, geojeOptions);
       });
     }
 
