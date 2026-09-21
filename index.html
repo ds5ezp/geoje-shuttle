@@ -42,7 +42,7 @@
       border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem;
     }
 
-    /* 메인 분할 뷰 */
+    /* 메인 컨테이너 */
     #main-container {
       position: absolute; top: 72px; bottom: 0; left: 0; right: 0;
       display: flex; width: 100%; height: calc(100vh - 72px);
@@ -207,10 +207,14 @@
   </div>
 
   <script>
-    // ⭐️ 본인의 구글 스프레드시트 ID
+    // ⭐️ 본인의 구글 스프레드시트 ID를 넣어주세요
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
 
     let routeData = {};
+    // ⭐️ '정류소목록' 탭 마스터 DB (번호 매칭용, 이름 매칭용)
+    const masterStopMapByNo = {};
+    const masterStopMapByName = {};
+
     const COURSE_COLORS = ["#2563eb", "#16a34a", "#ea580c", "#9333ea", "#0891b2"];
 
     let map = null;
@@ -220,18 +224,53 @@
     let currentBubbleOverlay = null;
     let polyline = null;
 
-    // 거제 관내 영역 락
     const GEOJE_BOUNDS = new kakao.maps.LatLngBounds(
       new kakao.maps.LatLng(34.7000, 128.4500),
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // ⭐️ 구글 시트 GViz 콜백 (F열: 정류소번호, G열: 위도, H열: 경도 자동 파싱)
-    window.googleSheetCallback = function(json) {
+    // ⭐️ 1단계: '정류소목록' 탭 콜백 (A:정류장명, B:위도, C:경도, D:정류장번호)
+    window.handleStationList = function(json) {
+      try {
+        const rows = json.table.rows || [];
+        rows.forEach(r => {
+          const c = r.c;
+          if (!c) return;
+
+          const name   = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
+          const latVal = c[1] ? parseFloat(c[1].v || c[1].f) : null;
+          const lngVal = c[2] ? parseFloat(c[2].v || c[2].f) : null;
+          const stopNo = c[3] ? String(c[3].f || c[3].v || '').replace(/,/g, '').trim() : '';
+
+          // 1행 헤더 제외
+          if (!name || name === "정류장명" || isNaN(latVal) || isNaN(lngVal)) return;
+
+          const coordData = {
+            name: name,
+            lat: latVal,
+            lng: lngVal,
+            stopNo: stopNo
+          };
+
+          // 번호로 찾을 수 있게 저장 (D열)
+          if (stopNo) masterStopMapByNo[stopNo] = coordData;
+          // 이름으로도 찾을 수 있게 저장 (A열)
+          if (name) masterStopMapByName[name] = coordData;
+        });
+      } catch (e) {
+        console.warn("'정류소목록' 파싱 오류:", e);
+      }
+
+      // 정류소 마스터 목록 로드 완료 후 ➔ 2단계: '노선데이터' 탭 로드
+      loadRouteData();
+    };
+
+    // ⭐️ 2단계: '노선데이터' 탭 콜백
+    window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
       try {
-        const rows = json.table.rows;
+        const rows = json.table.rows || [];
         const result = {};
 
         rows.forEach(r => {
@@ -244,10 +283,6 @@
           const time   = c[3] ? String(c[3].f || c[3].v || '').trim() : '';
           const desc   = c[4] ? String(c[4].f || c[4].v || '').trim() : '';
           const stopNo = c[5] ? String(c[5].f || c[5].v || '').replace(/,/g, '').trim() : '';
-          
-          // ⭐️ G열(위도), H열(경도) 값 추출
-          const latVal = c[6] ? parseFloat(c[6].v || c[6].f) : null;
-          const lngVal = c[7] ? parseFloat(c[7].v || c[7].f) : null;
 
           if (!course || !name || course === "코스명" || course === "코스구분") return;
 
@@ -257,21 +292,19 @@
             addr: addr || name,
             time: time,
             desc: desc,
-            stopNo: stopNo,
-            lat: (!isNaN(latVal) && latVal > 30) ? latVal : null,
-            lng: (!isNaN(lngVal) && lngVal > 120) ? lngVal : null
+            stopNo: stopNo
           });
         });
 
         routeData = result;
         initTabs();
       } catch (err) {
-        alert("데이터 변환 오류: " + err.message);
+        alert("노선데이터 변환 오류: " + err.message);
       }
     };
 
     window.onload = function() {
-      // 1. 카카오 지도 생성
+      // 카카오 지도 생성
       const mapContainer = document.getElementById('map');
       map = new kakao.maps.Map(mapContainer, {
         center: new kakao.maps.LatLng(34.8872, 128.625),
@@ -299,12 +332,31 @@
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
 
-      // 2. 구글 시트 데이터 로드
-      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?gid=0&tqx=responseHandler:googleSheetCallback&_t=${Date.now()}`;
-      const script = document.createElement('script');
-      script.src = url;
-      document.body.appendChild(script);
+      // 1. '정류소목록' 탭 먼저 호출
+      const encodedMaster = encodeURIComponent("정류소목록");
+      const masterUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedMaster}&tqx=responseHandler:handleStationList&_t=${Date.now()}`;
+      
+      const s1 = document.createElement('script');
+      s1.src = masterUrl;
+      s1.onerror = function() {
+        // 정류소목록 탭 로드 실패 시 바로 노선데이터 탭으로 진입
+        console.warn("'정류소목록' 탭을 불러올 수 없어 노선데이터로 바로 넘어갑니다.");
+        loadRouteData();
+      };
+      document.body.appendChild(s1);
     };
+
+    function loadRouteData() {
+      const encodedRoute = encodeURIComponent("노선데이터");
+      const routeUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedRoute}&tqx=responseHandler:handleRouteData&_t=${Date.now()}`;
+      
+      const s2 = document.createElement('script');
+      s2.src = routeUrl;
+      s2.onerror = function() {
+        document.getElementById('loadingModal').innerHTML = "❌ 구글 시트를 불러올 수 없습니다. 공유 설정을 확인해주세요.";
+      };
+      document.body.appendChild(s2);
+    }
 
     function initTabs() {
       const tabBar = document.getElementById('tabBar');
@@ -365,8 +417,8 @@
         `;
         list.appendChild(card);
 
-        // ⭐️ [위치 결정] 시트에 등록된 위도/경도 우선 참조
-        const coords = await getStopCoordinates(stop);
+        // ⭐️ '정류소목록' 탭 마스터 DB 참조 좌표 결정
+        const coords = await resolveStopCoordinates(stop);
 
         if (coords) {
           stop.coords = coords;
@@ -480,33 +532,41 @@
       polyline.setMap(map);
     }
 
-    // ⭐️ [핵심] 시트의 위도(lat), 경도(lng) 직접 참조 ➔ 없으면 주소 검색 fallback
-    function getStopCoordinates(stop) {
+    // ⭐️ [핵심] '정류소목록' 탭 참조 ➔ 번호/이름 매칭 ➔ 없을 때 주소 fallback
+    function resolveStopCoordinates(stop) {
       return new Promise((resolve) => {
-        // 1. 시트 G, H열에 유효한 위·경도가 있는 경우 즉시 반환 (오차 0%, 속도 10배)
-        if (stop.lat && stop.lng) {
-          return resolve(new kakao.maps.LatLng(stop.lat, stop.lng));
+        const stopNo = (stop.stopNo || '').trim();
+        const name   = (stop.name || '').trim();
+        const addr   = (stop.addr || '').trim();
+
+        // 1. [정류장번호(F열) 우선] 정류소목록 탭의 D열(번호)과 일치하는 좌표 반환
+        if (stopNo && masterStopMapByNo[stopNo]) {
+          const matched = masterStopMapByNo[stopNo];
+          return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
         }
 
-        // 2. 좌표가 없을 때만 C열 주소 또는 이름 검색
-        const addrText = (stop.addr || '').trim();
-        const nameText = (stop.name || '').trim();
+        // 2. [정류장명(B열) 매칭] 정류소목록 탭의 A열(이름)과 일치하는 좌표 반환
+        if (name && masterStopMapByName[name]) {
+          const matched = masterStopMapByName[name];
+          return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
+        }
 
-        if (addrText && addrText !== nameText) {
-          const cleanAddr = addrText.includes('거제') ? addrText : `거제시 ${addrText}`;
+        // 3. '정류소목록'에 없는 복지관 등 특수 장소는 C열 주소로 자동 검색
+        if (addr && addr !== name) {
+          const cleanAddr = addr.includes('거제') ? addr : `거제시 ${addr}`;
           geocoder.addressSearch(cleanAddr, (result, status) => {
             if (status === kakao.maps.services.Status.OK) {
               return resolve(new kakao.maps.LatLng(result[0].y, result[0].x));
             }
-            searchByName(nameText, resolve);
+            searchByNameFallback(name, resolve);
           });
         } else {
-          searchByName(nameText, resolve);
+          searchByNameFallback(name, resolve);
         }
       });
     }
 
-    function searchByName(nameText, resolve) {
+    function searchByNameFallback(nameText, resolve) {
       const q = nameText.includes('거제') ? nameText : `거제 ${nameText}`;
       const geojeOptions = {
         bounds: GEOJE_BOUNDS,
@@ -519,7 +579,6 @@
           const match = data.find(item => item.address_name && (item.address_name.includes('거제') || item.address_name.includes('경남'))) || data[0];
           return resolve(new kakao.maps.LatLng(match.y, match.x));
         }
-        // 최종 폴백: 복지관 기본 좌표
         resolve(new kakao.maps.LatLng(34.8872, 128.625));
       }, geojeOptions);
     }
