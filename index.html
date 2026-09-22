@@ -42,16 +42,36 @@
       border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem;
     }
 
-    /* 메인 분할 뷰 */
+    /* 실시간 운행 현황 알림 배너 */
+    #liveStatusBar {
+      position: absolute; top: 72px; left: 0; right: 0; height: 38px;
+      background: #0f172a; color: #ffffff; display: flex; align-items: center;
+      padding: 0 16px; font-size: 0.82rem; z-index: 90; gap: 10px; overflow-x: auto;
+    }
+    #liveStatusBar::-webkit-scrollbar { display: none; }
+    .live-tag {
+      background: #ef4444; color: #fff; padding: 2px 8px; border-radius: 12px;
+      font-weight: 800; font-size: 0.72rem; animation: pulse 1.5s infinite; flex-shrink: 0;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+    .live-item {
+      background: rgba(255, 255, 255, 0.12); padding: 4px 10px; border-radius: 6px;
+      cursor: pointer; white-space: nowrap; transition: background 0.2s;
+    }
+    .live-item:hover { background: rgba(255, 255, 255, 0.25); }
+
+    /* 메인 분할 뷰 (알림바 높이 38px 감안) */
     #main-container {
-      position: absolute; top: 72px; bottom: 0; left: 0; right: 0;
-      display: flex; width: 100%; height: calc(100vh - 72px);
+      position: absolute; top: 110px; bottom: 0; left: 0; right: 0;
+      display: flex; width: 100%; height: calc(100vh - 110px);
     }
 
-    /* 지도 영역 */
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
-    /* 우측 사이드바 */
     #sidebar {
       width: 380px; height: 100%; background: #ffffff;
       box-shadow: -2px 0 10px rgba(0,0,0,0.08); overflow-y: auto;
@@ -73,6 +93,9 @@
     .stop-card:hover, .stop-card.active {
       background: #eff6ff; border-color: #2563eb; transform: translateY(-2px);
     }
+    .stop-card.now-running {
+      border-color: #ef4444; background: #fef2f2;
+    }
     .stop-num {
       width: 26px; height: 26px; border-radius: 50%; background: #2563eb;
       color: #fff; font-weight: 800; font-size: 0.85rem;
@@ -87,6 +110,10 @@
       background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
       font-size: 0.72rem; font-weight: bold; padding: 1px 6px; border-radius: 4px;
     }
+    .live-active-tag {
+      background: #ef4444; color: #fff; font-size: 0.68rem; font-weight: bold;
+      padding: 1px 6px; border-radius: 4px;
+    }
 
     .stop-info .time {
       display: inline-block; background: #dbeafe; color: #1e40af;
@@ -94,7 +121,6 @@
     }
     .stop-info .desc { font-size: 0.8rem; color: #64748b; margin-top: 4px; line-height: 1.4; }
 
-    /* 정류장 번호 뱃지 마커 */
     .bus-marker-badge {
       width: 30px; height: 30px; border-radius: 50%;
       background: #2563eb; color: #ffffff; font-weight: 800; font-size: 13px;
@@ -105,8 +131,11 @@
     }
     .bus-marker-badge:hover { transform: translate(-50%, -50%) scale(1.15); }
     .bus-marker-badge.복지관 { background: #dc2626 !important; width: 34px; height: 34px; font-size: 14px; }
+    .bus-marker-badge.now-active {
+      background: #ef4444 !important; border: 3px solid #fef08a !important;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
+    }
 
-    /* 번호 핀 위 밀착형 말풍선 */
     .bubble-popup {
       position: relative;
       background: #ffffff;
@@ -166,14 +195,13 @@
     }
 
     @media (max-width: 800px) {
-      #main-container { flex-direction: column; }
+      #main-container { flex-direction: column; top: 110px; height: calc(100vh - 110px); }
       #map { height: 50%; }
       #sidebar { width: 100%; height: 50%; }
     }
 
     @media print {
-      #header { position: static; box-shadow: none; border-bottom: 2px solid #000; }
-      .tab-bar, .print-btn, #routeBadge { display: none; }
+      #header, #liveStatusBar { display: none; }
       #main-container { position: static; height: auto; display: block; }
       #map { height: 420px !important; }
       #sidebar { width: 100%; box-shadow: none; }
@@ -193,6 +221,12 @@
     <button class="print-btn" onclick="window.print()">A4 인쇄</button>
   </div>
 
+  <!-- 실시간 운행 상태 알림 영역 -->
+  <div id="liveStatusBar">
+    <span class="live-tag">LIVE 운행</span>
+    <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
+  </div>
+
   <div id="main-container">
     <div id="map">
       <div id="routeBadge">실제 도로 경로선 계산 중...</div>
@@ -207,12 +241,13 @@
   </div>
 
   <script>
-    // ⭐️ 본인의 구글 스프레드시트 ID
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
 
     let routeData = {};
     const masterStopMapByNo = {};
     const masterStopMapByName = {};
+    let timeWindowMinutes = 3; // '설정' 탭에서 읽어올 간격 분 (기본값: 3분)
+    let currentSelectedCourse = '';
 
     const COURSE_COLORS = ["#2563eb", "#16a34a", "#ea580c", "#9333ea", "#0891b2"];
 
@@ -228,14 +263,34 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // 1단계: '정류소목록' 탭 마스터 DB 로드 (A:정류장명, B:위도, C:경도, D:정류장번호)
+    // 0단계: '설정' 탭 콜백 (차량간격시간 조회)
+    window.handleSettings = function(json) {
+      try {
+        const rows = json.table.rows || [];
+        rows.forEach(r => {
+          const c = r.c;
+          if (!c) return;
+          const key = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
+          const val = c[1] ? parseFloat(c[1].v || c[1].f) : null;
+          if (key.includes('차량간격') || key.includes('차량간견') || key.includes('간격')) {
+            if (!isNaN(val) && val > 0) {
+              timeWindowMinutes = val;
+            }
+          }
+        });
+      } catch (e) {
+        console.warn("'설정' 시트 파싱 실패, 기본값 3분 적용:", e);
+      }
+      loadStationList();
+    };
+
+    // 1단계: '정류소목록' 탭 콜백
     window.handleStationList = function(json) {
       try {
         const rows = json.table.rows || [];
         rows.forEach(r => {
           const c = r.c;
           if (!c) return;
-
           const name   = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
           const latVal = c[1] ? parseFloat(c[1].v || c[1].f) : null;
           const lngVal = c[2] ? parseFloat(c[2].v || c[2].f) : null;
@@ -244,18 +299,16 @@
           if (!name || name === "정류장명" || isNaN(latVal) || isNaN(lngVal)) return;
 
           const coordData = { name: name, lat: latVal, lng: lngVal, stopNo: stopNo };
-
           if (stopNo) masterStopMapByNo[stopNo] = coordData;
           if (name) masterStopMapByName[name] = coordData;
         });
       } catch (e) {
         console.warn("'정류소목록' 파싱 오류:", e);
       }
-
       loadRouteData();
     };
 
-    // 2단계: '노선데이터' 탭 로드 (E열 도착시간 추가 반영)
+    // 2단계: '노선데이터' 탭 콜백
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -267,23 +320,28 @@
           const c = r.c;
           if (!c) return;
 
-          // A: 코스구분, B: 정류장명, C: 검색주소, D: 운행시간(출발), E: 도착시간, F: 설명글, G: 정류장 번호
           const course    = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
           const name      = c[1] ? String(c[1].f || c[1].v || '').trim() : '';
           const addr      = c[2] ? String(c[2].f || c[2].v || '').trim() : '';
           const startTime = c[3] ? String(c[3].f || c[3].v || '').trim() : '';
-          const arrTime   = c[4] ? String(c[4].f || c[4].v || '').trim() : ''; // E열 도착시간
-          const desc      = c[5] ? String(c[5].f || c[5].v || '').trim() : ''; // F열 설명글
-          const stopNo    = c[6] ? String(c[6].f || c[6].v || '').replace(/,/g, '').trim() : ''; // G열 정류장 번호
+          const arrTime   = c[4] ? String(c[4].f || c[4].v || '').trim() : '';
+          const desc      = c[5] ? String(c[5].f || c[5].v || '').trim() : '';
+          const stopNo    = c[6] ? String(c[6].f || c[6].v || '').replace(/,/g, '').trim() : '';
 
           if (!course || !name || course === "코스구분" || course === "코스명") return;
 
-          // 출발/도착 시간 통합 텍스트
           let timeText = '';
           if (startTime && arrTime) {
             timeText = `${startTime} (도착: ${arrTime})`;
           } else {
             timeText = startTime || arrTime;
+          }
+
+          // 파싱용 시간 배열 추출 (HH:mm 정규식)
+          const allTimes = [];
+          const matchedTimes = `${startTime} ${arrTime}`.match(/\b\d{1,2}:\d{2}\b/g);
+          if (matchedTimes) {
+            matchedTimes.forEach(t => allTimes.push(t));
           }
 
           if (!result[course]) result[course] = [];
@@ -292,6 +350,7 @@
             name: name,
             addr: addr || name,
             time: timeText,
+            rawTimes: allTimes,
             desc: desc,
             stopNo: stopNo
           });
@@ -299,6 +358,7 @@
 
         routeData = result;
         initTabs();
+        startRealtimeCheck(); // 실시간 운행 체크 시작
       } catch (err) {
         alert("노선데이터 변환 오류: " + err.message);
       }
@@ -311,9 +371,7 @@
         level: 6
       });
 
-      // 지도/스카이뷰 전환 컨트롤러
       map.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
-      // 줌 컨트롤러
       map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
 
       map.setMinLevel(1);
@@ -329,27 +387,105 @@
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
 
-      // 1. '정류소목록' 탭 먼저 호출
+      // 시작 시 '설정' 탭 호출
+      loadSettings();
+    };
+
+    function loadSettings() {
+      const encoded = encodeURIComponent("설정");
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encoded}&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
+      const script = document.createElement('script');
+      script.src = url;
+      script.onerror = function() {
+        console.warn("'설정' 시트 없음. 기본 3분 적용 후 정류소목록 로드");
+        loadStationList();
+      };
+      document.body.appendChild(script);
+    }
+
+    function loadStationList() {
       const encodedMaster = encodeURIComponent("정류소목록");
       const masterUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedMaster}&tqx=responseHandler:handleStationList&_t=${Date.now()}`;
-      
       const s1 = document.createElement('script');
       s1.src = masterUrl;
       s1.onerror = function() { loadRouteData(); };
       document.body.appendChild(s1);
-    };
+    }
 
     function loadRouteData() {
-      // 2. '노선데이터' 탭 호출
       const encodedRoute = encodeURIComponent("노선데이터");
       const routeUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedRoute}&tqx=responseHandler:handleRouteData&_t=${Date.now()}`;
-      
       const s2 = document.createElement('script');
       s2.src = routeUrl;
       s2.onerror = function() {
         document.getElementById('loadingModal').innerHTML = "❌ 구글 시트를 불러올 수 없습니다. 공유 설정을 확인해주세요.";
       };
       document.body.appendChild(s2);
+    }
+
+    // ⭐️ 실시간 운행 상태 모니터링 (현재 시각 ± timeWindowMinutes 분)
+    function startRealtimeCheck() {
+      checkActiveBuses();
+      setInterval(checkActiveBuses, 10000); // 10초마다 갱신
+    }
+
+    function checkActiveBuses() {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const activeList = [];
+
+      Object.keys(routeData).forEach(courseName => {
+        const stops = routeData[courseName];
+        stops.forEach((stop, sIdx) => {
+          stop.rawTimes.forEach(tStr => {
+            const parts = tStr.split(':');
+            const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+            const diff = Math.abs(currentMinutes - targetMinutes);
+
+            if (diff <= timeWindowMinutes) {
+              activeList.push({
+                courseName: courseName,
+                stopName: stop.name,
+                stopIndex: sIdx,
+                time: tStr,
+                diff: diff
+              });
+            }
+          });
+        });
+      });
+
+      const barText = document.getElementById('liveStatusText');
+      if (activeList.length === 0) {
+        barText.innerHTML = `현재 운행 예정 범위(기준 ±${timeWindowMinutes}분)에 있는 차량이 없습니다. (현재 시각 ${now.toTimeString().substring(0,5)})`;
+      } else {
+        barText.innerHTML = '';
+        activeList.forEach(item => {
+          const span = document.createElement('span');
+          span.className = 'live-item';
+          span.innerHTML = `🚌 <b>[${item.courseName}]</b> ${item.stopName} 방면 (${item.time} 운행중)`;
+          span.onclick = () => {
+            switchToCourseAndStop(item.courseName, item.stopIndex);
+          };
+          barText.appendChild(span);
+        });
+      }
+    }
+
+    function switchToCourseAndStop(targetCourse, targetStopIdx) {
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      tabBtns.forEach((btn, idx) => {
+        if (btn.innerText === targetCourse) {
+          selectCourse(targetCourse, idx, btn);
+          setTimeout(() => {
+            const card = document.getElementById(`card-${targetStopIdx}`);
+            if (card) {
+              card.click();
+              card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 400);
+        }
+      });
     }
 
     function initTabs() {
@@ -371,6 +507,7 @@
     }
 
     async function selectCourse(courseName, colorIdx, btnElem) {
+      currentSelectedCourse = courseName;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
 
@@ -379,7 +516,6 @@
       if (currentBubbleOverlay) { currentBubbleOverlay.setMap(null); currentBubbleOverlay = null; }
       if (polyline) { polyline.setMap(null); polyline = null; }
 
-      // ⭐️ 시트 행 순서(1, 2, 3...) 강제 정렬
       const rawStops = routeData[courseName] || [];
       const stops = [...rawStops].sort((a, b) => a.rowIdx - b.rowIdx);
 
@@ -393,17 +529,27 @@
       const list = document.getElementById('stopList');
       list.innerHTML = '';
 
-      // 동일 좌표 중복 뱃지 오프셋 추적
       const coordOccurrences = {};
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
       for (let i = 0; i < stops.length; i++) {
         const stop = stops[i];
         const isBokji = stop.name.indexOf('복지관') > -1;
         const displayNum = i + 1;
 
-        // 사이드바 카드 추가
+        // 현재 시각 기준 활성 정류장 여부 확인
+        let isNowActive = false;
+        stop.rawTimes.forEach(tStr => {
+          const parts = tStr.split(':');
+          const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+          if (Math.abs(currentMinutes - targetMinutes) <= timeWindowMinutes) {
+            isNowActive = true;
+          }
+        });
+
         const card = document.createElement('div');
-        card.className = 'stop-card';
+        card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
         card.id = `card-${i}`;
         card.innerHTML = `
           <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
@@ -411,6 +557,7 @@
             <div class="stop-info-header">
               <h4>${stop.name}</h4>
               ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+              ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
             </div>
             ${stop.time ? `<div class="time">🕒 ${stop.time}</div>` : ''}
             <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
@@ -421,7 +568,6 @@
         let coords = await resolveStopCoordinates(stop);
 
         if (coords) {
-          // 동일 좌표 중복 시 미세 오프셋 적용
           const coordKey = `${coords.getLat().toFixed(5)},${coords.getLng().toFixed(5)}`;
           if (!coordOccurrences[coordKey]) coordOccurrences[coordKey] = 0;
           coordOccurrences[coordKey]++;
@@ -443,10 +589,9 @@
           validStops.push(stop);
           bounds.extend(coords);
 
-          // 지도 뱃지 번호 (1, 2, 3...)
           const badge = document.createElement('div');
-          badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''}`;
-          badge.style.backgroundColor = isBokji ? '#dc2626' : color;
+          badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''} ${isNowActive ? 'now-active' : ''}`;
+          badge.style.backgroundColor = isNowActive ? '#ef4444' : (isBokji ? '#dc2626' : color);
           badge.innerText = displayNum;
 
           const markerOverlay = new kakao.maps.CustomOverlay({
@@ -454,18 +599,18 @@
             content: badge,
             yAnchor: 0.5,
             xAnchor: 0.5,
-            zIndex: isBokji ? 10 + count : 3 + count
+            zIndex: isNowActive ? 50 : (isBokji ? 10 + count : 3 + count)
           });
           markerOverlay.setMap(map);
           markerOverlays.push(markerOverlay);
 
-          // 말풍선 카드
           const bubbleDiv = document.createElement('div');
           bubbleDiv.className = 'bubble-popup';
           bubbleDiv.innerHTML = `
             <div class="popup-header">
               <div class="popup-title">${displayNum}. ${stop.name}</div>
               ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+              ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
               <button class="close-btn" title="닫기">&times;</button>
             </div>
             ${stop.time ? `<div class="popup-time">🕒 ${stop.time}</div>` : ''}
@@ -551,26 +696,22 @@
       polyline.setMap(map);
     }
 
-    // ⭐️ [핵심] G열 정류장 번호로 '정류소목록' 탭 우선 대조
     function resolveStopCoordinates(stop) {
       return new Promise((resolve) => {
         const stopNo = (stop.stopNo || '').trim();
         const name   = (stop.name || '').trim();
         const addr   = (stop.addr || '').trim();
 
-        // 1. G열의 정류장 번호로 '정류소목록' D열 대조
         if (stopNo && masterStopMapByNo[stopNo]) {
           const matched = masterStopMapByNo[stopNo];
           return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
         }
 
-        // 2. B열의 정류장 이름으로 '정류소목록' A열 대조
         if (name && masterStopMapByName[name]) {
           const matched = masterStopMapByName[name];
           return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
         }
 
-        // 3. 미매칭 시 C열 주소 검색
         if (addr && addr !== name) {
           const cleanAddr = addr.includes('거제') ? addr : `거제시 ${addr}`;
           geocoder.addressSearch(cleanAddr, (result, status) => {
