@@ -92,11 +92,13 @@
       display: flex; align-items: center; justify-content: space-between;
       border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;
     }
-    .sidebar-header span { font-size: 0.8rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; }
+    .header-badges { display: flex; gap: 6px; align-items: center; }
+    .header-badges span { font-size: 0.8rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
+    .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
     .course-section-title {
       font-size: 0.88rem; font-weight: 800; padding: 6px 10px; border-radius: 6px;
-      margin-top: 12px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;
+      margin-top: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;
     }
 
     .stop-card {
@@ -129,11 +131,17 @@
       padding: 1px 6px; border-radius: 4px;
     }
 
-    .stop-info .time {
-      display: inline-block; background: #dbeafe; color: #1e40af;
-      font-size: 0.8rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; margin-top: 4px;
+    .meta-tags { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+    .time-tag {
+      background: #dbeafe; color: #1e40af; font-size: 0.78rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 4px;
     }
-    .stop-info .desc { font-size: 0.8rem; color: #64748b; margin-top: 4px; line-height: 1.4; }
+    .dist-tag {
+      background: #ecfdf5; color: #065f46; font-size: 0.76rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 4px; border: 1px solid #a7f3d0;
+    }
+
+    .stop-info .desc { font-size: 0.8rem; color: #64748b; margin-top: 5px; line-height: 1.4; }
 
     .bus-marker-badge {
       width: 30px; height: 30px; border-radius: 50%;
@@ -183,12 +191,8 @@
       cursor: pointer; padding: 0 4px; font-weight: bold; line-height: 1;
     }
     .bubble-popup .close-btn:hover { color: #0f172a; }
-    .bubble-popup .popup-time {
-      display: inline-block; background: #eff6ff; color: #1d4ed8;
-      font-size: 0.78rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-bottom: 4px;
-    }
     .bubble-popup .popup-addr {
-      font-size: 0.78rem; color: #64748b; line-height: 1.35;
+      font-size: 0.78rem; color: #64748b; line-height: 1.35; margin-top: 4px;
     }
     .bubble-popup .popup-desc {
       font-size: 0.76rem; color: #334155; margin-top: 5px; line-height: 1.35;
@@ -247,7 +251,10 @@
     <div id="sidebar">
       <div class="sidebar-header">
         <span id="courseTitle">노선 안내</span>
-        <span id="stopCount">정류장</span>
+        <div class="header-badges">
+          <span id="stopCount">정류장</span>
+          <span id="totalDistBadge" class="dist-badge">총 0.0 km</span>
+        </div>
       </div>
       <div id="stopList" style="display:flex; flex-direction:column; gap:8px;"></div>
     </div>
@@ -277,6 +284,15 @@
       new kakao.maps.LatLng(34.7000, 128.4500),
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
+
+    // 거리 단위 포맷 함수 (미터 -> km 또는 m)
+    function formatDistance(meters) {
+      if (meters === undefined || meters === null || isNaN(meters)) return '';
+      if (meters < 1000) {
+        return `${Math.round(meters)} m`;
+      }
+      return `${(meters / 1000).toFixed(1)} km`;
+    }
 
     // 0단계: '설정' 탭 콜백
     window.handleSettings = function(json) {
@@ -323,7 +339,7 @@
       loadRouteData();
     };
 
-    // 2단계: '노선데이터' 탭 로드 (경유지 플래그 판별 추가)
+    // 2단계: '노선데이터' 탭 로드
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -345,7 +361,6 @@
 
           if (!course || !name || course === "코스구분" || course === "코스명") return;
 
-          // ⭐️ [경유지 판별]: 설명글이나 정류장명에 '경유'가 포함된 경우
           const isWaypoint = desc.includes('경유') || name.includes('[경유]') || name.includes('(경유)');
 
           let timeText = '';
@@ -371,7 +386,7 @@
             rawTimes: allTimes,
             desc: desc,
             stopNo: stopNo,
-            isWaypoint: isWaypoint // 경유지 여부
+            isWaypoint: isWaypoint
           });
         });
 
@@ -473,7 +488,7 @@
       polylines = [];
     }
 
-    // ⭐️ 단일 코스 선택 렌더링
+    // ⭐️ 단일 코스 선택 렌더링 (거리 측정 지원)
     async function selectCourse(courseName, colorIdx, btnElem) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
@@ -485,9 +500,10 @@
 
       const color = COURSE_COLORS[colorIdx % COURSE_COLORS.length];
       const bounds = new kakao.maps.LatLngBounds();
-      const validStopsForRouting = []; // 도로선 계산용 (경유지 포함 전체 순서)
+      const validStopsForRouting = [];
 
       document.getElementById('courseTitle').innerText = courseName;
+      document.getElementById('totalDistBadge').innerText = '거리 계산 중...';
 
       const list = document.getElementById('stopList');
       list.innerHTML = '';
@@ -496,7 +512,8 @@
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-      let displayCounter = 0; // 정식 정류장 번호 카운터
+      let displayCounter = 0;
+      const registeredStops = [];
 
       for (let i = 0; i < stops.length; i++) {
         const stop = stops[i];
@@ -505,7 +522,6 @@
         let displayNum = null;
         let card = null;
 
-        // ⭐️ [경유지 처리]: 사이드바 목록과 번호 핀 부여에서 제외
         if (!stop.isWaypoint) {
           displayCounter++;
           displayNum = displayCounter;
@@ -530,22 +546,23 @@
                 ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
                 ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
               </div>
-              ${stop.time ? `<div class="time">🕒 ${stop.time}</div>` : ''}
+              <div class="meta-tags">
+                ${stop.time ? `<span class="time-tag">🕒 ${stop.time}</span>` : ''}
+                <span class="dist-tag" id="dist-card-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
+              </div>
               <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
             </div>
           `;
           list.appendChild(card);
         }
 
-        // 좌표 해석
         let coords = await resolveStopCoordinates(stop);
 
         if (coords) {
           stop.coords = coords;
-          validStopsForRouting.push(stop); // 도로선에는 경유지 좌표도 반드시 포함!
+          validStopsForRouting.push(stop);
           bounds.extend(coords);
 
-          // 경유지가 아닌 정식 정류장에만 지도 마커 및 말풍선 생성
           if (!stop.isWaypoint && displayNum !== null) {
             const coordKey = `${coords.getLat().toFixed(5)},${coords.getLng().toFixed(5)}`;
             if (!coordOccurrences[coordKey]) coordOccurrences[coordKey] = 0;
@@ -587,7 +604,10 @@
                 ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
                 <button class="close-btn" title="닫기">&times;</button>
               </div>
-              ${stop.time ? `<div class="popup-time">🕒 ${stop.time}</div>` : ''}
+              <div class="meta-tags">
+                ${stop.time ? `<span class="time-tag">🕒 ${stop.time}</span>` : ''}
+                <span class="dist-tag" id="dist-popup-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
+              </div>
               <div class="popup-addr">📍 ${stop.addr}</div>
               ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
             `;
@@ -621,6 +641,12 @@
 
             badge.onclick = showDetail;
             if (card) card.onclick = showDetail;
+
+            registeredStops.push({
+              index: i,
+              displayNum: displayNum,
+              stop: stop
+            });
           }
         }
       }
@@ -631,17 +657,42 @@
         map.setBounds(bounds);
         const b = document.getElementById('routeBadge');
         b.style.display = 'block';
-        b.innerText = '실제 도로 경로선 계산 중...';
-        await drawSingleRoadLine(validStopsForRouting, color);
+        b.innerText = '실제 도로 경로선 및 운행 거리 계산 중...';
+        
+        // 도로선 및 구간별 세부 거리 연산
+        const routeResult = await drawSingleRoadLine(validStopsForRouting, color);
         b.style.display = 'none';
+
+        if (routeResult) {
+          const totalKm = (routeResult.totalDistance / 1000).toFixed(1);
+          document.getElementById('totalDistBadge').innerText = `총 ${totalKm} km`;
+
+          // 구간별 거리 태그 업데이트
+          if (routeResult.legs && routeResult.legs.length > 0) {
+            let legIdx = 0;
+            for (let k = 1; k < validStopsForRouting.length; k++) {
+              const currentLegDist = routeResult.legs[legIdx] || 0;
+              const curStop = validStopsForRouting[k];
+              
+              const cardTag = document.getElementById(`dist-card-${curStop.rowIdx}`);
+              const popupTag = document.getElementById(`dist-popup-${curStop.rowIdx}`);
+              const distText = `구간 ${formatDistance(currentLegDist)}`;
+              
+              if (cardTag) cardTag.innerText = distText;
+              if (popupTag) popupTag.innerText = distText;
+              legIdx++;
+            }
+          }
+        }
       } else if (validStopsForRouting.length === 1) {
         map.setCenter(validStopsForRouting[0].coords);
+        document.getElementById('totalDistBadge').innerText = '단일 지점';
       }
 
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // ⭐️ 전체 노선 한눈에 보기
+    // ⭐️ 전체 노선 한눈에 보기 (전체 합산 거리 지원)
     async function selectAllCourses(btnElem) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
@@ -654,11 +705,14 @@
       list.innerHTML = '';
 
       let totalStopsCount = 0;
+      let totalNetworkDistance = 0;
+
       document.getElementById('courseTitle').innerText = "전체 셔틀버스 노선망";
+      document.getElementById('totalDistBadge').innerText = '거리 계산 중...';
 
       const badge = document.getElementById('routeBadge');
       badge.style.display = 'block';
-      badge.innerText = "전체 노선 경로망을 지도에 배치하는 중...";
+      badge.innerText = "전체 노선망 및 총 운행 거리 계산 중...";
 
       const coordOccurrences = {};
       const now = new Date();
@@ -675,7 +729,8 @@
         sectionHeader.className = 'course-section-title';
         sectionHeader.style.backgroundColor = `${color}18`;
         sectionHeader.style.color = color;
-        sectionHeader.innerHTML = `🚌 <b>${cName}</b>`;
+        sectionHeader.id = `section-header-${cIdx}`;
+        sectionHeader.innerHTML = `<span>🚌 <b>${cName}</b></span><span id="course-dist-${cIdx}" style="font-size:0.78rem;">계산 중...</span>`;
         list.appendChild(sectionHeader);
 
         let courseDisplayCounter = 0;
@@ -712,7 +767,10 @@
                   ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
                   ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                 </div>
-                ${stop.time ? `<div class="time">🕒 ${stop.time}</div>` : ''}
+                <div class="meta-tags">
+                  ${stop.time ? `<span class="time-tag">🕒 ${stop.time}</span>` : ''}
+                  <span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
+                </div>
                 <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
               </div>
             `;
@@ -767,7 +825,10 @@
                   ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
                   <button class="close-btn" title="닫기">&times;</button>
                 </div>
-                ${stop.time ? `<div class="popup-time">🕒 ${stop.time}</div>` : ''}
+                <div class="meta-tags">
+                  ${stop.time ? `<span class="time-tag">🕒 ${stop.time}</span>` : ''}
+                  <span class="dist-tag" id="dist-all-popup-${cIdx}-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
+                </div>
                 <div class="popup-addr">📍 ${stop.addr}</div>
                 ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
               `;
@@ -806,11 +867,35 @@
         }
 
         if (courseValidStopsForRouting.length > 1) {
-          await drawSingleRoadLine(courseValidStopsForRouting, color);
+          const courseRes = await drawSingleRoadLine(courseValidStopsForRouting, color);
+          if (courseRes) {
+            totalNetworkDistance += courseRes.totalDistance;
+            const cDistSpan = document.getElementById(`course-dist-${cIdx}`);
+            if (cDistSpan) {
+              cDistSpan.innerText = `총 ${(courseRes.totalDistance / 1000).toFixed(1)} km`;
+            }
+
+            if (courseRes.legs && courseRes.legs.length > 0) {
+              let legIdx = 0;
+              for (let k = 1; k < courseValidStopsForRouting.length; k++) {
+                const currentLegDist = courseRes.legs[legIdx] || 0;
+                const curStop = courseValidStopsForRouting[k];
+
+                const cardTag = document.getElementById(`dist-all-card-${cIdx}-${curStop.rowIdx}`);
+                const popupTag = document.getElementById(`dist-all-popup-${cIdx}-${curStop.rowIdx}`);
+                const distText = `구간 ${formatDistance(currentLegDist)}`;
+
+                if (cardTag) cardTag.innerText = distText;
+                if (popupTag) popupTag.innerText = distText;
+                legIdx++;
+              }
+            }
+          }
         }
       }
 
       document.getElementById('stopCount').innerText = `총 ${totalStopsCount}개 정류장`;
+      document.getElementById('totalDistBadge').innerText = `전체 ${(totalNetworkDistance / 1000).toFixed(1)} km`;
       badge.style.display = 'none';
 
       if (!totalBounds.isEmpty()) {
@@ -819,6 +904,7 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
+    // 도로 경로선 그리기 및 세부 구간 거리 산출 함수
     async function drawSingleRoadLine(stops, color) {
       try {
         const coordString = stops.map(s => `${s.coords.getLng()},${s.coords.getLat()}`).join(';');
@@ -826,7 +912,8 @@
         const data = await res.json();
 
         if (data.code === 'Ok' && data.routes && data.routes[0]) {
-          const path = data.routes[0].geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
+          const route = data.routes[0];
+          const path = route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
           const line = new kakao.maps.Polyline({
             path: path,
             strokeWeight: 6,
@@ -835,15 +922,24 @@
           });
           line.setMap(map);
           polylines.push(line);
+
+          // 각 구간별(legs) 거리 배열 추출
+          const legDistances = (route.legs || []).map(leg => leg.distance);
+
+          return {
+            totalDistance: route.distance, // 총 거리 (미터)
+            legs: legDistances             // 정류장 간 개별 거리 배열
+          };
         } else {
-          drawStraightLine(stops, color);
+          return drawStraightLineWithDist(stops, color);
         }
       } catch (e) {
-        drawStraightLine(stops, color);
+        return drawStraightLineWithDist(stops, color);
       }
     }
 
-    function drawStraightLine(stops, color) {
+    // 직선 대체 시 거리 측정 폴백
+    function drawStraightLineWithDist(stops, color) {
       const line = new kakao.maps.Polyline({
         path: stops.map(s => s.coords),
         strokeWeight: 5,
@@ -852,6 +948,12 @@
       });
       line.setMap(map);
       polylines.push(line);
+
+      let totalMeters = line.getLength();
+      return {
+        totalDistance: totalMeters,
+        legs: []
+      };
     }
 
     function startRealtimeCheck() {
