@@ -42,7 +42,7 @@
       border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem;
     }
 
-    /* 메인 컨테이너 */
+    /* 메인 분할 뷰 */
     #main-container {
       position: absolute; top: 72px; bottom: 0; left: 0; right: 0;
       display: flex; width: 100%; height: calc(100vh - 72px);
@@ -51,7 +51,7 @@
     /* 지도 영역 */
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
-    /* 우측 정류장 시간표 사이드바 */
+    /* 우측 사이드바 */
     #sidebar {
       width: 380px; height: 100%; background: #ffffff;
       box-shadow: -2px 0 10px rgba(0,0,0,0.08); overflow-y: auto;
@@ -228,6 +228,7 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
+    // 1단계: '정류소목록' 탭 마스터 DB 로드 (A:정류장명, B:위도, C:경도, D:정류장번호)
     window.handleStationList = function(json) {
       try {
         const rows = json.table.rows || [];
@@ -242,12 +243,7 @@
 
           if (!name || name === "정류장명" || isNaN(latVal) || isNaN(lngVal)) return;
 
-          const coordData = {
-            name: name,
-            lat: latVal,
-            lng: lngVal,
-            stopNo: stopNo
-          };
+          const coordData = { name: name, lat: latVal, lng: lngVal, stopNo: stopNo };
 
           if (stopNo) masterStopMapByNo[stopNo] = coordData;
           if (name) masterStopMapByName[name] = coordData;
@@ -259,6 +255,7 @@
       loadRouteData();
     };
 
+    // 2단계: '노선데이터' 탭 로드 (E열 도착시간 추가 반영)
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -270,21 +267,31 @@
           const c = r.c;
           if (!c) return;
 
-          const course = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
-          const name   = c[1] ? String(c[1].f || c[1].v || '').trim() : '';
-          const addr   = c[2] ? String(c[2].f || c[2].v || '').trim() : '';
-          const time   = c[3] ? String(c[3].f || c[3].v || '').trim() : '';
-          const desc   = c[4] ? String(c[4].f || c[4].v || '').trim() : '';
-          const stopNo = c[5] ? String(c[5].f || c[5].v || '').replace(/,/g, '').trim() : '';
+          // A: 코스구분, B: 정류장명, C: 검색주소, D: 운행시간(출발), E: 도착시간, F: 설명글, G: 정류장 번호
+          const course    = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
+          const name      = c[1] ? String(c[1].f || c[1].v || '').trim() : '';
+          const addr      = c[2] ? String(c[2].f || c[2].v || '').trim() : '';
+          const startTime = c[3] ? String(c[3].f || c[3].v || '').trim() : '';
+          const arrTime   = c[4] ? String(c[4].f || c[4].v || '').trim() : ''; // E열 도착시간
+          const desc      = c[5] ? String(c[5].f || c[5].v || '').trim() : ''; // F열 설명글
+          const stopNo    = c[6] ? String(c[6].f || c[6].v || '').replace(/,/g, '').trim() : ''; // G열 정류장 번호
 
-          if (!course || !name || course === "코스명" || course === "코스구분") return;
+          if (!course || !name || course === "코스구분" || course === "코스명") return;
+
+          // 출발/도착 시간 통합 텍스트
+          let timeText = '';
+          if (startTime && arrTime) {
+            timeText = `${startTime} (도착: ${arrTime})`;
+          } else {
+            timeText = startTime || arrTime;
+          }
 
           if (!result[course]) result[course] = [];
           result[course].push({
             rowIdx: idx,
             name: name,
             addr: addr || name,
-            time: time,
+            time: timeText,
             desc: desc,
             stopNo: stopNo
           });
@@ -304,11 +311,10 @@
         level: 6
       });
 
-      const mapTypeControl = new kakao.maps.MapTypeControl();
-      map.addControl(mapTypeControl, kakao.maps.ControlPosition.TOPRIGHT);
-
-      const zoomControl = new kakao.maps.ZoomControl();
-      map.addControl(zoomControl, kakao.maps.ControlPosition.RIGHT);
+      // 지도/스카이뷰 전환 컨트롤러
+      map.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
+      // 줌 컨트롤러
+      map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
 
       map.setMinLevel(1);
       map.setMaxLevel(10);
@@ -323,18 +329,18 @@
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
 
+      // 1. '정류소목록' 탭 먼저 호출
       const encodedMaster = encodeURIComponent("정류소목록");
       const masterUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedMaster}&tqx=responseHandler:handleStationList&_t=${Date.now()}`;
       
       const s1 = document.createElement('script');
       s1.src = masterUrl;
-      s1.onerror = function() {
-        loadRouteData();
-      };
+      s1.onerror = function() { loadRouteData(); };
       document.body.appendChild(s1);
     };
 
     function loadRouteData() {
+      // 2. '노선데이터' 탭 호출
       const encodedRoute = encodeURIComponent("노선데이터");
       const routeUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedRoute}&tqx=responseHandler:handleRouteData&_t=${Date.now()}`;
       
@@ -373,6 +379,7 @@
       if (currentBubbleOverlay) { currentBubbleOverlay.setMap(null); currentBubbleOverlay = null; }
       if (polyline) { polyline.setMap(null); polyline = null; }
 
+      // ⭐️ 시트 행 순서(1, 2, 3...) 강제 정렬
       const rawStops = routeData[courseName] || [];
       const stops = [...rawStops].sort((a, b) => a.rowIdx - b.rowIdx);
 
@@ -386,7 +393,7 @@
       const list = document.getElementById('stopList');
       list.innerHTML = '';
 
-      // ⭐️ 동일 좌표 중복 뱃지가 겹치지 않게 하기 위한 위치 추적 객체
+      // 동일 좌표 중복 뱃지 오프셋 추적
       const coordOccurrences = {};
 
       for (let i = 0; i < stops.length; i++) {
@@ -414,37 +421,34 @@
         let coords = await resolveStopCoordinates(stop);
 
         if (coords) {
-          // ⭐️ [핵심] 동일한 좌표가 이미 찍힌 적이 있는지 검사하여 미세하게 옆으로 비켜나오게 처리 (약 3~4m 간격)
+          // 동일 좌표 중복 시 미세 오프셋 적용
           const coordKey = `${coords.getLat().toFixed(5)},${coords.getLng().toFixed(5)}`;
-          if (!coordOccurrences[coordKey]) {
-            coordOccurrences[coordKey] = 0;
-          }
+          if (!coordOccurrences[coordKey]) coordOccurrences[coordKey] = 0;
           coordOccurrences[coordKey]++;
           const count = coordOccurrences[coordKey];
 
           let adjustedCoords = coords;
           if (count > 1) {
-            // 두 번째 이상 겹치는 경우 동서남북 방향으로 살짝 좌표 보정 (0.00008 도 ≒ 약 8미터)
             const offsets = [
-              { lat: 0.00008, lng: 0 },       // 북쪽
-              { lat: 0, lng: 0.00012 },       // 동쪽
-              { lat: -0.00008, lng: 0 },      // 남쪽
-              { lat: 0, lng: -0.00012 }       // 서쪽
+              { lat: 0.00008, lng: 0 },
+              { lat: 0, lng: 0.00012 },
+              { lat: -0.00008, lng: 0 },
+              { lat: 0, lng: -0.00012 }
             ];
             const offset = offsets[(count - 2) % offsets.length];
             adjustedCoords = new kakao.maps.LatLng(coords.getLat() + offset.lat, coords.getLng() + offset.lng);
           }
 
-          stop.coords = coords; // 경로선은 실제 도로 정류장 좌표 기준 유지
+          stop.coords = coords;
           validStops.push(stop);
           bounds.extend(coords);
 
+          // 지도 뱃지 번호 (1, 2, 3...)
           const badge = document.createElement('div');
           badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''}`;
           badge.style.backgroundColor = isBokji ? '#dc2626' : color;
           badge.innerText = displayNum;
 
-          // 뱃지 마커 오버레이 (조정된 좌표 적용)
           const markerOverlay = new kakao.maps.CustomOverlay({
             position: adjustedCoords,
             content: badge,
@@ -455,7 +459,7 @@
           markerOverlay.setMap(map);
           markerOverlays.push(markerOverlay);
 
-          // 말풍선 카드 (조정된 좌표 적용)
+          // 말풍선 카드
           const bubbleDiv = document.createElement('div');
           bubbleDiv.className = 'bubble-popup';
           bubbleDiv.innerHTML = `
@@ -547,22 +551,26 @@
       polyline.setMap(map);
     }
 
+    // ⭐️ [핵심] G열 정류장 번호로 '정류소목록' 탭 우선 대조
     function resolveStopCoordinates(stop) {
       return new Promise((resolve) => {
         const stopNo = (stop.stopNo || '').trim();
         const name   = (stop.name || '').trim();
         const addr   = (stop.addr || '').trim();
 
+        // 1. G열의 정류장 번호로 '정류소목록' D열 대조
         if (stopNo && masterStopMapByNo[stopNo]) {
           const matched = masterStopMapByNo[stopNo];
           return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
         }
 
+        // 2. B열의 정류장 이름으로 '정류소목록' A열 대조
         if (name && masterStopMapByName[name]) {
           const matched = masterStopMapByName[name];
           return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
         }
 
+        // 3. 미매칭 시 C열 주소 검색
         if (addr && addr !== name) {
           const cleanAddr = addr.includes('거제') ? addr : `거제시 ${addr}`;
           geocoder.addressSearch(cleanAddr, (result, status) => {
@@ -587,7 +595,7 @@
 
       places.keywordSearch(q, (data, status) => {
         if (status === kakao.maps.services.Status.OK && data.length > 0) {
-          const match = data.find(item => item.address_name && (item.address_name.includes('거제') || item.address_name.includes('경남'))) || data.shift();
+          const match = data.find(item => item.address_name && (item.address_name.includes('거제') || item.address_name.includes('경남'))) || data[0];
           return resolve(new kakao.maps.LatLng(match.y, match.x));
         }
         resolve(new kakao.maps.LatLng(34.8872, 128.625));
