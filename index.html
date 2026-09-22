@@ -38,7 +38,6 @@
       background: #2563eb; color: #ffffff; border-color: #2563eb;
       box-shadow: 0 2px 6px rgba(37,99,235,0.3);
     }
-    /* ⭐️ 전체보기 전용 버튼 스타일 */
     .tab-btn.all-view-btn {
       background: #0f172a; color: #ffffff; border-color: #0f172a;
     }
@@ -236,7 +235,6 @@
     <button class="print-btn" onclick="window.print()">A4 인쇄</button>
   </div>
 
-  <!-- 실시간 운행 상태 알림 배너 -->
   <div id="liveStatusBar">
     <span class="live-tag">LIVE 운행</span>
     <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
@@ -263,33 +261,24 @@
     const masterStopMapByName = {};
     let timeWindowMinutes = 3;
 
-    // ⭐️ 코스별 고유 컬러 팔레트 (다채로운 식별 지원)
     const COURSE_COLORS = [
-      "#2563eb", // 블루
-      "#16a34a", // 그린
-      "#ea580c", // 오렌지
-      "#9333ea", // 퍼플
-      "#0891b2", // 시안
-      "#db2777", // 핑크
-      "#ca8a04", // 옐로우골드
-      "#4f46e5"  // 인디고
+      "#2563eb", "#16a34a", "#ea580c", "#9333ea",
+      "#0891b2", "#db2777", "#ca8a04", "#4f46e5"
     ];
 
     let map = null;
     let geocoder = null;
     let places = null;
-    
-    // 오버레이 및 경로선 관리 배열
     let markerOverlays = [];
     let currentBubbleOverlay = null;
-    let polylines = []; // 다중 경로선 보관
+    let polylines = [];
 
     const GEOJE_BOUNDS = new kakao.maps.LatLngBounds(
       new kakao.maps.LatLng(34.7000, 128.4500),
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // 0단계: '설정' 탭 콜백 (차량간격시간 조회)
+    // 0단계: '설정' 탭 콜백
     window.handleSettings = function(json) {
       try {
         const rows = json.table.rows || [];
@@ -334,7 +323,7 @@
       loadRouteData();
     };
 
-    // 2단계: '노선데이터' 탭 로드
+    // 2단계: '노선데이터' 탭 로드 (경유지 플래그 판별 추가)
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -355,6 +344,9 @@
           const stopNo    = c[6] ? String(c[6].f || c[6].v || '').replace(/,/g, '').trim() : '';
 
           if (!course || !name || course === "코스구분" || course === "코스명") return;
+
+          // ⭐️ [경유지 판별]: 설명글이나 정류장명에 '경유'가 포함된 경우
+          const isWaypoint = desc.includes('경유') || name.includes('[경유]') || name.includes('(경유)');
 
           let timeText = '';
           if (startTime && arrTime) {
@@ -378,7 +370,8 @@
             time: timeText,
             rawTimes: allTimes,
             desc: desc,
-            stopNo: stopNo
+            stopNo: stopNo,
+            isWaypoint: isWaypoint // 경유지 여부
           });
         });
 
@@ -445,20 +438,17 @@
       document.body.appendChild(s2);
     }
 
-    // ⭐️ 탭 바 생성 (맨 앞에 '전체 노선 보기' 버튼 배치)
     function initTabs() {
       const tabBar = document.getElementById('tabBar');
       tabBar.innerHTML = '';
       const courses = Object.keys(routeData);
 
-      // 1. [전체 노선 보기] 버튼 추가
       const allBtn = document.createElement('button');
       allBtn.className = 'tab-btn all-view-btn';
       allBtn.innerHTML = '🌐 전체 노선 보기';
       allBtn.onclick = () => selectAllCourses(allBtn);
       tabBar.appendChild(allBtn);
 
-      // 2. 개별 코스 버튼들 추가
       courses.forEach((cName, idx) => {
         const btn = document.createElement('button');
         btn.className = `tab-btn ${idx === 0 ? 'active' : ''}`;
@@ -467,13 +457,11 @@
         tabBar.appendChild(btn);
       });
 
-      // 첫 로딩 시 첫 번째 코스 표시
       if (courses.length > 0) {
         selectCourse(courses[0], 0, tabBar.children[1]);
       }
     }
 
-    // 기존 오버레이 및 경로선 전체 정리
     function clearMapLayers() {
       markerOverlays.forEach(o => o.setMap(null));
       markerOverlays = [];
@@ -485,50 +473,42 @@
       polylines = [];
     }
 
-    // ⭐️ [신규 기능] 전체 노선을 하나의 지도에 동시에 그리는 함수
-    async function selectAllCourses(btnElem) {
+    // ⭐️ 단일 코스 선택 렌더링
+    async function selectCourse(courseName, colorIdx, btnElem) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
 
       clearMapLayers();
 
-      const courses = Object.keys(routeData);
-      const totalBounds = new kakao.maps.LatLngBounds();
+      const rawStops = routeData[courseName] || [];
+      const stops = [...rawStops].sort((a, b) => a.rowIdx - b.rowIdx);
+
+      const color = COURSE_COLORS[colorIdx % COURSE_COLORS.length];
+      const bounds = new kakao.maps.LatLngBounds();
+      const validStopsForRouting = []; // 도로선 계산용 (경유지 포함 전체 순서)
+
+      document.getElementById('courseTitle').innerText = courseName;
+
       const list = document.getElementById('stopList');
       list.innerHTML = '';
-
-      let totalStopsCount = 0;
-      document.getElementById('courseTitle').innerText = "전체 셔틀버스 노선망";
-
-      const badge = document.getElementById('routeBadge');
-      badge.style.display = 'block';
-      badge.innerText = "전체 노선 경로망을 지도에 배치하는 중...";
 
       const coordOccurrences = {};
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-      // 모든 코스를 순차적으로 처리
-      for (let cIdx = 0; cIdx < courses.length; cIdx++) {
-        const cName = courses[cIdx];
-        const rawStops = routeData[cName] || [];
-        const stops = [...rawStops].sort((a, b) => a.rowIdx - b.rowIdx);
-        const color = COURSE_COLORS[cIdx % COURSE_COLORS.length];
-        const courseValidStops = [];
+      let displayCounter = 0; // 정식 정류장 번호 카운터
 
-        // 사이드바에 코스별 섹션 헤더 추가
-        const sectionHeader = document.createElement('div');
-        sectionHeader.className = 'course-section-title';
-        sectionHeader.style.backgroundColor = `${color}18`;
-        sectionHeader.style.color = color;
-        sectionHeader.innerHTML = `🚌 <b>${cName}</b> (${stops.length}개소)`;
-        list.appendChild(sectionHeader);
+      for (let i = 0; i < stops.length; i++) {
+        const stop = stops[i];
+        const isBokji = stop.name.indexOf('복지관') > -1;
 
-        for (let i = 0; i < stops.length; i++) {
-          totalStopsCount++;
-          const stop = stops[i];
-          const isBokji = stop.name.indexOf('복지관') > -1;
-          const displayNum = i + 1;
+        let displayNum = null;
+        let card = null;
+
+        // ⭐️ [경유지 처리]: 사이드바 목록과 번호 핀 부여에서 제외
+        if (!stop.isWaypoint) {
+          displayCounter++;
+          displayNum = displayCounter;
 
           let isNowActive = false;
           stop.rawTimes.forEach(tStr => {
@@ -539,9 +519,9 @@
             }
           });
 
-          const card = document.createElement('div');
+          card = document.createElement('div');
           card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
-          card.id = `all-card-${cIdx}-${i}`;
+          card.id = `card-${i}`;
           card.innerHTML = `
             <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
             <div class="stop-info">
@@ -555,10 +535,18 @@
             </div>
           `;
           list.appendChild(card);
+        }
 
-          let coords = await resolveStopCoordinates(stop);
+        // 좌표 해석
+        let coords = await resolveStopCoordinates(stop);
 
-          if (coords) {
+        if (coords) {
+          stop.coords = coords;
+          validStopsForRouting.push(stop); // 도로선에는 경유지 좌표도 반드시 포함!
+          bounds.extend(coords);
+
+          // 경유지가 아닌 정식 정류장에만 지도 마커 및 말풍선 생성
+          if (!stop.isWaypoint && displayNum !== null) {
             const coordKey = `${coords.getLat().toFixed(5)},${coords.getLng().toFixed(5)}`;
             if (!coordOccurrences[coordKey]) coordOccurrences[coordKey] = 0;
             coordOccurrences[coordKey]++;
@@ -576,32 +564,26 @@
               adjustedCoords = new kakao.maps.LatLng(coords.getLat() + offset.lat, coords.getLng() + offset.lng);
             }
 
-            stop.coords = coords;
-            courseValidStops.push(stop);
-            totalBounds.extend(coords);
-
-            // 지도 뱃지
-            const badgeElem = document.createElement('div');
-            badgeElem.className = `bus-marker-badge ${isBokji ? '복지관' : ''} ${isNowActive ? 'now-active' : ''}`;
-            badgeElem.style.backgroundColor = isNowActive ? '#ef4444' : (isBokji ? '#dc2626' : color);
-            badgeElem.innerText = displayNum;
+            const badge = document.createElement('div');
+            badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''}`;
+            badge.style.backgroundColor = isBokji ? '#dc2626' : color;
+            badge.innerText = displayNum;
 
             const markerOverlay = new kakao.maps.CustomOverlay({
               position: adjustedCoords,
-              content: badgeElem,
+              content: badge,
               yAnchor: 0.5,
               xAnchor: 0.5,
-              zIndex: isNowActive ? 60 : (isBokji ? 15 : 5)
+              zIndex: isBokji ? 10 + count : 3 + count
             });
             markerOverlay.setMap(map);
             markerOverlays.push(markerOverlay);
 
-            // 말풍선 카드
             const bubbleDiv = document.createElement('div');
             bubbleDiv.className = 'bubble-popup';
             bubbleDiv.innerHTML = `
               <div class="popup-header">
-                <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
+                <div class="popup-title">${displayNum}. ${stop.name}</div>
                 ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
                 <button class="close-btn" title="닫기">&times;</button>
               </div>
@@ -630,185 +612,213 @@
               currentBubbleOverlay = bubbleOverlay;
               map.panTo(adjustedCoords);
 
-              document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
-              card.classList.add('active');
-              card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              if (card) {
+                document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              }
             };
 
-            badgeElem.onclick = showDetail;
-            card.onclick = showDetail;
+            badge.onclick = showDetail;
+            if (card) card.onclick = showDetail;
+          }
+        }
+      }
+
+      document.getElementById('stopCount').innerText = `${displayCounter}개 정류장`;
+
+      if (validStopsForRouting.length > 1) {
+        map.setBounds(bounds);
+        const b = document.getElementById('routeBadge');
+        b.style.display = 'block';
+        b.innerText = '실제 도로 경로선 계산 중...';
+        await drawSingleRoadLine(validStopsForRouting, color);
+        b.style.display = 'none';
+      } else if (validStopsForRouting.length === 1) {
+        map.setCenter(validStopsForRouting[0].coords);
+      }
+
+      setTimeout(() => { if (map) map.relayout(); }, 200);
+    }
+
+    // ⭐️ 전체 노선 한눈에 보기
+    async function selectAllCourses(btnElem) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (btnElem) btnElem.classList.add('active');
+
+      clearMapLayers();
+
+      const courses = Object.keys(routeData);
+      const totalBounds = new kakao.maps.LatLngBounds();
+      const list = document.getElementById('stopList');
+      list.innerHTML = '';
+
+      let totalStopsCount = 0;
+      document.getElementById('courseTitle').innerText = "전체 셔틀버스 노선망";
+
+      const badge = document.getElementById('routeBadge');
+      badge.style.display = 'block';
+      badge.innerText = "전체 노선 경로망을 지도에 배치하는 중...";
+
+      const coordOccurrences = {};
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      for (let cIdx = 0; cIdx < courses.length; cIdx++) {
+        const cName = courses[cIdx];
+        const rawStops = routeData[cName] || [];
+        const stops = [...rawStops].sort((a, b) => a.rowIdx - b.rowIdx);
+        const color = COURSE_COLORS[cIdx % COURSE_COLORS.length];
+        const courseValidStopsForRouting = [];
+
+        const sectionHeader = document.createElement('div');
+        sectionHeader.className = 'course-section-title';
+        sectionHeader.style.backgroundColor = `${color}18`;
+        sectionHeader.style.color = color;
+        sectionHeader.innerHTML = `🚌 <b>${cName}</b>`;
+        list.appendChild(sectionHeader);
+
+        let courseDisplayCounter = 0;
+
+        for (let i = 0; i < stops.length; i++) {
+          const stop = stops[i];
+          const isBokji = stop.name.indexOf('복지관') > -1;
+
+          let displayNum = null;
+          let card = null;
+
+          if (!stop.isWaypoint) {
+            courseDisplayCounter++;
+            totalStopsCount++;
+            displayNum = courseDisplayCounter;
+
+            let isNowActive = false;
+            stop.rawTimes.forEach(tStr => {
+              const parts = tStr.split(':');
+              const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+              if (Math.abs(currentMinutes - targetMinutes) <= timeWindowMinutes) {
+                isNowActive = true;
+              }
+            });
+
+            card = document.createElement('div');
+            card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
+            card.id = `all-card-${cIdx}-${i}`;
+            card.innerHTML = `
+              <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
+              <div class="stop-info">
+                <div class="stop-info-header">
+                  <h4>${stop.name}</h4>
+                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                  ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                </div>
+                ${stop.time ? `<div class="time">🕒 ${stop.time}</div>` : ''}
+                <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
+              </div>
+            `;
+            list.appendChild(card);
+          }
+
+          let coords = await resolveStopCoordinates(stop);
+
+          if (coords) {
+            stop.coords = coords;
+            courseValidStopsForRouting.push(stop);
+            totalBounds.extend(coords);
+
+            if (!stop.isWaypoint && displayNum !== null) {
+              const coordKey = `${coords.getLat().toFixed(5)},${coords.getLng().toFixed(5)}`;
+              if (!coordOccurrences[coordKey]) coordOccurrences[coordKey] = 0;
+              coordOccurrences[coordKey]++;
+              const count = coordOccurrences[coordKey];
+
+              let adjustedCoords = coords;
+              if (count > 1) {
+                const offsets = [
+                  { lat: 0.00008, lng: 0 },
+                  { lat: 0, lng: 0.00012 },
+                  { lat: -0.00008, lng: 0 },
+                  { lat: 0, lng: -0.00012 }
+                ];
+                const offset = offsets[(count - 2) % offsets.length];
+                adjustedCoords = new kakao.maps.LatLng(coords.getLat() + offset.lat, coords.getLng() + offset.lng);
+              }
+
+              const badgeElem = document.createElement('div');
+              badgeElem.className = `bus-marker-badge ${isBokji ? '복지관' : ''}`;
+              badgeElem.style.backgroundColor = isBokji ? '#dc2626' : color;
+              badgeElem.innerText = displayNum;
+
+              const markerOverlay = new kakao.maps.CustomOverlay({
+                position: adjustedCoords,
+                content: badgeElem,
+                yAnchor: 0.5,
+                xAnchor: 0.5,
+                zIndex: isBokji ? 15 : 5
+              });
+              markerOverlay.setMap(map);
+              markerOverlays.push(markerOverlay);
+
+              const bubbleDiv = document.createElement('div');
+              bubbleDiv.className = 'bubble-popup';
+              bubbleDiv.innerHTML = `
+                <div class="popup-header">
+                  <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
+                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                  <button class="close-btn" title="닫기">&times;</button>
+                </div>
+                ${stop.time ? `<div class="popup-time">🕒 ${stop.time}</div>` : ''}
+                <div class="popup-addr">📍 ${stop.addr}</div>
+                ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
+              `;
+
+              const bubbleOverlay = new kakao.maps.CustomOverlay({
+                position: adjustedCoords,
+                content: bubbleDiv,
+                yAnchor: 1.0,
+                xAnchor: 0.5,
+                zIndex: 100
+              });
+
+              bubbleDiv.querySelector('.close-btn').onclick = function(e) {
+                e.stopPropagation();
+                bubbleOverlay.setMap(null);
+                currentBubbleOverlay = null;
+              };
+
+              const showDetail = () => {
+                if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
+                bubbleOverlay.setMap(map);
+                currentBubbleOverlay = bubbleOverlay;
+                map.panTo(adjustedCoords);
+
+                if (card) {
+                  document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
+                  card.classList.add('active');
+                  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+              };
+
+              badgeElem.onclick = showDetail;
+              if (card) card.onclick = showDetail;
+            }
           }
         }
 
-        // 해당 코스의 도로선 그리기
-        if (courseValidStops.length > 1) {
-          await drawSingleRoadLine(courseValidStops, color);
+        if (courseValidStopsForRouting.length > 1) {
+          await drawSingleRoadLine(courseValidStopsForRouting, color);
         }
       }
 
       document.getElementById('stopCount').innerText = `총 ${totalStopsCount}개 정류장`;
       badge.style.display = 'none';
 
-      // 거제 전역 노선이 한눈에 들어오도록 줌 맞춤
       if (!totalBounds.isEmpty()) {
         map.setBounds(totalBounds);
       }
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // 단일 코스 선택 렌더링
-    async function selectCourse(courseName, colorIdx, btnElem) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      if (btnElem) btnElem.classList.add('active');
-
-      clearMapLayers();
-
-      const rawStops = routeData[courseName] || [];
-      const stops = [...rawStops].sort((a, b) => a.rowIdx - b.rowIdx);
-
-      const color = COURSE_COLORS[colorIdx % COURSE_COLORS.length];
-      const bounds = new kakao.maps.LatLngBounds();
-      const validStops = [];
-
-      document.getElementById('courseTitle').innerText = courseName;
-      document.getElementById('stopCount').innerText = `${stops.length}개 정류장`;
-
-      const list = document.getElementById('stopList');
-      list.innerHTML = '';
-
-      const coordOccurrences = {};
-      const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-      for (let i = 0; i < stops.length; i++) {
-        const stop = stops[i];
-        const isBokji = stop.name.indexOf('복지관') > -1;
-        const displayNum = i + 1;
-
-        let isNowActive = false;
-        stop.rawTimes.forEach(tStr => {
-          const parts = tStr.split(':');
-          const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-          if (Math.abs(currentMinutes - targetMinutes) <= timeWindowMinutes) {
-            isNowActive = true;
-          }
-        });
-
-        const card = document.createElement('div');
-        card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
-        card.id = `card-${i}`;
-        card.innerHTML = `
-          <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
-          <div class="stop-info">
-            <div class="stop-info-header">
-              <h4>${stop.name}</h4>
-              ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-              ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-            </div>
-            ${stop.time ? `<div class="time">🕒 ${stop.time}</div>` : ''}
-            <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
-          </div>
-        `;
-        list.appendChild(card);
-
-        let coords = await resolveStopCoordinates(stop);
-
-        if (coords) {
-          const coordKey = `${coords.getLat().toFixed(5)},${coords.getLng().toFixed(5)}`;
-          if (!coordOccurrences[coordKey]) coordOccurrences[coordKey] = 0;
-          coordOccurrences[coordKey]++;
-          const count = coordOccurrences[coordKey];
-
-          let adjustedCoords = coords;
-          if (count > 1) {
-            const offsets = [
-              { lat: 0.00008, lng: 0 },
-              { lat: 0, lng: 0.00012 },
-              { lat: -0.00008, lng: 0 },
-              { lat: 0, lng: -0.00012 }
-            ];
-            const offset = offsets[(count - 2) % offsets.length];
-            adjustedCoords = new kakao.maps.LatLng(coords.getLat() + offset.lat, coords.getLng() + offset.lng);
-          }
-
-          stop.coords = coords;
-          validStops.push(stop);
-          bounds.extend(coords);
-
-          const badge = document.createElement('div');
-          badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''} ${isNowActive ? 'now-active' : ''}`;
-          badge.style.backgroundColor = isNowActive ? '#ef4444' : (isBokji ? '#dc2626' : color);
-          badge.innerText = displayNum;
-
-          const markerOverlay = new kakao.maps.CustomOverlay({
-            position: adjustedCoords,
-            content: badge,
-            yAnchor: 0.5,
-            xAnchor: 0.5,
-            zIndex: isNowActive ? 50 : (isBokji ? 10 + count : 3 + count)
-          });
-          markerOverlay.setMap(map);
-          markerOverlays.push(markerOverlay);
-
-          const bubbleDiv = document.createElement('div');
-          bubbleDiv.className = 'bubble-popup';
-          bubbleDiv.innerHTML = `
-            <div class="popup-header">
-              <div class="popup-title">${displayNum}. ${stop.name}</div>
-              ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-              ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-              <button class="close-btn" title="닫기">&times;</button>
-            </div>
-            ${stop.time ? `<div class="popup-time">🕒 ${stop.time}</div>` : ''}
-            <div class="popup-addr">📍 ${stop.addr}</div>
-            ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
-          `;
-
-          const bubbleOverlay = new kakao.maps.CustomOverlay({
-            position: adjustedCoords,
-            content: bubbleDiv,
-            yAnchor: 1.0,
-            xAnchor: 0.5,
-            zIndex: 100
-          });
-
-          bubbleDiv.querySelector('.close-btn').onclick = function(e) {
-            e.stopPropagation();
-            bubbleOverlay.setMap(null);
-            currentBubbleOverlay = null;
-          };
-
-          const showDetail = () => {
-            if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
-            bubbleOverlay.setMap(map);
-            currentBubbleOverlay = bubbleOverlay;
-            map.panTo(adjustedCoords);
-
-            document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          };
-
-          badge.onclick = showDetail;
-          card.onclick = showDetail;
-        }
-      }
-
-      if (validStops.length > 1) {
-        map.setBounds(bounds);
-        const b = document.getElementById('routeBadge');
-        b.style.display = 'block';
-        b.innerText = '실제 도로 경로선 계산 중...';
-        await drawSingleRoadLine(validStops, color);
-        b.style.display = 'none';
-      } else if (validStops.length === 1) {
-        map.setCenter(validStops[0].coords);
-      }
-
-      setTimeout(() => { if (map) map.relayout(); }, 200);
-    }
-
-    // 도로 경로선 그리기 공통 함수
     async function drawSingleRoadLine(stops, color) {
       try {
         const coordString = stops.map(s => `${s.coords.getLng()},${s.coords.getLat()}`).join(';');
@@ -844,7 +854,6 @@
       polylines.push(line);
     }
 
-    // 실시간 운행 체크
     function startRealtimeCheck() {
       checkActiveBuses();
       setInterval(checkActiveBuses, 10000);
@@ -858,6 +867,7 @@
       Object.keys(routeData).forEach(courseName => {
         const stops = routeData[courseName];
         stops.forEach((stop, sIdx) => {
+          if (stop.isWaypoint) return;
           stop.rawTimes.forEach(tStr => {
             const parts = tStr.split(':');
             const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
