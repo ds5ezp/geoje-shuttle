@@ -2,48 +2,46 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>거제시종합사회복지관 셔틀버스 노선 안내</title>
 
   <!-- 카카오맵 SDK -->
   <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=c8dd436b42d1fd4102b40d73bd28cbe1&libraries=services"></script>
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; -webkit-tap-highlight-color: transparent; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #f8fafc; }
 
-    /* 상단 헤더 */
+    /* ================= 상단 헤더 ================= */
     #header {
-      position: absolute; top: 0; left: 0; right: 0; height: 72px;
-      background: #ffffff; box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+      position: absolute; top: 0; left: 0; right: 0; height: 68px;
+      background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 16px; z-index: 100;
     }
     .header-info { display: flex; flex-direction: column; justify-content: center; }
-    .header-info h1 { font-size: 1.12rem; font-weight: 800; color: #0f172a; white-space: nowrap; }
+    .header-info h1 { font-size: 1.08rem; font-weight: 800; color: #0f172a; white-space: nowrap; }
     
     .company-info {
-      display: flex; align-items: center; gap: 8px; margin-top: 3px; font-size: 0.78rem; color: #475569;
+      display: flex; align-items: center; gap: 8px; margin-top: 2px; font-size: 0.76rem; color: #475569;
     }
     .call-btn {
       display: inline-flex; align-items: center; gap: 4px;
       background: #10b981; color: #ffffff; text-decoration: none;
-      font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;
-      transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+      font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 12px;
+      transition: background 0.2s; box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
     }
-    .call-btn:hover {
-      background: #059669; transform: scale(1.03);
-    }
+    .call-btn:hover { background: #059669; }
 
     .tab-bar {
-      display: flex; gap: 8px; overflow-x: auto; padding: 4px;
+      display: flex; gap: 8px; overflow-x: auto; padding: 4px 0;
       -webkit-overflow-scrolling: touch;
     }
     .tab-bar::-webkit-scrollbar { display: none; }
     
     .tab-btn {
       background: #f1f5f9; border: 1.5px solid #cbd5e1; color: #334155;
-      padding: 8px 16px; border-radius: 20px; font-size: 0.88rem; font-weight: 700;
+      padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;
       white-space: nowrap; cursor: pointer; transition: all 0.2s;
     }
     .tab-btn:hover { background: #e2e8f0; }
@@ -60,28 +58,28 @@
     }
 
     .print-btn {
-      padding: 9px 16px; background: #1e293b; color: #fff; border: none;
-      border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem;
+      padding: 8px 14px; background: #1e293b; color: #fff; border: none;
+      border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.82rem;
       white-space: nowrap;
     }
 
-    /* 실시간 운행 현황 알림 배너 */
+    /* ================= 실시간 운행 현황 알림 배너 ================= */
     #liveStatusBar {
-      position: absolute; top: 72px; left: 0; right: 0; height: 46px;
+      position: absolute; top: 68px; left: 0; right: 0; height: 42px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
-      padding: 0 16px; font-size: 0.82rem; z-index: 90; gap: 10px;
+      padding: 0 16px; font-size: 0.8rem; z-index: 90; gap: 8px;
       overflow-x: auto; overflow-y: hidden;
       white-space: nowrap;
       -webkit-overflow-scrolling: touch;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
-    #liveStatusBar::-webkit-scrollbar { height: 4px; }
+    #liveStatusBar::-webkit-scrollbar { height: 3px; }
     #liveStatusBar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.25); border-radius: 2px; }
     #liveStatusBar::-webkit-scrollbar-track { background: transparent; }
 
     .live-tag {
-      background: #ef4444; color: #fff; padding: 4px 10px; border-radius: 14px;
-      font-weight: 800; font-size: 0.74rem; animation: pulse 1.5s infinite;
+      background: #ef4444; color: #fff; padding: 3px 8px; border-radius: 12px;
+      font-weight: 800; font-size: 0.72rem; animation: pulse 1.5s infinite;
       flex-shrink: 0; display: inline-flex; align-items: center;
     }
     @keyframes pulse {
@@ -91,29 +89,25 @@
     }
 
     #liveStatusText {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
     }
 
     .live-item {
-      background: rgba(255, 255, 255, 0.1); padding: 5px 12px; border-radius: 20px;
+      background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 20px;
       cursor: pointer; white-space: nowrap; transition: all 0.2s;
       display: inline-flex; align-items: center; gap: 4px;
       border: 1px solid rgba(255, 255, 255, 0.15);
-      font-size: 0.78rem; flex-shrink: 0;
+      font-size: 0.76rem; flex-shrink: 0;
     }
     .live-item:hover {
       background: rgba(59, 130, 246, 0.6);
       border-color: #60a5fa;
-      transform: translateY(-1px);
     }
 
-    /* 메인 분할 뷰 */
+    /* ================= 메인 컨테이너 (PC 데스크탑) ================= */
     #main-container {
-      position: absolute; top: 118px; bottom: 0; left: 0; right: 0;
-      display: flex; width: 100%; height: calc(100vh - 118px);
+      position: absolute; top: 110px; bottom: 0; left: 0; right: 0;
+      display: flex; width: 100%; height: calc(100vh - 110px);
     }
 
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
@@ -124,13 +118,15 @@
       padding: 16px; display: flex; flex-direction: column; gap: 10px;
       z-index: 50;
     }
+    .sheet-handle-bar { display: none; } /* PC에선 숨김 */
+
     .sidebar-header {
-      font-size: 1rem; font-weight: 800; color: #0f172a;
+      font-size: 0.98rem; font-weight: 800; color: #0f172a;
       display: flex; align-items: center; justify-content: space-between;
       border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;
     }
     .header-badges { display: flex; gap: 6px; align-items: center; }
-    .header-badges span { font-size: 0.8rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
+    .header-badges span { font-size: 0.78rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
     .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
     .course-section-title {
@@ -144,7 +140,7 @@
       display: flex; gap: 12px; align-items: flex-start;
     }
     .stop-card:hover, .stop-card.active {
-      background: #eff6ff; border-color: #2563eb; transform: translateY(-2px);
+      background: #eff6ff; border-color: #2563eb; transform: translateY(-1px);
     }
     .stop-card.now-running {
       border-color: #ef4444; background: #fef2f2;
@@ -158,7 +154,7 @@
     
     .stop-info { flex: 1; }
     .stop-info-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .stop-info h4 { font-size: 0.95rem; font-weight: 700; color: #0f172a; }
+    .stop-info h4 { font-size: 0.93rem; font-weight: 700; color: #0f172a; }
     .stop-id-tag {
       background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
       font-size: 0.72rem; font-weight: bold; padding: 1px 6px; border-radius: 4px;
@@ -169,29 +165,25 @@
     }
 
     .meta-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
-    
     .time-tag {
-      background: #eff6ff; color: #1e40af; font-size: 0.78rem; font-weight: 600;
+      background: #eff6ff; color: #1e40af; font-size: 0.76rem; font-weight: 600;
       padding: 3px 8px; border-radius: 6px; border: 1px solid #bfdbfe;
       display: inline-flex; align-items: center; gap: 3px; flex-wrap: wrap;
     }
-    .time-normal {
-      color: #3b82f6; font-weight: 600;
-    }
+    .time-normal { color: #3b82f6; font-weight: 600; }
     .time-active-pill {
       background: #ef4444; color: #ffffff !important; font-weight: 800;
       padding: 1px 6px; border-radius: 4px;
       box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4);
       display: inline-block;
     }
-
     .dist-tag {
-      background: #ecfdf5; color: #065f46; font-size: 0.76rem; font-weight: 700;
+      background: #ecfdf5; color: #065f46; font-size: 0.74rem; font-weight: 700;
       padding: 3px 7px; border-radius: 4px; border: 1px solid #a7f3d0;
     }
+    .stop-info .desc { font-size: 0.78rem; color: #64748b; margin-top: 4px; line-height: 1.4; }
 
-    .stop-info .desc { font-size: 0.8rem; color: #64748b; margin-top: 5px; line-height: 1.4; }
-
+    /* 지도 마커 뱃지 */
     .bus-marker-badge {
       width: 30px; height: 30px; border-radius: 50%;
       background: #2563eb; color: #ffffff; font-weight: 800; font-size: 13px;
@@ -208,35 +200,19 @@
     }
 
     .live-bus-badge {
-      position: absolute;
-      bottom: 22px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #ffffff;
-      border: 2px solid #ef4444;
-      border-radius: 20px;
-      padding: 2px 7px;
-      font-size: 14px;
-      font-weight: 800;
-      color: #ef4444;
-      box-shadow: 0 3px 10px rgba(239, 68, 68, 0.5);
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      white-space: nowrap;
+      position: absolute; bottom: 22px; left: 50%;
+      transform: translateX(-50%); background: #ffffff;
+      border: 2px solid #ef4444; border-radius: 20px;
+      padding: 2px 7px; font-size: 13px; font-weight: 800;
+      color: #ef4444; box-shadow: 0 3px 10px rgba(239, 68, 68, 0.5);
+      display: flex; align-items: center; gap: 3px; white-space: nowrap;
       animation: bounceBus 1.2s infinite ease-in-out;
-      pointer-events: none;
-      z-index: 200;
+      pointer-events: none; z-index: 200;
     }
     .live-bus-badge::after {
-      content: '';
-      position: absolute;
-      bottom: -6px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 6px 5px 0 5px;
-      border-style: solid;
-      border-color: #ef4444 transparent transparent transparent;
+      content: ''; position: absolute; bottom: -6px; left: 50%;
+      transform: translateX(-50%); border-width: 6px 5px 0 5px;
+      border-style: solid; border-color: #ef4444 transparent transparent transparent;
     }
     @keyframes bounceBus {
       0%, 100% { transform: translateX(-50%) translateY(0); }
@@ -244,70 +220,113 @@
     }
 
     .bubble-popup {
-      position: relative;
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 12px 14px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-      border: 1px solid #cbd5e1;
-      min-width: 220px;
-      max-width: 280px;
-      bottom: 22px;
+      position: relative; background: #ffffff; border-radius: 12px;
+      padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+      border: 1px solid #cbd5e1; min-width: 220px; max-width: 280px; bottom: 22px;
     }
     .bubble-popup::after {
-      content: '';
-      position: absolute;
-      bottom: -8px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-width: 8px 8px 0 8px;
-      border-style: solid;
-      border-color: #ffffff transparent transparent transparent;
+      content: ''; position: absolute; bottom: -8px; left: 50%;
+      transform: translateX(-50%); border-width: 8px 8px 0 8px;
+      border-style: solid; border-color: #ffffff transparent transparent transparent;
     }
     .bubble-popup .popup-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 4px; gap: 6px;
     }
-    .bubble-popup .popup-title {
-      font-size: 0.95rem; font-weight: 800; color: #0f172a;
-    }
+    .bubble-popup .popup-title { font-size: 0.92rem; font-weight: 800; color: #0f172a; }
     .bubble-popup .close-btn {
       background: none; border: none; font-size: 16px; color: #94a3b8;
       cursor: pointer; padding: 0 4px; font-weight: bold; line-height: 1;
     }
     .bubble-popup .close-btn:hover { color: #0f172a; }
-    .bubble-popup .popup-addr {
-      font-size: 0.78rem; color: #64748b; line-height: 1.35; margin-top: 4px;
-    }
+    .bubble-popup .popup-addr { font-size: 0.76rem; color: #64748b; line-height: 1.35; margin-top: 4px; }
     .bubble-popup .popup-desc {
-      font-size: 0.76rem; color: #334155; margin-top: 5px; line-height: 1.35;
+      font-size: 0.74rem; color: #334155; margin-top: 5px; line-height: 1.35;
       background: #f8fafc; padding: 5px 8px; border-radius: 6px;
     }
 
     #loadingModal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.7); color: #fff; z-index: 2000;
-      display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.05rem;
     }
 
     #routeBadge {
-      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.85); color: #fff; padding: 8px 18px;
-      border-radius: 20px; font-size: 0.85rem; font-weight: bold; z-index: 500;
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.85); color: #fff; padding: 6px 16px;
+      border-radius: 20px; font-size: 0.78rem; font-weight: bold; z-index: 500;
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    @media (max-width: 800px) {
-      #main-container { flex-direction: column; top: 118px; height: calc(100vh - 118px); }
-      #map { height: 50%; }
-      #sidebar { width: 100%; height: 50%; }
+    /* ================= 📱 모바일 전용 반응형 레이아웃 (바텀시트 서랍식) ================= */
+    @media (max-width: 850px) {
+      #header {
+        height: auto; min-height: 58px; padding: 8px 12px;
+        flex-direction: column; align-items: stretch; gap: 6px;
+      }
+      .header-info {
+        flex-direction: row; align-items: center; justify-content: space-between;
+      }
+      .header-info h1 { font-size: 0.95rem; }
+      .company-info { margin-top: 0; font-size: 0.72rem; }
+      .company-info span { display: none; } /* 회사명 긴 글자는 모바일 헤더 축소 */
+      .company-info::before { content: "㈜여행과 사람"; font-weight: 700; color: #334155; }
+      
+      .print-btn { display: none !important; } /* 모바일에서 인쇄 버튼 제거 */
+
+      .tab-bar { padding: 2px 0 4px 0; }
+      .tab-btn { font-size: 0.78rem; padding: 5px 12px; }
+
+      #liveStatusBar {
+        top: 96px; height: 38px; padding: 0 12px; font-size: 0.76rem;
+      }
+      .live-tag { font-size: 0.68rem; padding: 2px 6px; }
+      .live-item { font-size: 0.72rem; padding: 3px 8px; }
+
+      /* 메인 화면: 지도를 100% 꽉 채우고 사이드바를 하단 서랍시트로 변환 */
+      #main-container {
+        top: 134px; height: calc(100vh - 134px); display: block; position: relative;
+      }
+      #map {
+        width: 100%; height: 100%; position: absolute; top: 0; bottom: 0; left: 0; right: 0;
+      }
+
+      /* 모바일 서랍식 바텀시트 (기본은 하단에 접혀있고 위로 당길 수 있음) */
+      #sidebar {
+        position: absolute; bottom: 0; left: 0; right: 0;
+        width: 100%; max-height: 75%; height: 260px;
+        background: #ffffff; border-radius: 20px 20px 0 0;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.18);
+        padding: 10px 14px 24px 14px;
+        z-index: 60;
+        transition: height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      /* 서랍 손잡이 핸들바 */
+      .sheet-handle-bar {
+        display: flex; justify-content: center; align-items: center;
+        padding-bottom: 8px; cursor: pointer;
+      }
+      .sheet-handle-bar::after {
+        content: ''; width: 44px; height: 5px;
+        background: #cbd5e1; border-radius: 3px;
+      }
+      #sidebar.expanded {
+        height: 70% !important;
+      }
+      .sidebar-header {
+        padding-bottom: 8px; font-size: 0.92rem;
+      }
+      .stop-card {
+        padding: 10px 12px;
+      }
+      .stop-info h4 { font-size: 0.88rem; }
     }
 
     @media print {
       #header, #liveStatusBar { display: none; }
       #main-container { position: static; height: auto; display: block; }
       #map { height: 420px !important; }
-      #sidebar { width: 100%; box-shadow: none; }
+      #sidebar { width: 100%; box-shadow: none; position: static; height: auto; }
     }
   </style>
 </head>
@@ -315,9 +334,10 @@
 
   <div id="loadingModal">구글 시트에서 최신 노선 데이터 연동 중...</div>
 
+  <!-- 상단 헤더 -->
   <div id="header">
     <div class="header-info">
-      <h1>거제시종합사회복지관 셔틀버스 노선 안내</h1>
+      <h1>거제시종합사회복지관 셔틀버스</h1>
       <div class="company-info">
         <span>2026년 차량운행회사 : ㈜여행과 사람</span>
         <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
@@ -327,16 +347,21 @@
     <button class="print-btn" onclick="window.print()">A4 인쇄</button>
   </div>
 
+  <!-- 실시간 운행 현황 알림 배너 -->
   <div id="liveStatusBar">
     <span class="live-tag">LIVE 운행</span>
     <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
   </div>
 
+  <!-- 메인 뷰 -->
   <div id="main-container">
     <div id="map">
       <div id="routeBadge">실제 도로 경로선 계산 중...</div>
     </div>
+
+    <!-- 우측(모바일은 하단 서랍시트) 정류장 목록 -->
     <div id="sidebar">
+      <div class="sheet-handle-bar" id="sheetToggle" title="목록 펼치기/접기"></div>
       <div class="sidebar-header">
         <span id="courseTitle">노선 안내</span>
         <div class="header-badges">
@@ -531,6 +556,15 @@
         if (map) map.relayout();
       });
 
+      // 📱 모바일 바텀시트 손잡이 터치 토글 이벤트
+      const sheetToggle = document.getElementById('sheetToggle');
+      const sidebar = document.getElementById('sidebar');
+      if (sheetToggle && sidebar) {
+        sheetToggle.onclick = () => {
+          sidebar.classList.toggle('expanded');
+        };
+      }
+
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
 
@@ -573,7 +607,7 @@
 
       const allBtn = document.createElement('button');
       allBtn.className = 'tab-btn all-view-btn';
-      allBtn.innerHTML = '🌐 전체 노선 보기';
+      allBtn.innerHTML = '🌐 전체 노선';
       allBtn.onclick = () => selectAllCourses(allBtn);
       tabBar.appendChild(allBtn);
 
@@ -618,7 +652,7 @@
       const validStopsForRouting = [];
 
       document.getElementById('courseTitle').innerText = courseName;
-      document.getElementById('totalDistBadge').innerText = '거리 계산 중...';
+      document.getElementById('totalDistBadge').innerText = '계산 중...';
 
       const list = document.getElementById('stopList');
       list.innerHTML = '';
@@ -766,7 +800,13 @@
               if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
               bubbleOverlay.setMap(map);
               currentBubbleOverlay = bubbleOverlay;
-              map.panTo(adjustedCoords);
+
+              // 📱 모바일 화면일 때 마커가 바텀시트에 가려지지 않도록 살짝 아래쪽 좌표를 중심축으로 설정
+              if (window.innerWidth <= 850) {
+                map.panTo(new kakao.maps.LatLng(adjustedCoords.getLat() - 0.004, adjustedCoords.getLng()));
+              } else {
+                map.panTo(adjustedCoords);
+              }
 
               if (card) {
                 document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
@@ -781,13 +821,13 @@
         }
       }
 
-      document.getElementById('stopCount').innerText = `${displayCounter}개 정류장`;
+      document.getElementById('stopCount').innerText = `${displayCounter}개소`;
 
       if (validStopsForRouting.length > 1) {
         map.setBounds(bounds);
         const b = document.getElementById('routeBadge');
         b.style.display = 'block';
-        b.innerText = '실제 도로 경로선 및 운행 거리 계산 중...';
+        b.innerText = '경로선 계산 중...';
         
         const routeResult = await drawSingleRoadLine(courseName, validStopsForRouting, color);
         b.style.display = 'none';
@@ -835,12 +875,12 @@
       let totalStopsCount = 0;
       let totalNetworkDistance = 0;
 
-      document.getElementById('courseTitle').innerText = "전체 셔틀버스 노선망";
-      document.getElementById('totalDistBadge').innerText = '거리 계산 중...';
+      document.getElementById('courseTitle').innerText = "전체 셔틀 노선망";
+      document.getElementById('totalDistBadge').innerText = '계산 중...';
 
       const badge = document.getElementById('routeBadge');
       badge.style.display = 'block';
-      badge.innerText = "전체 노선망 및 총 운행 거리 계산 중...";
+      badge.innerText = "전체 노선망 계산 중...";
 
       const coordOccurrences = {};
       const now = new Date();
@@ -858,7 +898,7 @@
         sectionHeader.style.backgroundColor = `${color}18`;
         sectionHeader.style.color = color;
         sectionHeader.id = `section-header-${cIdx}`;
-        sectionHeader.innerHTML = `<span>🚌 <b>${cName}</b></span><span id="course-dist-${cIdx}" style="font-size:0.78rem;">계산 중...</span>`;
+        sectionHeader.innerHTML = `<span>🚌 <b>${cName}</b></span><span id="course-dist-${cIdx}" style="font-size:0.75rem;">계산 중...</span>`;
         list.appendChild(sectionHeader);
 
         let courseDisplayCounter = 0;
@@ -1001,7 +1041,12 @@
                 if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
                 bubbleOverlay.setMap(map);
                 currentBubbleOverlay = bubbleOverlay;
-                map.panTo(adjustedCoords);
+
+                if (window.innerWidth <= 850) {
+                  map.panTo(new kakao.maps.LatLng(adjustedCoords.getLat() - 0.004, adjustedCoords.getLng()));
+                } else {
+                  map.panTo(adjustedCoords);
+                }
 
                 if (card) {
                   document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
@@ -1044,7 +1089,7 @@
         }
       }
 
-      document.getElementById('stopCount').innerText = `총 ${totalStopsCount}개 정류장`;
+      document.getElementById('stopCount').innerText = `총 ${totalStopsCount}개소`;
       document.getElementById('totalDistBadge').innerText = `전체 ${(totalNetworkDistance / 1000).toFixed(1)} km`;
       badge.style.display = 'none';
 
