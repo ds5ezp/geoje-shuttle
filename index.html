@@ -19,8 +19,21 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 16px; z-index: 100;
     }
-    .header-info h1 { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
-    .header-info p { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+    .header-info { display: flex; flex-direction: column; justify-content: center; }
+    .header-info h1 { font-size: 1.12rem; font-weight: 800; color: #0f172a; white-space: nowrap; }
+    
+    .company-info {
+      display: flex; align-items: center; gap: 8px; margin-top: 3px; font-size: 0.78rem; color: #475569;
+    }
+    .call-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #10b981; color: #ffffff; text-decoration: none;
+      font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 12px;
+      transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+    }
+    .call-btn:hover {
+      background: #059669; transform: scale(1.03);
+    }
 
     .tab-bar {
       display: flex; gap: 8px; overflow-x: auto; padding: 4px;
@@ -49,6 +62,7 @@
     .print-btn {
       padding: 9px 16px; background: #1e293b; color: #fff; border: none;
       border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem;
+      white-space: nowrap;
     }
 
     /* 실시간 운행 현황 알림 배너 */
@@ -178,7 +192,6 @@
 
     .stop-info .desc { font-size: 0.8rem; color: #64748b; margin-top: 5px; line-height: 1.4; }
 
-    /* 정류장 번호 뱃지 마커 */
     .bus-marker-badge {
       width: 30px; height: 30px; border-radius: 50%;
       background: #2563eb; color: #ffffff; font-weight: 800; font-size: 13px;
@@ -194,7 +207,6 @@
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
     }
 
-    /* ⭐️ 지도 핀 머리 위 실시간 버스 아이콘 뱃지 */
     .live-bus-badge {
       position: absolute;
       bottom: 22px;
@@ -306,7 +318,10 @@
   <div id="header">
     <div class="header-info">
       <h1>거제시종합사회복지관 셔틀버스 노선 안내</h1>
-      <p>㈜여행과 사람 (055-687-4000)</p>
+      <div class="company-info">
+        <span>2026년 차량운행회사 : ㈜여행과 사람</span>
+        <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
+      </div>
     </div>
     <div class="tab-bar" id="tabBar"></div>
     <button class="print-btn" onclick="window.print()">A4 인쇄</button>
@@ -340,7 +355,7 @@
     const masterStopMapByNo = {};
     const masterStopMapByName = {};
     let timeWindowMinutes = 3;
-    let currentSelectedCourseKey = null; // 현재 선택된 뷰 상태 ('ALL' 또는 코스명)
+    let currentSelectedCourseKey = null;
 
     const routeCache = {};
 
@@ -353,7 +368,7 @@
     let geocoder = null;
     let places = null;
     let markerOverlays = [];
-    let liveBusOverlays = []; // ⭐️ 운행중 버스 아이콘 오버레이 관리 배열
+    let liveBusOverlays = [];
     let currentBubbleOverlay = null;
     let polylines = [];
 
@@ -588,7 +603,6 @@
       polylines = [];
     }
 
-    // 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx, btnElem) {
       currentSelectedCourseKey = courseName;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -699,7 +713,6 @@
             markerOverlay.setMap(map);
             markerOverlays.push(markerOverlay);
 
-            // ⭐️ 운행 중인 정류소 핀 머리 위에 버스 아이콘 뱃지 표출
             if (isNowActive) {
               const busBadgeElem = document.createElement('div');
               busBadgeElem.className = 'live-bus-badge';
@@ -807,7 +820,6 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // 전체 노선 보기
     async function selectAllCourses(btnElem) {
       currentSelectedCourseKey = 'ALL';
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -936,7 +948,6 @@
               markerOverlay.setMap(map);
               markerOverlays.push(markerOverlay);
 
-              // ⭐️ 전체 노선 보기에서도 운행중인 핀 머리 위에 버스 아이콘 표출
               if (isNowActive) {
                 const busBadgeElem = document.createElement('div');
                 busBadgeElem.className = 'live-bus-badge';
@@ -1139,7 +1150,7 @@
 
     function startRealtimeCheck() {
       checkActiveBuses();
-      setInterval(checkActiveBuses, 10000); // 10초마다 갱신
+      setInterval(checkActiveBuses, 10000);
     }
 
     function checkActiveBuses() {
