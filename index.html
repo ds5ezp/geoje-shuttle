@@ -51,7 +51,7 @@
       border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem;
     }
 
-    /* 실시간 운행 현황 알림 배너 (가로 1줄 스크롤 최적화) */
+    /* 실시간 운행 현황 알림 배너 (가로 1줄 스크롤) */
     #liveStatusBar {
       position: absolute; top: 72px; left: 0; right: 0; height: 46px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
@@ -154,14 +154,27 @@
       padding: 1px 6px; border-radius: 4px;
     }
 
-    .meta-tags { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+    .meta-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+    
+    /* ⭐️ 시간 표시 영역 및 활성 시간대 하이라이트 스타일 */
     .time-tag {
-      background: #dbeafe; color: #1e40af; font-size: 0.78rem; font-weight: 700;
-      padding: 2px 7px; border-radius: 4px;
+      background: #eff6ff; color: #1e40af; font-size: 0.78rem; font-weight: 600;
+      padding: 3px 8px; border-radius: 6px; border: 1px solid #bfdbfe;
+      display: inline-flex; align-items: center; gap: 3px; flex-wrap: wrap;
     }
+    .time-normal {
+      color: #3b82f6; font-weight: 600;
+    }
+    .time-active-pill {
+      background: #ef4444; color: #ffffff !important; font-weight: 800;
+      padding: 1px 6px; border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4);
+      display: inline-block;
+    }
+
     .dist-tag {
       background: #ecfdf5; color: #065f46; font-size: 0.76rem; font-weight: 700;
-      padding: 2px 7px; border-radius: 4px; border: 1px solid #a7f3d0;
+      padding: 3px 7px; border-radius: 4px; border: 1px solid #a7f3d0;
     }
 
     .stop-info .desc { font-size: 0.8rem; color: #64748b; margin-top: 5px; line-height: 1.4; }
@@ -290,6 +303,7 @@
     const masterStopMapByNo = {};
     const masterStopMapByName = {};
     let timeWindowMinutes = 3;
+    let activeCourseMode = null; // 현재 선택된 모드 ('ALL' 또는 코스명)
 
     const routeCache = {};
 
@@ -316,6 +330,21 @@
         return `${Math.round(meters)} m`;
       }
       return `${(meters / 1000).toFixed(1)} km`;
+    }
+
+    // ⭐️ [핵심] 9:03, 10:03, 11:03 중 현재 운행 중인 특정 시간대만 빨간 뱃지로 분리 하이라이트
+    function formatTimeWithHighlight(timeText, currentMinutes, windowMins) {
+      if (!timeText) return '';
+      // 쉼표나 점 등으로 구분된 시간들 중 HH:mm 추출
+      return timeText.replace(/\b(\d{1,2}:\d{2})\b/g, (match, tStr) => {
+        const parts = tStr.split(':');
+        const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        const diff = Math.abs(currentMinutes - targetMin);
+        if (diff <= windowMins) {
+          return `<span class="time-active-pill">${tStr}</span>`;
+        }
+        return `<span class="time-normal">${tStr}</span>`;
+      });
     }
 
     function calcHaversineMeters(lat1, lon1, lat2, lon2) {
@@ -521,7 +550,9 @@
       polylines = [];
     }
 
+    // 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx, btnElem) {
+      activeCourseMode = courseName;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
 
@@ -566,6 +597,9 @@
             }
           });
 
+          // ⭐️ 시간 하이라이트 HTML 생성
+          const highlightedTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+
           card = document.createElement('div');
           card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
           card.id = `card-${i}`;
@@ -578,7 +612,7 @@
                 ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
               </div>
               <div class="meta-tags">
-                ${stop.time ? `<span class="time-tag">🕒 ${stop.time}</span>` : ''}
+                ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
                 <span class="dist-tag" id="dist-card-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
               </div>
               <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
@@ -630,6 +664,8 @@
 
             const bubbleDiv = document.createElement('div');
             bubbleDiv.className = 'bubble-popup';
+            const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+
             bubbleDiv.innerHTML = `
               <div class="popup-header">
                 <div class="popup-title">${displayNum}. ${stop.name}</div>
@@ -637,7 +673,7 @@
                 <button class="close-btn" title="닫기">&times;</button>
               </div>
               <div class="meta-tags">
-                ${stop.time ? `<span class="time-tag">🕒 ${stop.time}</span>` : ''}
+                ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
                 <span class="dist-tag" id="dist-popup-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
               </div>
               <div class="popup-addr">📍 ${stop.addr}</div>
@@ -716,7 +752,9 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
+    // 전체 노선 보기
     async function selectAllCourses(btnElem) {
+      activeCourseMode = 'ALL';
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
 
@@ -779,6 +817,8 @@
               }
             });
 
+            const highlightedTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+
             card = document.createElement('div');
             card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
             card.id = `all-card-${cIdx}-${i}`;
@@ -791,7 +831,7 @@
                   ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                 </div>
                 <div class="meta-tags">
-                  ${stop.time ? `<span class="time-tag">🕒 ${stop.time}</span>` : ''}
+                  ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
                   <span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
                 </div>
                 <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
@@ -843,6 +883,8 @@
 
               const bubbleDiv = document.createElement('div');
               bubbleDiv.className = 'bubble-popup';
+              const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+
               bubbleDiv.innerHTML = `
                 <div class="popup-header">
                   <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
@@ -850,7 +892,7 @@
                   <button class="close-btn" title="닫기">&times;</button>
                 </div>
                 <div class="meta-tags">
-                  ${stop.time ? `<span class="time-tag">🕒 ${stop.time}</span>` : ''}
+                  ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
                   <span class="dist-tag" id="dist-all-popup-${cIdx}-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
                 </div>
                 <div class="popup-addr">📍 ${stop.addr}</div>
