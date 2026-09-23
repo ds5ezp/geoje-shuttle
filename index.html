@@ -51,7 +51,7 @@
       border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem;
     }
 
-    /* 실시간 운행 현황 알림 배너 (가로 1줄 스크롤) */
+    /* 실시간 운행 현황 알림 배너 */
     #liveStatusBar {
       position: absolute; top: 72px; left: 0; right: 0; height: 46px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
@@ -156,7 +156,6 @@
 
     .meta-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
     
-    /* ⭐️ 시간 표시 영역 및 활성 시간대 하이라이트 스타일 */
     .time-tag {
       background: #eff6ff; color: #1e40af; font-size: 0.78rem; font-weight: 600;
       padding: 3px 8px; border-radius: 6px; border: 1px solid #bfdbfe;
@@ -179,6 +178,7 @@
 
     .stop-info .desc { font-size: 0.8rem; color: #64748b; margin-top: 5px; line-height: 1.4; }
 
+    /* 정류장 번호 뱃지 마커 */
     .bus-marker-badge {
       width: 30px; height: 30px; border-radius: 50%;
       background: #2563eb; color: #ffffff; font-weight: 800; font-size: 13px;
@@ -192,6 +192,43 @@
     .bus-marker-badge.now-active {
       background: #ef4444 !important; border: 3px solid #fef08a !important;
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
+    }
+
+    /* ⭐️ 지도 핀 머리 위 실시간 버스 아이콘 뱃지 */
+    .live-bus-badge {
+      position: absolute;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffffff;
+      border: 2px solid #ef4444;
+      border-radius: 20px;
+      padding: 2px 7px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #ef4444;
+      box-shadow: 0 3px 10px rgba(239, 68, 68, 0.5);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+      animation: bounceBus 1.2s infinite ease-in-out;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .live-bus-badge::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px 5px 0 5px;
+      border-style: solid;
+      border-color: #ef4444 transparent transparent transparent;
+    }
+    @keyframes bounceBus {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-6px); }
     }
 
     .bubble-popup {
@@ -303,7 +340,7 @@
     const masterStopMapByNo = {};
     const masterStopMapByName = {};
     let timeWindowMinutes = 3;
-    let activeCourseMode = null; // 현재 선택된 모드 ('ALL' 또는 코스명)
+    let currentSelectedCourseKey = null; // 현재 선택된 뷰 상태 ('ALL' 또는 코스명)
 
     const routeCache = {};
 
@@ -316,6 +353,7 @@
     let geocoder = null;
     let places = null;
     let markerOverlays = [];
+    let liveBusOverlays = []; // ⭐️ 운행중 버스 아이콘 오버레이 관리 배열
     let currentBubbleOverlay = null;
     let polylines = [];
 
@@ -332,10 +370,8 @@
       return `${(meters / 1000).toFixed(1)} km`;
     }
 
-    // ⭐️ [핵심] 9:03, 10:03, 11:03 중 현재 운행 중인 특정 시간대만 빨간 뱃지로 분리 하이라이트
     function formatTimeWithHighlight(timeText, currentMinutes, windowMins) {
       if (!timeText) return '';
-      // 쉼표나 점 등으로 구분된 시간들 중 HH:mm 추출
       return timeText.replace(/\b(\d{1,2}:\d{2})\b/g, (match, tStr) => {
         const parts = tStr.split(':');
         const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
@@ -542,6 +578,8 @@
     function clearMapLayers() {
       markerOverlays.forEach(o => o.setMap(null));
       markerOverlays = [];
+      liveBusOverlays.forEach(o => o.setMap(null));
+      liveBusOverlays = [];
       if (currentBubbleOverlay) {
         currentBubbleOverlay.setMap(null);
         currentBubbleOverlay = null;
@@ -552,7 +590,7 @@
 
     // 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx, btnElem) {
-      activeCourseMode = courseName;
+      currentSelectedCourseKey = courseName;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
 
@@ -584,20 +622,19 @@
         let displayNum = null;
         let card = null;
 
+        let isNowActive = false;
+        stop.rawTimes.forEach(tStr => {
+          const parts = tStr.split(':');
+          const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+          if (Math.abs(currentMinutes - targetMinutes) <= timeWindowMinutes) {
+            isNowActive = true;
+          }
+        });
+
         if (!stop.isWaypoint) {
           displayCounter++;
           displayNum = displayCounter;
 
-          let isNowActive = false;
-          stop.rawTimes.forEach(tStr => {
-            const parts = tStr.split(':');
-            const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-            if (Math.abs(currentMinutes - targetMinutes) <= timeWindowMinutes) {
-              isNowActive = true;
-            }
-          });
-
-          // ⭐️ 시간 하이라이트 HTML 생성
           const highlightedTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
 
           card = document.createElement('div');
@@ -648,8 +685,8 @@
             }
 
             const badge = document.createElement('div');
-            badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''}`;
-            badge.style.backgroundColor = isBokji ? '#dc2626' : color;
+            badge.className = `bus-marker-badge ${isBokji ? '복지관' : ''} ${isNowActive ? 'now-active' : ''}`;
+            badge.style.backgroundColor = isNowActive ? '#ef4444' : (isBokji ? '#dc2626' : color);
             badge.innerText = displayNum;
 
             const markerOverlay = new kakao.maps.CustomOverlay({
@@ -657,10 +694,27 @@
               content: badge,
               yAnchor: 0.5,
               xAnchor: 0.5,
-              zIndex: isBokji ? 10 + count : 3 + count
+              zIndex: isNowActive ? 50 : (isBokji ? 10 + count : 3 + count)
             });
             markerOverlay.setMap(map);
             markerOverlays.push(markerOverlay);
+
+            // ⭐️ 운행 중인 정류소 핀 머리 위에 버스 아이콘 뱃지 표출
+            if (isNowActive) {
+              const busBadgeElem = document.createElement('div');
+              busBadgeElem.className = 'live-bus-badge';
+              busBadgeElem.innerHTML = `🚌 <span style="font-size:11px;">운행중</span>`;
+
+              const busOverlay = new kakao.maps.CustomOverlay({
+                position: adjustedCoords,
+                content: busBadgeElem,
+                yAnchor: 1.0,
+                xAnchor: 0.5,
+                zIndex: 120
+              });
+              busOverlay.setMap(map);
+              liveBusOverlays.push(busOverlay);
+            }
 
             const bubbleDiv = document.createElement('div');
             bubbleDiv.className = 'bubble-popup';
@@ -670,6 +724,7 @@
               <div class="popup-header">
                 <div class="popup-title">${displayNum}. ${stop.name}</div>
                 ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                 <button class="close-btn" title="닫기">&times;</button>
               </div>
               <div class="meta-tags">
@@ -754,7 +809,7 @@
 
     // 전체 노선 보기
     async function selectAllCourses(btnElem) {
-      activeCourseMode = 'ALL';
+      currentSelectedCourseKey = 'ALL';
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
 
@@ -803,19 +858,19 @@
           let displayNum = null;
           let card = null;
 
+          let isNowActive = false;
+          stop.rawTimes.forEach(tStr => {
+            const parts = tStr.split(':');
+            const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+            if (Math.abs(currentMinutes - targetMinutes) <= timeWindowMinutes) {
+              isNowActive = true;
+            }
+          });
+
           if (!stop.isWaypoint) {
             courseDisplayCounter++;
             totalStopsCount++;
             displayNum = courseDisplayCounter;
-
-            let isNowActive = false;
-            stop.rawTimes.forEach(tStr => {
-              const parts = tStr.split(':');
-              const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-              if (Math.abs(currentMinutes - targetMinutes) <= timeWindowMinutes) {
-                isNowActive = true;
-              }
-            });
 
             const highlightedTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
 
@@ -867,8 +922,8 @@
               }
 
               const badgeElem = document.createElement('div');
-              badgeElem.className = `bus-marker-badge ${isBokji ? '복지관' : ''}`;
-              badgeElem.style.backgroundColor = isBokji ? '#dc2626' : color;
+              badgeElem.className = `bus-marker-badge ${isBokji ? '복지관' : ''} ${isNowActive ? 'now-active' : ''}`;
+              badgeElem.style.backgroundColor = isNowActive ? '#ef4444' : (isBokji ? '#dc2626' : color);
               badgeElem.innerText = displayNum;
 
               const markerOverlay = new kakao.maps.CustomOverlay({
@@ -876,10 +931,27 @@
                 content: badgeElem,
                 yAnchor: 0.5,
                 xAnchor: 0.5,
-                zIndex: isBokji ? 15 : 5
+                zIndex: isNowActive ? 50 : (isBokji ? 15 : 5)
               });
               markerOverlay.setMap(map);
               markerOverlays.push(markerOverlay);
+
+              // ⭐️ 전체 노선 보기에서도 운행중인 핀 머리 위에 버스 아이콘 표출
+              if (isNowActive) {
+                const busBadgeElem = document.createElement('div');
+                busBadgeElem.className = 'live-bus-badge';
+                busBadgeElem.innerHTML = `🚌 <span style="font-size:11px;">운행중</span>`;
+
+                const busOverlay = new kakao.maps.CustomOverlay({
+                  position: adjustedCoords,
+                  content: busBadgeElem,
+                  yAnchor: 1.0,
+                  xAnchor: 0.5,
+                  zIndex: 120
+                });
+                busOverlay.setMap(map);
+                liveBusOverlays.push(busOverlay);
+              }
 
               const bubbleDiv = document.createElement('div');
               bubbleDiv.className = 'bubble-popup';
@@ -889,6 +961,7 @@
                 <div class="popup-header">
                   <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
                   ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                  ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                   <button class="close-btn" title="닫기">&times;</button>
                 </div>
                 <div class="meta-tags">
@@ -1066,7 +1139,7 @@
 
     function startRealtimeCheck() {
       checkActiveBuses();
-      setInterval(checkActiveBuses, 10000);
+      setInterval(checkActiveBuses, 10000); // 10초마다 갱신
     }
 
     function checkActiveBuses() {
