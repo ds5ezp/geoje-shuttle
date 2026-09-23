@@ -268,6 +268,9 @@
     const masterStopMapByName = {};
     let timeWindowMinutes = 3;
 
+    // ⭐️ 계산된 경로/거리 결과를 메모리에 캐싱 (중복 호출 차단)
+    const routeCache = {};
+
     const COURSE_COLORS = [
       "#2563eb", "#16a34a", "#ea580c", "#9333ea",
       "#0891b2", "#db2777", "#ca8a04", "#4f46e5"
@@ -285,16 +288,29 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // 거리 단위 포맷 함수 (미터 -> km 또는 m)
     function formatDistance(meters) {
-      if (meters === undefined || meters === null || isNaN(meters)) return '';
+      if (meters === undefined || meters === null || isNaN(meters)) return '확인 불가';
       if (meters < 1000) {
         return `${Math.round(meters)} m`;
       }
       return `${(meters / 1000).toFixed(1)} km`;
     }
 
-    // 0단계: '설정' 탭 콜백
+    // 좌표 간 거리 계산 함수 (하버사인 공식 + 실제 도로 보정 계수 1.25)
+    function calcHaversineMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c * 1.25; // 도로 굴곡 계수 반영
+    }
+
     window.handleSettings = function(json) {
       try {
         const rows = json.table.rows || [];
@@ -304,9 +320,7 @@
           const key = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
           const val = c[1] ? parseFloat(c[1].v || c[1].f) : null;
           if (key.includes('차량간격') || key.includes('차량간견') || key.includes('간격')) {
-            if (!isNaN(val) && val > 0) {
-              timeWindowMinutes = val;
-            }
+            if (!isNaN(val) && val > 0) timeWindowMinutes = val;
           }
         });
       } catch (e) {
@@ -315,7 +329,6 @@
       loadStationList();
     };
 
-    // 1단계: '정류소목록' 탭 마스터 DB 로드
     window.handleStationList = function(json) {
       try {
         const rows = json.table.rows || [];
@@ -339,7 +352,6 @@
       loadRouteData();
     };
 
-    // 2단계: '노선데이터' 탭 로드
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -488,7 +500,7 @@
       polylines = [];
     }
 
-    // ⭐️ 단일 코스 선택 렌더링 (거리 측정 지원)
+    // 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx, btnElem) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
@@ -513,7 +525,6 @@
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
       let displayCounter = 0;
-      const registeredStops = [];
 
       for (let i = 0; i < stops.length; i++) {
         const stop = stops[i];
@@ -560,6 +571,7 @@
 
         if (coords) {
           stop.coords = coords;
+          stop.arrayIndex = i;
           validStopsForRouting.push(stop);
           bounds.extend(coords);
 
@@ -641,12 +653,6 @@
 
             badge.onclick = showDetail;
             if (card) card.onclick = showDetail;
-
-            registeredStops.push({
-              index: i,
-              displayNum: displayNum,
-              stop: stop
-            });
           }
         }
       }
@@ -659,23 +665,21 @@
         b.style.display = 'block';
         b.innerText = '실제 도로 경로선 및 운행 거리 계산 중...';
         
-        // 도로선 및 구간별 세부 거리 연산
-        const routeResult = await drawSingleRoadLine(validStopsForRouting, color);
+        const routeResult = await drawSingleRoadLine(courseName, validStopsForRouting, color);
         b.style.display = 'none';
 
         if (routeResult) {
           const totalKm = (routeResult.totalDistance / 1000).toFixed(1);
           document.getElementById('totalDistBadge').innerText = `총 ${totalKm} km`;
 
-          // 구간별 거리 태그 업데이트
           if (routeResult.legs && routeResult.legs.length > 0) {
             let legIdx = 0;
             for (let k = 1; k < validStopsForRouting.length; k++) {
               const currentLegDist = routeResult.legs[legIdx] || 0;
               const curStop = validStopsForRouting[k];
               
-              const cardTag = document.getElementById(`dist-card-${curStop.rowIdx}`);
-              const popupTag = document.getElementById(`dist-popup-${curStop.rowIdx}`);
+              const cardTag = document.getElementById(`dist-card-${curStop.arrayIndex}`);
+              const popupTag = document.getElementById(`dist-popup-${curStop.arrayIndex}`);
               const distText = `구간 ${formatDistance(currentLegDist)}`;
               
               if (cardTag) cardTag.innerText = distText;
@@ -692,7 +696,7 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // ⭐️ 전체 노선 한눈에 보기 (전체 합산 거리 지원)
+    // 전체 노선 보기
     async function selectAllCourses(btnElem) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btnElem) btnElem.classList.add('active');
@@ -781,6 +785,7 @@
 
           if (coords) {
             stop.coords = coords;
+            stop.arrayIndex = i;
             courseValidStopsForRouting.push(stop);
             totalBounds.extend(coords);
 
@@ -867,7 +872,7 @@
         }
 
         if (courseValidStopsForRouting.length > 1) {
-          const courseRes = await drawSingleRoadLine(courseValidStopsForRouting, color);
+          const courseRes = await drawSingleRoadLine(cName, courseValidStopsForRouting, color);
           if (courseRes) {
             totalNetworkDistance += courseRes.totalDistance;
             const cDistSpan = document.getElementById(`course-dist-${cIdx}`);
@@ -881,8 +886,8 @@
                 const currentLegDist = courseRes.legs[legIdx] || 0;
                 const curStop = courseValidStopsForRouting[k];
 
-                const cardTag = document.getElementById(`dist-all-card-${cIdx}-${curStop.rowIdx}`);
-                const popupTag = document.getElementById(`dist-all-popup-${cIdx}-${curStop.rowIdx}`);
+                const cardTag = document.getElementById(`dist-all-card-${cIdx}-${curStop.arrayIndex}`);
+                const popupTag = document.getElementById(`dist-all-popup-${cIdx}-${curStop.arrayIndex}`);
                 const distText = `구간 ${formatDistance(currentLegDist)}`;
 
                 if (cardTag) cardTag.innerText = distText;
@@ -904,11 +909,38 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // 도로 경로선 그리기 및 세부 구간 거리 산출 함수
-    async function drawSingleRoadLine(stops, color) {
+    // ⭐️ 캐시 및 실패 시 하버사인 폴백이 내장된 도로선/거리 계산 함수
+    async function drawSingleRoadLine(courseKey, stops, color) {
+      // 1. 메모리 캐시 확인
+      if (routeCache[courseKey]) {
+        const cached = routeCache[courseKey];
+        const line = new kakao.maps.Polyline({
+          path: cached.path,
+          strokeWeight: 6,
+          strokeColor: color,
+          strokeOpacity: 0.85
+        });
+        line.setMap(map);
+        polylines.push(line);
+        return {
+          totalDistance: cached.totalDistance,
+          legs: cached.legs
+        };
+      }
+
       try {
         const coordString = stops.map(s => `${s.coords.getLng()},${s.coords.getLat()}`).join(';');
-        const res = await fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordString}?overview=full&geometries=geojson`);
+        
+        // 5초 타임아웃 적용 (서버 응답 지연 시 즉시 폴백)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordString}?overview=full&geometries=geojson`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error(`OSRM Status: ${res.status}`);
         const data = await res.json();
 
         if (data.code === 'Ok' && data.routes && data.routes[0]) {
@@ -923,25 +955,33 @@
           line.setMap(map);
           polylines.push(line);
 
-          // 각 구간별(legs) 거리 배열 추출
           const legDistances = (route.legs || []).map(leg => leg.distance);
 
+          // 캐시 저장
+          routeCache[courseKey] = {
+            path: path,
+            totalDistance: route.distance,
+            legs: legDistances
+          };
+
           return {
-            totalDistance: route.distance, // 총 거리 (미터)
-            legs: legDistances             // 정류장 간 개별 거리 배열
+            totalDistance: route.distance,
+            legs: legDistances
           };
         } else {
-          return drawStraightLineWithDist(stops, color);
+          return fallbackHaversineLine(stops, color);
         }
       } catch (e) {
-        return drawStraightLineWithDist(stops, color);
+        console.warn("OSRM 라우팅 지연/초과, 자체 거리 계산으로 전환:", e);
+        return fallbackHaversineLine(stops, color);
       }
     }
 
-    // 직선 대체 시 거리 측정 폴백
-    function drawStraightLineWithDist(stops, color) {
+    // ⭐️ OSRM 실패 시 정류장 간 거리를 자체적으로 즉시 계산하여 표출
+    function fallbackHaversineLine(stops, color) {
+      const path = stops.map(s => s.coords);
       const line = new kakao.maps.Polyline({
-        path: stops.map(s => s.coords),
+        path: path,
         strokeWeight: 5,
         strokeColor: color,
         strokeOpacity: 0.8
@@ -949,10 +989,23 @@
       line.setMap(map);
       polylines.push(line);
 
-      let totalMeters = line.getLength();
+      let totalMeters = 0;
+      const legs = [];
+
+      for (let i = 1; i < stops.length; i++) {
+        const d = calcHaversineMeters(
+          stops[i - 1].coords.getLat(),
+          stops[i - 1].coords.getLng(),
+          stops[i].coords.getLat(),
+          stops[i].coords.getLng()
+        );
+        legs.push(d);
+        totalMeters += d;
+      }
+
       return {
         totalDistance: totalMeters,
-        legs: []
+        legs: legs
       };
     }
 
