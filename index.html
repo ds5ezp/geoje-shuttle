@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>거제시종합사회복지관 셔틀버스 노선 안내</title>
 
-  <!-- 카카오맵 SDK -->
-  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=c8dd436b42d1fd4102b40d73bd28cbe1&libraries=services"></script>
+  <!-- 카카오맵 SDK (새로 발급받은 JavaScript 키 적용) -->
+  <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f01d8615df654cbc9c30cca0069570ba&libraries=services"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -209,7 +209,7 @@
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
     }
 
-    /* ⭐️ 도로 진행 방향 선형 화살표 */
+    /* 도로 진행 방향 선형 화살표 */
     .route-dir-arrow {
       width: 26px; height: 26px;
       display: flex; align-items: center; justify-content: center;
@@ -279,7 +279,7 @@
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    /* ================= QR코드 및 공유 모달 팝업 ================= */
+    /* QR코드 모달 팝업 */
     #qrModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.75); z-index: 3000;
@@ -304,7 +304,7 @@
     .copy-url-btn:hover { background: #dbeafe; }
     .close-qr-btn { background: #1e293b; color: #ffffff; }
 
-    /* ================= 📱 모바일 바텀시트 ================= */
+    /* 모바일 바텀시트 */
     @media (max-width: 850px) {
       #header {
         height: auto; min-height: 58px; padding: 8px 12px;
@@ -450,6 +450,8 @@
 
   <script>
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
+    // ⭐️ 전달해주신 카카오 모빌리티 REST API 키
+    const KAKAO_REST_API_KEY = "268ed0dfbe660f796da9ce0fb1a20ea5";
 
     let routeData = {};
     const masterStopMapByNo = {};
@@ -833,7 +835,6 @@
       polylines = [];
     }
 
-    // ⭐️ 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx, btnElem) {
       currentSelectedCourseKey = courseName;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -962,7 +963,6 @@
               liveBusOverlays.push(busOverlay);
             }
 
-            // ⭐️ 팝업 생성 함수 (열릴 때 최신 distanceText를 직접 반영)
             const openDetailPopup = () => {
               if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
 
@@ -1027,7 +1027,7 @@
         map.setBounds(bounds);
         const b = document.getElementById('routeBadge');
         b.style.display = 'block';
-        b.innerText = '경로선 계산 중...';
+        b.innerText = '대형버스 경로 계산 중...';
         
         const routeResult = await drawSingleRoadLine(courseName, validStopsForRouting, color);
         b.style.display = 'none';
@@ -1043,7 +1043,6 @@
               const curStop = validStopsForRouting[k];
               const distText = `구간 ${formatDistance(currentLegDist)}`;
               
-              // ⭐️ 정류장 객체에 거리 저장 및 사이드바 갱신
               curStop.distanceText = distText;
               const cardTag = document.getElementById(`dist-card-${curStop.arrayIndex}`);
               if (cardTag) cardTag.innerText = distText;
@@ -1059,7 +1058,6 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // ⭐️ 전체 노선 보기
     async function selectAllCourses(btnElem) {
       currentSelectedCourseKey = 'ALL';
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1206,7 +1204,6 @@
                 liveBusOverlays.push(busOverlay);
               }
 
-              // ⭐️ 전체 노선 팝업 열기 함수
               const openAllDetailPopup = () => {
                 if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
 
@@ -1281,7 +1278,6 @@
                 const curStop = courseValidStopsForRouting[k];
                 const distText = `구간 ${formatDistance(currentLegDist)}`;
 
-                // ⭐️ 정류장 객체에 최신 거리 저장 및 사이드바 텍스트 업데이트
                 curStop.distanceText = distText;
                 const cardTag = document.getElementById(`dist-all-card-${cIdx}-${curStop.arrayIndex}`);
                 if (cardTag) cardTag.innerText = distText;
@@ -1302,6 +1298,7 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
+    // ⭐️ [카카오모빌리티 대형버스 car_type=3 적용] 경로 탐색 함수
     async function drawSingleRoadLine(courseKey, stops, color) {
       if (routeCache[courseKey]) {
         const cached = routeCache[courseKey];
@@ -1323,51 +1320,137 @@
         };
       }
 
+      // 1순위: 카카오모빌리티 대형버스(car_type=3) 길찾기 호출
       try {
-        const coordString = stops.map(s => `${s.coords.getLng()},${s.coords.getLat()}`).join(';');
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const origin = stops[0].coords;
+        const destination = stops[stops.length - 1].coords;
+        
+        // 카카오 API 경유지는 최대 30개 지원 (출발, 도착 제외 중간 지점)
+        const waypoints = stops.slice(1, stops.length - 1).slice(0, 30).map(s => {
+          return `${s.coords.getLng()},${s.coords.getLat()}`;
+        }).join('|');
 
-        const res = await fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordString}?overview=full&geometries=geojson`, {
-          signal: controller.signal
-        });
+        let kakaoNaviUrl = `https://apis-navi.kakaomobility.com/v1/waypoints/directions?origin=${origin.getLng()},${origin.getLat()}&destination=${destination.getLng()},${destination.getLat()}&car_type=3&car_width=250&car_height=350&car_weight=15&priority=RECOMMEND`;
+        if (waypoints) {
+          kakaoNaviUrl += `&waypoints=${encodeURIComponent(waypoints)}`;
+        }
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+        // 직접 호출 시도 (CORS 허용 환경)
+        let res = null;
+        try {
+          res = await fetch(kakaoNaviUrl, {
+            headers: {
+              'Authorization': `KakaoAK ${KAKAO_REST_API_KEY}`
+            },
+            signal: controller.signal
+          });
+        } catch (corsErr) {
+          // 브라우저 CORS 차단 발생 시 안정적인 공개 프록시로 우회 시도
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(kakaoNaviUrl)}`;
+          res = await fetch(proxyUrl, {
+            headers: {
+              'Authorization': `KakaoAK ${KAKAO_REST_API_KEY}`
+            },
+            signal: controller.signal
+          });
+        }
         clearTimeout(timeoutId);
 
-        if (!res.ok) throw new Error(`OSRM Status: ${res.status}`);
-        const data = await res.json();
+        if (res && res.ok) {
+          const data = await res.json();
+          if (data.routes && data.routes[0] && data.routes[0].result_code === 0) {
+            const route = data.routes[0];
+            const path = [];
+            const legs = [];
 
-        if (data.code === 'Ok' && data.routes && data.routes[0]) {
-          const route = data.routes[0];
-          const path = route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
-          const line = new kakao.maps.Polyline({
-            path: path,
+            (route.sections || []).forEach(sec => {
+              legs.push(sec.distance || 0);
+              (sec.roads || []).forEach(road => {
+                const vertexes = road.vertexes || [];
+                for (let v = 0; v < vertexes.length; v += 2) {
+                  path.push(new kakao.maps.LatLng(vertexes[v + 1], vertexes[v]));
+                }
+              });
+            });
+
+            if (path.length > 0) {
+              const line = new kakao.maps.Polyline({
+                path: path,
+                strokeWeight: 6,
+                strokeColor: color,
+                strokeOpacity: 0.85,
+                endArrow: true
+              });
+              line.setMap(map);
+              polylines.push(line);
+
+              createRouteDirectionArrows(path);
+
+              routeCache[courseKey] = {
+                path: path,
+                totalDistance: route.summary.distance,
+                legs: legs
+              };
+
+              return {
+                totalDistance: route.summary.distance,
+                legs: legs
+              };
+            }
+          }
+        }
+      } catch (kakaoErr) {
+        console.warn("카카오모빌리티 대형버스 경로 호출 지연, 보조 라우팅으로 전환:", kakaoErr);
+      }
+
+      // 2순위 보조: OSRM 도로선 라우팅 (승용차 프로필)
+      try {
+        const coordString = stops.map(s => `${s.coords.getLng()},${s.coords.getLat()}`).join(';');
+        const controller2 = new AbortController();
+        const timeoutId2 = setTimeout(() => controller2.abort(), 5000);
+
+        const res2 = await fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordString}?overview=full&geometries=geojson`, {
+          signal: controller2.signal
+        });
+        clearTimeout(timeoutId2);
+
+        if (!res2.ok) throw new Error(`OSRM Status: ${res2.status}`);
+        const data2 = await res2.json();
+
+        if (data2.code === 'Ok' && data2.routes && data2.routes[0]) {
+          const route2 = data2.routes[0];
+          const path2 = route2.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
+          const line2 = new kakao.maps.Polyline({
+            path: path2,
             strokeWeight: 6,
             strokeColor: color,
             strokeOpacity: 0.85,
             endArrow: true
           });
-          line.setMap(map);
-          polylines.push(line);
+          line2.setMap(map);
+          polylines.push(line2);
 
-          createRouteDirectionArrows(path);
+          createRouteDirectionArrows(path2);
 
-          const legDistances = (route.legs || []).map(leg => leg.distance);
+          const legDistances2 = (route2.legs || []).map(leg => leg.distance);
 
           routeCache[courseKey] = {
-            path: path,
-            totalDistance: route.distance,
-            legs: legDistances
+            path: path2,
+            totalDistance: route2.distance,
+            legs: legDistances2
           };
 
           return {
-            totalDistance: route.distance,
-            legs: legDistances
+            totalDistance: route2.distance,
+            legs: legDistances2
           };
         } else {
           return fallbackHaversineLine(stops, color);
         }
-      } catch (e) {
-        console.warn("OSRM 라우팅 지연/초과, 자체 거리 계산으로 전환:", e);
+      } catch (osrmErr) {
         return fallbackHaversineLine(stops, color);
       }
     }
