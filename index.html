@@ -115,7 +115,6 @@
       font-size: 16px; color: #94a3b8; cursor: pointer; display: none;
     }
 
-    /* 검색 결과 드롭다운 */
     #searchDropdownList {
       display: none; position: absolute; top: 38px; left: 0; right: 0;
       background: #ffffff; border: 1.5px solid #2563eb; border-radius: 8px;
@@ -139,7 +138,6 @@
     .search-result-item .item-no {
       color: #64748b; font-size: 0.72rem; margin-left: 6px;
     }
-    /* 검색 결과 내 회차 및 도착 시간 리스트 */
     .search-item-times {
       display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px;
     }
@@ -197,6 +195,7 @@
       font-weight: 700; font-size: 0.74rem; white-space: nowrap; transition: all 0.2s;
       display: inline-flex; align-items: center; justify-content: center; gap: 2px;
     }
+    .pwa-btn { background: #0284c7; color: #ffffff; }
     .font-size-btn { background: #ea580c; color: #ffffff; }
     .nearby-btn { background: #2563eb; color: #ffffff; }
     .table-view-btn { background: #047857; color: #ffffff; }
@@ -499,13 +498,26 @@
       margin-top: 6px; cursor: zoom-in;
     }
 
+    /* 팝업 하단 버튼 그룹 */
+    .popup-btn-row {
+      display: flex; gap: 6px; margin-top: 10px; width: 100%;
+    }
     .popup-nav-btn {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      width: 100%; padding: 9px 0; margin-top: 10px; border-radius: 8px;
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+      padding: 8px 0; border-radius: 8px;
       background: #10b981; color: #ffffff; text-decoration: none;
-      font-size: 0.82rem; font-weight: 800; transition: background 0.2s;
+      font-size: 0.78rem; font-weight: 800; transition: background 0.2s;
     }
     .popup-nav-btn:hover { background: #059669; }
+
+    /* ⭐️ 4. 카카오 로드뷰 360도 버튼 */
+    .popup-roadview-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+      padding: 8px 0; border-radius: 8px;
+      background: #2563eb; color: #ffffff; text-decoration: none;
+      font-size: 0.78rem; font-weight: 800; transition: background 0.2s;
+    }
+    .popup-roadview-btn:hover { background: #1d4ed8; }
 
     #loadingModal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -616,6 +628,28 @@
     .copy-url-btn:hover { background: #dbeafe; }
     .close-qr-btn { background: #1e293b; color: #ffffff; }
 
+    /* ⭐️ 1. 홈 화면 바로가기(PWA) 안내 모달 */
+    #pwaModal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.78); z-index: 3600;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .pwa-card {
+      background: #ffffff; width: 100%; max-width: 380px; border-radius: 18px;
+      padding: 20px; box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .pwa-card h3 { font-size: 1.05rem; font-weight: 800; color: #0f172a; text-align: center; }
+    .pwa-step-box {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;
+      font-size: 0.82rem; line-height: 1.5; color: #334155;
+    }
+    .pwa-step-box b { color: #0284c7; }
+    .pwa-close-btn {
+      width: 100%; padding: 10px 0; border: none; border-radius: 8px;
+      background: #1e293b; color: #ffffff; font-weight: 800; font-size: 0.85rem; cursor: pointer;
+    }
+
     /* 사진 확대 모달 */
     #photoZoomModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -641,7 +675,7 @@
       align-items: center; justify-content: center; color: #0f172a;
     }
 
-    /* 모바일 반응형 (1줄 레이아웃 최적화) */
+    /* 모바일 반응형 */
     @media (max-width: 850px) {
       .fold-btn { display: inline-block !important; }
 
@@ -711,7 +745,7 @@
     /* 인쇄 전용 CSS */
     @media print {
       body, html { width: 100% !important; height: auto !important; overflow: visible !important; background: #ffffff !important; }
-      #topCollapsibleArea, #topExpandTab, #main-container, #qrModal, #photoZoomModal, .tt-tabs, .tt-footer, .tt-close-btn {
+      #topCollapsibleArea, #topExpandTab, #main-container, #qrModal, #pwaModal, #photoZoomModal, .tt-tabs, .tt-footer, .tt-close-btn {
         display: none !important;
       }
       #timetableModal { display: block !important; position: static !important; background: none !important; padding: 0 !important; width: 100% !important; height: auto !important; }
@@ -748,7 +782,7 @@
           </div>
         </div>
 
-        <!-- ⭐️ 정류장 검색창 및 다중 결과 드롭다운 -->
+        <!-- 정류장 검색창 -->
         <div class="header-middle-row">
           <div class="stop-search-box">
             <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색 (예: 포로수용소, 아이파크)" oninput="handleStopSearch(this.value)">
@@ -757,7 +791,7 @@
           <div id="searchDropdownList"></div>
         </div>
 
-        <!-- ⭐️ 1줄 정돈 헤더 하단 행 -->
+        <!-- 1줄 정돈 헤더 하단 행 -->
         <div class="header-bottom-row">
           <div class="course-select-wrapper">
             <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
@@ -766,6 +800,8 @@
           </div>
 
           <div class="header-actions">
+            <!-- ⭐️ 1번 기능: 홈 화면 바로가기 추가 안내 버튼 -->
+            <button class="action-btn pwa-btn" onclick="openPwaModal()" title="스마트폰 바탕화면에 바로가기 아이콘 만들기">📲홈추가</button>
             <button class="action-btn font-size-btn" onclick="toggleFontSize()" id="btnFontSize" title="글자 크기 확대">🔍글씨</button>
             <button class="action-btn nearby-btn" onclick="findNearestStop()" title="내 위치 주변 정류소 찾기">📍주변</button>
             <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="전체 시간표 표 보기">📋표</button>
@@ -831,6 +867,26 @@
     </div>
   </div>
 
+  <!-- ⭐️ 1번 기능: 홈 화면 바로가기 추가 안내 모달 -->
+  <div id="pwaModal" onclick="closePwaModal(event)">
+    <div class="pwa-card" onclick="event.stopPropagation()">
+      <h3>📲 스마트폰 홈 화면에 바로가기 추가</h3>
+      <div class="pwa-step-box">
+        <b>🤖 안드로이드 (삼성 인터넷 / 크롬)</b><br>
+        1. 화면 우측 상단 또는 하단의 <b>더보기 메뉴 (⋮ 또는 ≡)</b>를 누릅니다.<br>
+        2. <b>[홈 화면에 추가]</b> 또는 <b>[현재 페이지 추가]</b>를 선택합니다.<br>
+        3. 바탕화면에 복지관 셔틀버스 아이콘이 바로 생성됩니다.
+      </div>
+      <div class="pwa-step-box">
+        <b>🍎 아이폰 (사파리)</b><br>
+        1. 화면 하단 중앙의 <b>공유 버튼 (□에 ↑ 화살표)</b>을 누릅니다.<br>
+        2. 아래로 내려 <b>[홈 화면에 추가]</b>를 누릅니다.<br>
+        3. 우측 상단의 <b>[추가]</b>를 누르면 완료됩니다.
+      </div>
+      <button class="pwa-close-btn" onclick="closePwaModal()">확인 완료</button>
+    </div>
+  </div>
+
   <!-- QR코드 모달 -->
   <div id="qrModal" onclick="closeQrModal(event)">
     <div class="qr-card" onclick="event.stopPropagation()">
@@ -885,6 +941,14 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
+    // 1. 홈 화면 추가 모달
+    function openPwaModal() {
+      document.getElementById('pwaModal').style.display = 'flex';
+    }
+    function closePwaModal() {
+      document.getElementById('pwaModal').style.display = 'none';
+    }
+
     // 1. 큰 글씨 모드 토글
     function toggleFontSize() {
       const isLarge = document.body.classList.toggle('large-font');
@@ -935,7 +999,7 @@
       return holidays.includes(`${m}-${dt}`);
     }
 
-    // ⭐️ 2. 다중 정류장 검색 및 회차/도착시간 동시 표출
+    // 2. 다중 정류장 검색 및 회차/도착시간 동시 표출
     function handleStopSearch(keyword) {
       keyword = keyword.trim().toLowerCase();
       const clearBtn = document.getElementById('searchClearBtn');
@@ -972,7 +1036,6 @@
         dropdown.style.display = 'block';
       } else {
         dropdown.innerHTML = matches.map(m => {
-          // 운행되는 회차 시간 뱃지 목록 생성
           const sorted = [...m.schedules].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
           const activeTimes = sorted.filter(sc => sc.time && !sc.time.includes('미운행'));
           
@@ -1520,7 +1583,7 @@
 
           if (key.includes('차량간격') || key.includes('간격')) {
             const num = parseFloat(valStr);
-            if (!isNaN(num) && num > 0) timeWindowMinutes = num;
+            if (!isNaN(num) && num > 0) timeWindowMinutes = valNum;
           }
 
           if (key.includes('공지') && valStr) {
@@ -1965,6 +2028,7 @@
               liveBusOverlays.push(busOverlay);
             }
 
+            // ⭐️ 상세 팝업 (길찾기 + 카카오 로드뷰 360도 연동)
             const openDetailPopup = () => {
               if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
 
@@ -1980,6 +2044,8 @@
               ` : '';
 
               const kakaoNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
+              // 카카오 로드뷰 다이렉트 URL
+              const kakaoRoadviewUrl = `https://map.kakao.com/link/roadview/${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
 
               bubbleDiv.innerHTML = `
                 <div class="popup-header">
@@ -2001,7 +2067,10 @@
                 </div>
                 <div class="popup-addr">📍 ${stop.addr}</div>
                 ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
-                <a href="${kakaoNaviUrl}" target="_blank" class="popup-nav-btn">🚶 카카오맵 길찾기 (도보/내비)</a>
+                <div class="popup-btn-row">
+                  <a href="${kakaoNaviUrl}" target="_blank" class="popup-nav-btn">🚶 길찾기</a>
+                  <a href="${kakaoRoadviewUrl}" target="_blank" class="popup-roadview-btn">👀 360° 로드뷰</a>
+                </div>
               `;
 
               const bubbleOverlay = new kakao.maps.CustomOverlay({
@@ -2256,6 +2325,7 @@
                 ` : '';
 
                 const kakaoNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
+                const kakaoRoadviewUrl = `https://map.kakao.com/link/roadview/${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
 
                 bubbleDiv.innerHTML = `
                   <div class="popup-header">
@@ -2277,7 +2347,10 @@
                   </div>
                   <div class="popup-addr">📍 ${stop.addr}</div>
                   ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
-                  <a href="${kakaoNaviUrl}" target="_blank" class="popup-nav-btn">🚶 카카오맵 길찾기 (도보/내비)</a>
+                  <div class="popup-btn-row">
+                    <a href="${kakaoNaviUrl}" target="_blank" class="popup-nav-btn">🚶 길찾기</a>
+                    <a href="${kakaoRoadviewUrl}" target="_blank" class="popup-roadview-btn">👀 360° 로드뷰</a>
+                  </div>
                 `;
 
                 const bubbleOverlay = new kakao.maps.CustomOverlay({
@@ -2495,6 +2568,7 @@
       setInterval(checkActiveBuses, 10000);
     }
 
+    // 4. 주말/공휴일 감지 및 실시간 버스 확인
     function checkActiveBuses() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
