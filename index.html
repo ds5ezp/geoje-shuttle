@@ -209,12 +209,12 @@
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
     }
 
-    /* ⭐️ 도로 진행 방향 선형 화살표(──>) 스타일 */
+    /* ⭐️ 도로 진행 방향 선형 화살표(선과 대비되는 형광 옐로우 + 블랙 테두리) */
     .route-dir-arrow {
-      width: 24px; height: 24px;
+      width: 26px; height: 26px;
       display: flex; align-items: center; justify-content: center;
       pointer-events: none; transform-origin: center center;
-      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.45));
+      filter: drop-shadow(0px 1px 3px rgba(0, 0, 0, 0.65));
     }
     .route-dir-arrow svg {
       width: 100%; height: 100%; overflow: visible;
@@ -279,7 +279,7 @@
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    /* ================= ⭐️ QR코드 및 공유 모달 팝업 ================= */
+    /* ================= QR코드 및 공유 모달 팝업 ================= */
     #qrModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.75); z-index: 3000;
@@ -435,7 +435,7 @@
     </div>
   </div>
 
-  <!-- ⭐️ QR코드 및 공유 링크 모달 창 -->
+  <!-- QR코드 및 공유 링크 모달 창 -->
   <div id="qrModal" onclick="closeQrModal(event)">
     <div class="qr-card" onclick="event.stopPropagation()">
       <h3 id="qrModalTitle">셔틀버스 QR코드</h3>
@@ -526,7 +526,6 @@
       return (brng + 360) % 360;
     }
 
-    /* ================= ⭐️ QR코드 생성 및 공유 함수 ================= */
     function getShareUrl() {
       const baseUrl = window.location.origin + window.location.pathname;
       if (currentSelectedCourseKey) {
@@ -542,7 +541,6 @@
       document.getElementById('qrModalTitle').innerText = `[${displayName}] QR코드`;
       document.getElementById('qrModalDesc').innerText = `스캔 시 [${displayName}] 노선으로 즉시 이동합니다.`;
       
-      // QR코드 무료 생성 오픈 API 활용
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
       document.getElementById('qrImage').src = qrApiUrl;
 
@@ -783,7 +781,6 @@
       tabBar.innerHTML = '';
       const courses = Object.keys(routeData);
 
-      // ⭐️ URL 쿼리 파라미터 확인 (?course=...)
       const urlParams = new URLSearchParams(window.location.search);
       const queryCourse = urlParams.get('course');
 
@@ -811,7 +808,6 @@
         }
       });
 
-      // 파라미터가 전체 노선인 경우
       if (queryCourse === 'ALL') {
         selectAllCourses(allBtn);
       } else if (targetBtn && targetCourseName) {
@@ -1310,7 +1306,7 @@
         line.setMap(map);
         polylines.push(line);
 
-        createRouteDirectionArrows(cached.path, color);
+        createRouteDirectionArrows(cached.path);
 
         return {
           totalDistance: cached.totalDistance,
@@ -1344,7 +1340,7 @@
           line.setMap(map);
           polylines.push(line);
 
-          createRouteDirectionArrows(path, color);
+          createRouteDirectionArrows(path);
 
           const legDistances = (route.legs || []).map(leg => leg.distance);
 
@@ -1367,7 +1363,8 @@
       }
     }
 
-    function createRouteDirectionArrows(pathCoords, color) {
+    // ⭐️ 선 색상에 묻히지 않는 고대비 네온 옐로우 화살표 생성
+    function createRouteDirectionArrows(pathCoords) {
       if (!pathCoords || pathCoords.length < 5) return;
       
       const step = Math.max(12, Math.floor(pathCoords.length / 15));
@@ -1382,9 +1379,11 @@
         arrowDiv.className = 'route-dir-arrow';
         arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing - 90}deg)`;
         
+        // 옐로우 바디(#FACC15) + 블랙 외곽선(#0F172A)
         arrowDiv.innerHTML = `
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="${color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         `;
 
@@ -1412,7 +1411,7 @@
       line.setMap(map);
       polylines.push(line);
 
-      createRouteDirectionArrows(path, color);
+      createRouteDirectionArrows(path);
 
       let totalMeters = 0;
       const legs = [];
