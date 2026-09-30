@@ -8,6 +8,73 @@
   <!-- 카카오맵 SDK -->
   <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f01d8615df654cbc9c30cca0069570ba&libraries=services"></script>
 
+  <!-- ⭐️ Firebase SDK 추가 -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // ⭐️ 본인의 파이어베이스 설정 정보 입력
+    const firebaseConfig = {
+     apiKey: "AIzaSyDIOaN5jLCjjjK-xKUi4Bb-f4597panqDo",
+  authDomain: "gjcwbus.firebaseapp.com",
+  projectId: "gjcwbus",
+  storageBucket: "gjcwbus.firebasestorage.app",
+  databaseURL: "https://gjcwbus-default-rtdb.asia-southeast1.firebasedatabase.app",
+  messagingSenderId: "427511689115",
+  appId: "1:427511689115:web:f409857185be5668d1fb3e",
+  measurementId: "G-8RNZ3ESW56"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.realtimeBusMarkers = {};
+
+    window.initRealtimeBusTracking = function() {
+      const liveBusRef = ref(db, 'liveBuses/');
+      
+      onValue(liveBusRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        Object.keys(data).forEach(courseName => {
+          const pos = data[courseName];
+          if (!pos || !pos.lat || !pos.lng) return;
+
+          const busLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+
+          if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
+            updateRealtimeBusMarker(courseName, busLatLng);
+          }
+        });
+      });
+    };
+
+    function updateRealtimeBusMarker(courseName, latLng) {
+      if (!window.map) return;
+
+      if (window.realtimeBusMarkers[courseName]) {
+        window.realtimeBusMarkers[courseName].setPosition(latLng);
+      } else {
+        const busElem = document.createElement('div');
+        busElem.className = 'live-real-bus-marker';
+        busElem.innerHTML = `🚍 <span style="font-size:10px; font-weight:bold; background:#ef4444; color:#fff; padding:1px 4px; border-radius:4px;">${courseName}</span>`;
+        busElem.style.cssText = "background:#fff; border:2px solid #ef4444; padding:2px 8px; border-radius:20px; font-weight:800; font-size:12px; color:#ef4444; box-shadow:0 3px 10px rgba(0,0,0,0.3); white-space:nowrap; cursor:pointer;";
+
+        const realBusOverlay = new kakao.maps.CustomOverlay({
+          position: latLng,
+          content: busElem,
+          yAnchor: 1.0,
+          xAnchor: 0.5,
+          zIndex: 300
+        });
+
+        realBusOverlay.setMap(window.map);
+        window.realtimeBusMarkers[courseName] = realBusOverlay;
+      }
+    }
+  </script>
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; -webkit-tap-highlight-color: transparent; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #f8fafc; }
@@ -20,7 +87,6 @@
       position: relative;
     }
 
-    /* 큰 글씨 모드 */
     body.large-font .header-info h1 { font-size: 1.25rem !important; }
     body.large-font .stop-info h4 { font-size: 1.2rem !important; font-weight: 900 !important; }
     body.large-font .stop-id-tag { font-size: 0.88rem !important; }
@@ -33,7 +99,6 @@
     body.large-font .tt-table { font-size: 1.05rem !important; }
     body.large-font #courseSelect { font-size: 1.05rem !important; }
 
-    /* 상단 종합 영역 */
     #topCollapsibleArea {
       flex-shrink: 0;
       width: 100%;
@@ -71,7 +136,6 @@
       gap: 4px;
     }
 
-    /* 상단 헤더 */
     #header {
       padding: 8px 12px 6px 12px;
       display: flex;
@@ -96,7 +160,6 @@
     }
     .call-btn:hover { background: #059669; }
 
-    /* 정류장 검색 영역 */
     .header-middle-row {
       position: relative; width: 100%;
     }
@@ -147,7 +210,6 @@
     }
     .search-time-chip b { color: #2563eb; }
 
-    /* 헤더 하단 행 */
     .header-bottom-row {
       display: flex; align-items: center; gap: 4px; width: 100%; flex-wrap: nowrap;
     }
@@ -202,7 +264,6 @@
     .qr-share-btn { background: #475569; color: #ffffff; }
     .fold-btn { background: #64748b; color: #fff; }
 
-    /* 공지사항 배너 스타일 */
     #noticeBanner {
       display: none;
       width: 100%;
@@ -231,7 +292,6 @@
       cursor: pointer; padding: 2px 6px; font-weight: bold; line-height: 1;
     }
 
-    /* 실시간 운행 현황 및 마감 알림 배너 */
     #liveStatusBar {
       width: 100%; min-height: 38px; height: 38px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
@@ -276,7 +336,6 @@
       border-color: #60a5fa;
     }
 
-    /* 메인 컨테이너 */
     #main-container {
       flex: 1;
       display: flex;
@@ -530,7 +589,6 @@
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    /* 전체 시간표 표 모달 */
     #timetableModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.78); z-index: 3500;
@@ -601,7 +659,6 @@
     .tt-copy-text-btn { background: #047857; color: #fff; }
     .tt-print-btn { background: #1e293b; color: #fff; }
 
-    /* QR코드 모달 */
     #qrModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.75); z-index: 3000;
@@ -626,7 +683,6 @@
     .copy-url-btn:hover { background: #dbeafe; }
     .close-qr-btn { background: #1e293b; color: #ffffff; }
 
-    /* 홈 화면 바로가기(PWA) 안내 모달 */
     #pwaModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.78); z-index: 3600;
@@ -648,7 +704,6 @@
       background: #1e293b; color: #ffffff; font-weight: 800; font-size: 0.85rem; cursor: pointer;
     }
 
-    /* 사진 확대 모달 */
     #photoZoomModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.88); z-index: 4000;
@@ -673,7 +728,6 @@
       align-items: center; justify-content: center; color: #0f172a;
     }
 
-    /* 모바일 반응형 */
     @media (max-width: 850px) {
       .fold-btn { display: inline-block !important; }
 
@@ -740,7 +794,6 @@
       .tt-table { font-size: 0.78rem; }
     }
 
-    /* 인쇄 전용 CSS */
     @media print {
       body, html { width: 100% !important; height: auto !important; overflow: visible !important; background: #ffffff !important; }
       #topCollapsibleArea, #topExpandTab, #main-container, #qrModal, #pwaModal, #photoZoomModal, .tt-tabs, .tt-footer, .tt-close-btn {
@@ -780,7 +833,6 @@
           </div>
         </div>
 
-        <!-- 정류장 검색창 -->
         <div class="header-middle-row">
           <div class="stop-search-box">
             <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색 (예: 포로수용소, 아이파크)" oninput="handleStopSearch(this.value)">
@@ -789,7 +841,6 @@
           <div id="searchDropdownList"></div>
         </div>
 
-        <!-- 헤더 하단 행 -->
         <div class="header-bottom-row">
           <div class="course-select-wrapper">
             <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
@@ -808,7 +859,6 @@
         </div>
       </div>
 
-      <!-- 공지사항 띠 배너 -->
       <div id="noticeBanner">
         <div class="notice-content">
           <span class="notice-badge">공지</span>
@@ -817,14 +867,12 @@
         <button class="notice-close-btn" onclick="closeNoticeBanner()" title="닫기">&times;</button>
       </div>
 
-      <!-- 실시간 운행 현황 및 운행 마감 안내 배너 -->
       <div id="liveStatusBar">
         <span class="live-tag" id="liveTag">LIVE 운행</span>
         <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
       </div>
     </div>
 
-    <!-- 메인 뷰 -->
     <div id="main-container">
       <div id="map">
         <div id="routeBadge">실제 도로 경로선 계산 중...</div>
@@ -844,7 +892,6 @@
     </div>
   </div>
 
-  <!-- 전체 셔틀버스 시간표 표 모달 팝업 -->
   <div id="timetableModal" onclick="closeTimetableModal(event)">
     <div class="timetable-card" onclick="event.stopPropagation()">
       <div class="tt-header">
@@ -864,7 +911,6 @@
     </div>
   </div>
 
-  <!-- 홈 화면 바로가기 안내 모달 -->
   <div id="pwaModal" onclick="closePwaModal(event)">
     <div class="pwa-card" onclick="event.stopPropagation()">
       <h3>📲 스마트폰 홈 화면에 바로가기 추가</h3>
@@ -882,7 +928,6 @@
     </div>
   </div>
 
-  <!-- QR코드 모달 -->
   <div id="qrModal" onclick="closeQrModal(event)">
     <div class="qr-card" onclick="event.stopPropagation()">
       <h3 id="qrModalTitle">셔틀버스 QR코드</h3>
@@ -895,7 +940,6 @@
     </div>
   </div>
 
-  <!-- 사진 확대 모달 -->
   <div id="photoZoomModal" onclick="closePhotoZoom()">
     <div class="zoom-content" onclick="event.stopPropagation()">
       <button class="close-zoom-btn" onclick="closePhotoZoom()">&times;</button>
@@ -1737,6 +1781,11 @@
         initCourseDropdown();
         startRealtimeCheck();
 
+        // ⭐️ 파이어베이스 실시간 관제 리스너 구동 시작
+        if (window.initRealtimeBusTracking) {
+          window.initRealtimeBusTracking();
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('view') === 'timetable') {
           openTimetableModal(urlParams.get('course'));
@@ -2550,14 +2599,12 @@
       setInterval(checkActiveBuses, 10000);
     }
 
-    // ⭐️ 3. 운행 종료 자동 감지 로직 포함된 실시간 상태 확인
     function checkActiveBuses() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
       const barText = document.getElementById('liveStatusText');
       const liveTag = document.getElementById('liveTag');
 
-      // 주말/공휴일 체크
       if (isNonOperatingDay(now)) {
         if (liveTag) {
           liveTag.innerText = '미운행일';
@@ -2569,10 +2616,9 @@
         return;
       }
 
-      // 평일 운행 마감 시간 확인 (전체 노선 중 가장 늦은 막차 시간 파악)
       let latestMinuteToday = 0;
-      Object.keys(routeData).forEach(cName => {
-        const stops = routeData[cName] || [];
+      Object.keys(routeData).forEach(courseName => {
+        const stops = routeData[courseName];
         stops.forEach(s => {
           (s.schedules || []).forEach(sc => {
             if (sc.time && !sc.time.includes('미운행')) {
@@ -2584,7 +2630,6 @@
         });
       });
 
-      // 막차 시간이 지났거나 오후 6시(18:00=1080분) 이후로 오늘 운행이 끝난 경우
       if (latestMinuteToday > 0 && currentMinutes > latestMinuteToday + 10) {
         if (liveTag) {
           liveTag.innerText = '운행 마감';
@@ -2596,7 +2641,6 @@
         return;
       }
 
-      // 평일 정상 운행 중
       if (liveTag) {
         liveTag.innerText = 'LIVE 운행';
         liveTag.classList.remove('holiday', 'ended');
