@@ -1180,22 +1180,35 @@
       }
     }
 
-    // ⭐️ [설정] 시트 파싱 (차량간격 및 공지사항 B열 추출 안전성 강화)
+    // ⭐️ 1. 설정 시트 호출 시 headers=0 옵션 추가 (첫 행 누락 방지)
+    function loadSettings() {
+      const encoded = encodeURIComponent("설정");
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encoded}&headers=0&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
+      const script = document.createElement('script');
+      script.src = url;
+      script.onerror = function() { loadStationList(); };
+      document.body.appendChild(script);
+    }
+
+    // ⭐️ 2. [설정] 시트 파싱 (차량간격 및 공지사항 B열 추출 안전성 강화)
     window.handleSettings = function(json) {
       try {
         const rows = json.table.rows || [];
         rows.forEach(r => {
+          if (!r || !r.c) return;
           const c = r.c;
-          if (!c) return;
-          const key = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
+
+          // A열 (키)
+          const key = c[0] ? String(c[0].f !== undefined && c[0].f !== null ? c[0].f : (c[0].v !== undefined && c[0].v !== null ? c[0].v : '')).trim() : '';
           
+          // B열 (값)
           let valStr = '';
           if (c[1]) {
             valStr = String(c[1].f !== undefined && c[1].f !== null ? c[1].f : (c[1].v !== undefined && c[1].v !== null ? c[1].v : '')).trim();
           }
           const valNum = c[1] ? parseFloat(c[1].v || c[1].f) : null;
 
-          if (key.includes('차량간격') || key.includes('차량간견') || key.includes('간격')) {
+          if (key.includes('차량간격') || key.includes('간격')) {
             if (!isNaN(valNum) && valNum > 0) timeWindowMinutes = valNum;
           }
 
@@ -1444,35 +1457,6 @@
           });
         }
       });
-    }
-
-    function loadSettings() {
-      const encoded = encodeURIComponent("설정");
-      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encoded}&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
-      const script = document.createElement('script');
-      script.src = url;
-      script.onerror = function() { loadStationList(); };
-      document.body.appendChild(script);
-    }
-
-    function loadStationList() {
-      const encodedMaster = encodeURIComponent("정류소목록");
-      const masterUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedMaster}&tqx=responseHandler:handleStationList&_t=${Date.now()}`;
-      const s1 = document.createElement('script');
-      s1.src = masterUrl;
-      s1.onerror = function() { loadRouteData(); };
-      document.body.appendChild(s1);
-    }
-
-    function loadRouteData() {
-      const encodedRoute = encodeURIComponent("노선데이터");
-      const routeUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedRoute}&tqx=responseHandler:handleRouteData&_t=${Date.now()}`;
-      const s2 = document.createElement('script');
-      s2.src = routeUrl;
-      s2.onerror = function() {
-        document.getElementById('loadingModal').innerHTML = "❌ 구글 시트를 불러올 수 없습니다. 공유 설정을 확인해주세요.";
-      };
-      document.body.appendChild(s2);
     }
 
     function clearMapLayers() {
