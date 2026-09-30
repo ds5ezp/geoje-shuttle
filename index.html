@@ -12,7 +12,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; -webkit-tap-highlight-color: transparent; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #f8fafc; }
 
-    /* ⭐️ 전체 화면을 플렉스 수직 구조로 구성하여 가림 현상 원천 방지 */
     #app-wrapper {
       display: flex;
       flex-direction: column;
@@ -21,12 +20,53 @@
       position: relative;
     }
 
+    /* ================= ⭐️ 접고 펼쳐지는 상단 종합 영역 ================= */
+    #topCollapsibleArea {
+      flex-shrink: 0;
+      width: 100%;
+      background: #ffffff;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      position: relative;
+    }
+
+    /* 접혔을 때 클래스 */
+    #topCollapsibleArea.collapsed {
+      transform: translateY(-100%);
+      margin-bottom: -100%; /* 레이아웃상 위로 완전히 밀어냄 */
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    /* 상단 영역이 접혔을 때 지도를 가리지 않고 나타나는 미니 재표시 바 */
+    #topExpandTab {
+      display: none;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.9);
+      color: #ffffff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      cursor: pointer;
+      z-index: 95;
+      align-items: center;
+      gap: 4px;
+    }
+
     /* ================= 상단 헤더 ================= */
     #header {
-      flex-shrink: 0;
-      background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      display: flex; flex-direction: column; gap: 8px;
-      padding: 10px 16px 8px 16px; z-index: 100;
+      padding: 10px 16px 8px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: #ffffff;
     }
     .header-top-row {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -87,16 +127,20 @@
     .print-btn {
       background: #1e293b; color: #fff;
     }
+    .fold-btn {
+      background: #64748b; color: #fff; display: none;
+    }
 
-    /* ================= ⭐️ 실시간 운행 현황 알림 배너 (상대 배치로 완벽 노출) ================= */
+    /* ================= ⭐️ 실시간 운행 현황 알림 배너 ================= */
     #liveStatusBar {
-      flex-shrink: 0; height: 42px;
+      width: 100%; min-height: 42px; height: 42px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
-      padding: 0 16px; font-size: 0.8rem; z-index: 90; gap: 8px;
+      padding: 0 16px; font-size: 0.8rem; gap: 8px;
       overflow-x: auto; overflow-y: hidden;
       white-space: nowrap;
       -webkit-overflow-scrolling: touch;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      box-sizing: border-box;
     }
     #liveStatusBar::-webkit-scrollbar { height: 3px; }
     #liveStatusBar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.25); border-radius: 2px; }
@@ -197,7 +241,6 @@
       padding: 1px 6px; border-radius: 4px; white-space: nowrap;
     }
 
-    /* 회차별 시간표 뱃지 스타일 */
     .schedule-rounds-box {
       display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
     }
@@ -224,7 +267,6 @@
     }
     .stop-info .desc { font-size: 0.8rem; color: #475569; margin-top: 4px; line-height: 1.4; word-break: break-all; }
 
-    /* 정류소 현장 사진 썸네일 스타일 */
     .stop-photo-box {
       width: 100%; height: 135px; border-radius: 8px; overflow: hidden;
       margin-top: 4px; position: relative; background: #e2e8f0; cursor: zoom-in;
@@ -239,7 +281,6 @@
       pointer-events: none;
     }
 
-    /* 지도 마커 뱃지 */
     .bus-marker-badge {
       width: 32px; height: 32px; border-radius: 50%;
       background: #2563eb; color: #ffffff; font-weight: 800; font-size: 14px;
@@ -255,7 +296,6 @@
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
     }
 
-    /* 도로 진행 방향 선형 화살표 */
     .route-dir-arrow {
       width: 26px; height: 26px;
       display: flex; align-items: center; justify-content: center;
@@ -286,7 +326,6 @@
       50% { transform: translateX(-50%) translateY(-6px); }
     }
 
-    /* 팝업 버블 스타일 */
     .bubble-popup {
       position: relative; background: #ffffff; border-radius: 14px;
       padding: 14px 16px; box-shadow: 0 6px 22px rgba(0,0,0,0.28);
@@ -388,13 +427,12 @@
       align-items: center; justify-content: center; color: #0f172a;
     }
 
-    /* ================= 📱 모바일 바텀시트 ================= */
+    /* ================= 📱 모바일 전용 UI ================= */
     @media (max-width: 850px) {
+      .fold-btn { display: inline-block !important; }
+
       #header {
         padding: 8px 12px 6px 12px; gap: 6px;
-      }
-      .header-top-row {
-        align-items: center;
       }
       .header-info h1 { font-size: 0.95rem; }
       .company-info { font-size: 0.72rem; }
@@ -408,7 +446,8 @@
       .tab-btn { font-size: 0.78rem; padding: 4px 10px; }
 
       #liveStatusBar {
-        height: 38px; padding: 0 12px; font-size: 0.76rem;
+        min-height: 38px !important; height: 38px !important;
+        padding: 0 12px; font-size: 0.76rem;
       }
       .live-tag { font-size: 0.68rem; padding: 2px 6px; }
       .live-item { font-size: 0.72rem; padding: 3px 8px; }
@@ -466,7 +505,7 @@
     }
 
     @media print {
-      #header, #liveStatusBar, #qrModal, #photoZoomModal { display: none !important; }
+      #header, #liveStatusBar, #qrModal, #photoZoomModal, #topCollapsibleArea { display: none !important; }
       #main-container { position: static; height: auto; display: block; }
       #map { height: 420px !important; }
       #sidebar { width: 100%; box-shadow: none; position: static; height: auto; }
@@ -478,30 +517,39 @@
   <div id="loadingModal">구글 시트에서 최신 노선 데이터 연동 중...</div>
 
   <div id="app-wrapper">
-    <!-- 상단 헤더 -->
-    <div id="header">
-      <div class="header-top-row">
-        <div class="header-info">
-          <h1>거제시종합사회복지관 셔틀버스</h1>
-        </div>
-        <div class="company-info">
-          <span>2026년 차량운행회사 : ㈜여행과 사람</span>
-          <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
-        </div>
-      </div>
-      <div class="header-bottom-row">
-        <div class="tab-bar" id="tabBar"></div>
-        <div class="header-actions">
-          <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유 / QR코드</button>
-          <button class="action-btn print-btn" onclick="window.print()">A4 인쇄</button>
-        </div>
-      </div>
+    <!-- ⭐️ 접혔을 때 화면 상단에 떠서 다시 누르면 내려오게 하는 탭 -->
+    <div id="topExpandTab" onclick="expandTopArea()">
+      <span>🚌 노선 및 운행현황 열기 ▼</span>
     </div>
 
-    <!-- ⭐️ 실시간 운행 현황 알림 배너 (헤더 바로 아래 자동 연결) -->
-    <div id="liveStatusBar">
-      <span class="live-tag">LIVE 운행</span>
-      <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
+    <!-- ⭐️ 접고 펼쳐지는 상단 종합 영역 (헤더 + LIVE 배너) -->
+    <div id="topCollapsibleArea">
+      <!-- 상단 헤더 -->
+      <div id="header">
+        <div class="header-top-row">
+          <div class="header-info">
+            <h1>거제시종합사회복지관 셔틀버스</h1>
+          </div>
+          <div class="company-info">
+            <span>2026년 차량운행회사 : ㈜여행과 사람</span>
+            <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
+          </div>
+        </div>
+        <div class="header-bottom-row">
+          <div class="tab-bar" id="tabBar"></div>
+          <div class="header-actions">
+            <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유 / QR코드</button>
+            <button class="action-btn fold-btn" id="btnFoldHeader" onclick="toggleTopArea()">▲ 접기</button>
+            <button class="action-btn print-btn" onclick="window.print()">A4 인쇄</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ⭐️️ 실시간 운행 현황 알림 배너 (상대 높이로 완전 표시) -->
+      <div id="liveStatusBar">
+        <span class="live-tag">LIVE 운행</span>
+        <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
+      </div>
     </div>
 
     <!-- 메인 뷰 (지도 + 사이드바) -->
@@ -576,6 +624,32 @@
       new kakao.maps.LatLng(34.7000, 128.4500),
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
+
+    // ⭐️ 상단 영역 접기 / 펼치기 제어
+    function collapseTopArea() {
+      const area = document.getElementById('topCollapsibleArea');
+      const expandTab = document.getElementById('topExpandTab');
+      if (area) area.classList.add('collapsed');
+      if (expandTab) expandTab.style.display = 'flex';
+      setTimeout(() => { if (map) map.relayout(); }, 320);
+    }
+
+    function expandTopArea() {
+      const area = document.getElementById('topCollapsibleArea');
+      const expandTab = document.getElementById('topExpandTab');
+      if (area) area.classList.remove('collapsed');
+      if (expandTab) expandTab.style.display = 'none';
+      setTimeout(() => { if (map) map.relayout(); }, 320);
+    }
+
+    function toggleTopArea() {
+      const area = document.getElementById('topCollapsibleArea');
+      if (area.classList.contains('collapsed')) {
+        expandTopArea();
+      } else {
+        collapseTopArea();
+      }
+    }
 
     function formatImageUrl(url) {
       if (!url) return '';
@@ -852,12 +926,36 @@
       });
 
       initBottomSheetGestures();
+      initTopAreaGestures();
 
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
 
       loadSettings();
     };
+
+    // ⭐️ 상단 영역 스와이프 업(접기)/다운(열기) 제스처 등록
+    function initTopAreaGestures() {
+      const topArea = document.getElementById('topCollapsibleArea');
+      if (!topArea) return;
+
+      let startY = 0;
+      topArea.addEventListener('touchstart', (e) => {
+        if (window.innerWidth > 850) return;
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+
+      topArea.addEventListener('touchend', (e) => {
+        if (window.innerWidth > 850) return;
+        const endY = e.changedTouches[0].clientY;
+        const diffY = endY - startY;
+
+        // 위로 30px 이상 튕겨 올리면 접기
+        if (diffY < -30) {
+          collapseTopArea();
+        }
+      }, { passive: true });
+    }
 
     function initBottomSheetGestures() {
       const sidebar = document.getElementById('sidebar');
@@ -1572,7 +1670,6 @@
       }
     }
 
-    // 선명한 화살표 생성
     function createRouteDirectionArrows(pathCoords) {
       if (!pathCoords || pathCoords.length < 5) return;
       
