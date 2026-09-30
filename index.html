@@ -33,6 +33,10 @@
     }
     .call-btn:hover { background: #059669; }
 
+    .header-actions {
+      display: flex; align-items: center; gap: 6px;
+    }
+
     .tab-bar {
       display: flex; gap: 8px; overflow-x: auto; padding: 4px 0;
       -webkit-overflow-scrolling: touch;
@@ -57,10 +61,16 @@
       box-shadow: 0 2px 8px rgba(59,130,246,0.4);
     }
 
+    .action-btn {
+      padding: 7px 12px; border: none; border-radius: 8px; cursor: pointer;
+      font-weight: 700; font-size: 0.8rem; white-space: nowrap; transition: all 0.2s;
+    }
+    .qr-share-btn {
+      background: #2563eb; color: #ffffff;
+    }
+    .qr-share-btn:hover { background: #1d4ed8; }
     .print-btn {
-      padding: 8px 14px; background: #1e293b; color: #fff; border: none;
-      border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.82rem;
-      white-space: nowrap;
+      background: #1e293b; color: #fff;
     }
 
     /* ================= 실시간 운행 현황 알림 배너 ================= */
@@ -199,15 +209,15 @@
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
     }
 
-    /* 도로 진행 방향 화살표 스타일 */
+    /* ⭐️ 도로 진행 방향 선형 화살표(──>) 스타일 */
     .route-dir-arrow {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: rgba(255, 255, 255, 0.95);
-      border: 2px solid #2563eb;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      width: 24px; height: 24px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 900; color: #2563eb;
       pointer-events: none; transform-origin: center center;
+      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.45));
+    }
+    .route-dir-arrow svg {
+      width: 100%; height: 100%; overflow: visible;
     }
 
     .live-bus-badge {
@@ -269,6 +279,31 @@
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
+    /* ================= ⭐️ QR코드 및 공유 모달 팝업 ================= */
+    #qrModal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.75); z-index: 3000;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .qr-card {
+      background: #ffffff; width: 100%; max-width: 340px; border-radius: 16px;
+      padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+    }
+    .qr-card h3 { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .qr-card p { font-size: 0.8rem; color: #64748b; margin-bottom: 14px; }
+    #qrImage {
+      width: 190px; height: 190px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 14px;
+    }
+    .qr-btn-group { display: flex; gap: 8px; width: 100%; }
+    .qr-action-btn {
+      flex: 1; padding: 10px 0; border: none; border-radius: 8px;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .copy-url-btn { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+    .copy-url-btn:hover { background: #dbeafe; }
+    .close-qr-btn { background: #1e293b; color: #ffffff; }
+
     /* ================= 📱 모바일 바텀시트 ================= */
     @media (max-width: 850px) {
       #header {
@@ -284,6 +319,7 @@
       .company-info::before { content: "㈜여행과 사람"; font-weight: 700; color: #334155; }
       
       .print-btn { display: none !important; }
+      .qr-share-btn { font-size: 0.75rem; padding: 4px 8px; }
 
       .tab-bar { padding: 2px 0 4px 0; }
       .tab-btn { font-size: 0.78rem; padding: 5px 12px; }
@@ -346,7 +382,7 @@
     }
 
     @media print {
-      #header, #liveStatusBar { display: none; }
+      #header, #liveStatusBar, #qrModal { display: none !important; }
       #main-container { position: static; height: auto; display: block; }
       #map { height: 420px !important; }
       #sidebar { width: 100%; box-shadow: none; position: static; height: auto; }
@@ -367,7 +403,10 @@
       </div>
     </div>
     <div class="tab-bar" id="tabBar"></div>
-    <button class="print-btn" onclick="window.print()">A4 인쇄</button>
+    <div class="header-actions">
+      <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유 / QR코드</button>
+      <button class="action-btn print-btn" onclick="window.print()">A4 인쇄</button>
+    </div>
   </div>
 
   <!-- 실시간 운행 현황 알림 배너 -->
@@ -396,8 +435,20 @@
     </div>
   </div>
 
+  <!-- ⭐️ QR코드 및 공유 링크 모달 창 -->
+  <div id="qrModal" onclick="closeQrModal(event)">
+    <div class="qr-card" onclick="event.stopPropagation()">
+      <h3 id="qrModalTitle">셔틀버스 QR코드</h3>
+      <p id="qrModalDesc">스마트폰 카메라로 스캔하면 바로 열립니다.</p>
+      <img id="qrImage" src="" alt="노선 QR코드">
+      <div class="qr-btn-group">
+        <button class="qr-action-btn copy-url-btn" onclick="copyCurrentRouteUrl()">주소 복사</button>
+        <button class="qr-action-btn close-qr-btn" onclick="closeQrModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    // ⭐️ 스프레드시트 ID 적용 완료
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
 
     let routeData = {};
@@ -473,6 +524,50 @@
                 Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad);
       let brng = Math.atan2(y, x) * 180 / Math.PI;
       return (brng + 360) % 360;
+    }
+
+    /* ================= ⭐️ QR코드 생성 및 공유 함수 ================= */
+    function getShareUrl() {
+      const baseUrl = window.location.origin + window.location.pathname;
+      if (currentSelectedCourseKey) {
+        return `${baseUrl}?course=${encodeURIComponent(currentSelectedCourseKey)}`;
+      }
+      return baseUrl;
+    }
+
+    function openQrModal() {
+      const shareUrl = getShareUrl();
+      const displayName = currentSelectedCourseKey === 'ALL' ? '전체 노선망' : (currentSelectedCourseKey || '전체 노선');
+      
+      document.getElementById('qrModalTitle').innerText = `[${displayName}] QR코드`;
+      document.getElementById('qrModalDesc').innerText = `스캔 시 [${displayName}] 노선으로 즉시 이동합니다.`;
+      
+      // QR코드 무료 생성 오픈 API 활용
+      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
+      document.getElementById('qrImage').src = qrApiUrl;
+
+      document.getElementById('qrModal').style.display = 'flex';
+    }
+
+    function closeQrModal() {
+      document.getElementById('qrModal').style.display = 'none';
+    }
+
+    function copyCurrentRouteUrl() {
+      const shareUrl = getShareUrl();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          alert("노선 링크 주소가 복사되었습니다!\n카카오톡이나 문자로 전송하실 수 있습니다.");
+        });
+      } else {
+        const tempInput = document.createElement("input");
+        tempInput.value = shareUrl;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        alert("노선 링크 주소가 복사되었습니다!");
+      }
     }
 
     window.handleSettings = function(json) {
@@ -688,21 +783,40 @@
       tabBar.innerHTML = '';
       const courses = Object.keys(routeData);
 
+      // ⭐️ URL 쿼리 파라미터 확인 (?course=...)
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryCourse = urlParams.get('course');
+
       const allBtn = document.createElement('button');
       allBtn.className = 'tab-btn all-view-btn';
       allBtn.innerHTML = '🌐 전체 노선';
       allBtn.onclick = () => selectAllCourses(allBtn);
       tabBar.appendChild(allBtn);
 
+      let targetBtn = null;
+      let targetCourseName = null;
+      let targetIdx = 0;
+
       courses.forEach((cName, idx) => {
         const btn = document.createElement('button');
-        btn.className = `tab-btn ${idx === 0 ? 'active' : ''}`;
+        btn.className = 'tab-btn';
         btn.innerText = cName;
         btn.onclick = () => selectCourse(cName, idx, btn);
         tabBar.appendChild(btn);
+
+        if (queryCourse && queryCourse === cName) {
+          targetBtn = btn;
+          targetCourseName = cName;
+          targetIdx = idx;
+        }
       });
 
-      if (courses.length > 0) {
+      // 파라미터가 전체 노선인 경우
+      if (queryCourse === 'ALL') {
+        selectAllCourses(allBtn);
+      } else if (targetBtn && targetCourseName) {
+        selectCourse(targetCourseName, targetIdx, targetBtn);
+      } else if (courses.length > 0) {
         selectCourse(courses[0], 0, tabBar.children[1]);
       }
     }
@@ -1258,7 +1372,7 @@
       
       const step = Math.max(12, Math.floor(pathCoords.length / 15));
 
-      for (let i = step; i < pathCoords.length - 3; i += step) {
+      for (let i = step; i < pathCoords.length - 2; i += step) {
         const p1 = pathCoords[i - 1];
         const p2 = pathCoords[i];
 
@@ -1266,10 +1380,13 @@
 
         const arrowDiv = document.createElement('div');
         arrowDiv.className = 'route-dir-arrow';
-        arrowDiv.style.borderColor = color;
-        arrowDiv.style.color = color;
-        arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing}deg)`;
-        arrowDiv.innerHTML = `▲`;
+        arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing - 90}deg)`;
+        
+        arrowDiv.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="${color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        `;
 
         const arrowOverlay = new kakao.maps.CustomOverlay({
           position: p2,
