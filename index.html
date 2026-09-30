@@ -450,7 +450,6 @@
 
   <script>
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
-    const KAKAO_REST_API_KEY = "268ed0dfbe660f796da9ce0fb1a20ea5";
 
     let routeData = {};
     const masterStopMapByNo = {};
@@ -834,6 +833,7 @@
       polylines = [];
     }
 
+    // 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx, btnElem) {
       currentSelectedCourseKey = courseName;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1026,7 +1026,7 @@
         map.setBounds(bounds);
         const b = document.getElementById('routeBadge');
         b.style.display = 'block';
-        b.innerText = '대형버스 경로 계산 중...';
+        b.innerText = '경로선 계산 중...';
         
         const routeResult = await drawSingleRoadLine(courseName, validStopsForRouting, color);
         b.style.display = 'none';
@@ -1057,6 +1057,7 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
+    // 전체 노선 보기
     async function selectAllCourses(btnElem) {
       currentSelectedCourseKey = 'ALL';
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1297,7 +1298,7 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // ⭐️ [카카오모빌리티 대형버스 POST 규격 적용] 경로 탐색 함수
+    // ⭐️ [안정적인 기존 기본 도로 라우팅 OSRM 엔진]
     async function drawSingleRoadLine(courseKey, stops, color) {
       if (routeCache[courseKey]) {
         const cached = routeCache[courseKey];
@@ -1319,162 +1320,56 @@
         };
       }
 
-      // 1순위: 카카오모빌리티 대형버스(car_type=3) 길찾기 POST 호출
       try {
-        const origin = stops[0].coords;
-        const destination = stops[stops.length - 1].coords;
-        
-        // 경유지 리스트 생성 (출발/도착 제외 최대 30개)
-        const waypoints = stops.slice(1, stops.length - 1).slice(0, 30).map((s, idx) => ({
-          name: s.name || `wp_${idx}`,
-          x: s.coords.getLng(),
-          y: s.coords.getLat()
-        }));
-
-        // ⭐️ 카카오 규격에 맞춘 POST Payload (대형버스: car_type=3, 높이 3.5m, 폭 2.5m, 중량 15톤)
-        const requestPayload = {
-          origin: {
-            x: origin.getLng(),
-            y: origin.getLat()
-          },
-          destination: {
-            x: destination.getLng(),
-            y: destination.getLat()
-          },
-          waypoints: waypoints,
-          priority: "RECOMMEND",
-          car_type: 3,
-          car_width: 250,
-          car_height: 350,
-          car_weight: 15
-        };
-
-        const targetUrl = 'https://apis-navi.kakaomobility.com/v1/waypoints/directions';
+        const coordString = stops.map(s => `${s.coords.getLng()},${s.coords.getLat()}`).join(';');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-        let res = null;
-        try {
-          res = await fetch(targetUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `KakaoAK ${KAKAO_REST_API_KEY}`
-            },
-            body: JSON.stringify(requestPayload),
-            signal: controller.signal
-          });
-        } catch (corsErr) {
-          // 브라우저 CORS 차단 환경 우회 프록시
-          const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-          res = await fetch(proxyUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `KakaoAK ${KAKAO_REST_API_KEY}`
-            },
-            body: JSON.stringify(requestPayload),
-            signal: controller.signal
-          });
-        }
+        const res = await fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordString}?overview=full&geometries=geojson`, {
+          signal: controller.signal
+        });
         clearTimeout(timeoutId);
 
-        if (res && res.ok) {
-          const data = await res.json();
-          if (data.routes && data.routes[0] && data.routes[0].result_code === 0) {
-            const route = data.routes[0];
-            const path = [];
-            const legs = [];
+        if (!res.ok) throw new Error(`OSRM Status: ${res.status}`);
+        const data = await res.json();
 
-            (route.sections || []).forEach(sec => {
-              legs.push(sec.distance || 0);
-              (sec.roads || []).forEach(road => {
-                const vertexes = road.vertexes || [];
-                for (let v = 0; v < vertexes.length; v += 2) {
-                  path.push(new kakao.maps.LatLng(vertexes[v + 1], vertexes[v]));
-                }
-              });
-            });
-
-            if (path.length > 0) {
-              const line = new kakao.maps.Polyline({
-                path: path,
-                strokeWeight: 6,
-                strokeColor: color,
-                strokeOpacity: 0.85,
-                endArrow: true
-              });
-              line.setMap(map);
-              polylines.push(line);
-
-              createRouteDirectionArrows(path);
-
-              routeCache[courseKey] = {
-                path: path,
-                totalDistance: route.summary.distance,
-                legs: legs
-              };
-
-              return {
-                totalDistance: route.summary.distance,
-                legs: legs
-              };
-            }
-          }
-        }
-      } catch (kakaoErr) {
-        console.warn("카카오모빌리티 대형버스 경로 호출 지연, 보조 라우팅으로 전환:", kakaoErr);
-      }
-
-      // 2순위 보조: OSRM 도로선 라우팅 (승용차 프로필)
-      try {
-        const coordString = stops.map(s => `${s.coords.getLng()},${s.coords.getLat()}`).join(';');
-        const controller2 = new AbortController();
-        const timeoutId2 = setTimeout(() => controller2.abort(), 5000);
-
-        const res2 = await fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordString}?overview=full&geometries=geojson`, {
-          signal: controller2.signal
-        });
-        clearTimeout(timeoutId2);
-
-        if (!res2.ok) throw new Error(`OSRM Status: ${res2.status}`);
-        const data2 = await res2.json();
-
-        if (data2.code === 'Ok' && data2.routes && data2.routes[0]) {
-          const route2 = data2.routes[0];
-          const path2 = route2.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
-          const line2 = new kakao.maps.Polyline({
-            path: path2,
+        if (data.code === 'Ok' && data.routes && data.routes[0]) {
+          const route = data.routes[0];
+          const path = route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
+          const line = new kakao.maps.Polyline({
+            path: path,
             strokeWeight: 6,
             strokeColor: color,
             strokeOpacity: 0.85,
             endArrow: true
           });
-          line2.setMap(map);
-          polylines.push(line2);
+          line.setMap(map);
+          polylines.push(line);
 
-          createRouteDirectionArrows(path2);
+          createRouteDirectionArrows(path);
 
-          const legDistances2 = (route2.legs || []).map(leg => leg.distance);
+          const legDistances = (route.legs || []).map(leg => leg.distance);
 
           routeCache[courseKey] = {
-            path: path2,
-            totalDistance: route2.distance,
-            legs: legDistances2
+            path: path,
+            totalDistance: route.distance,
+            legs: legDistances
           };
 
           return {
-            totalDistance: route2.distance,
-            legs: legDistances2
+            totalDistance: route.distance,
+            legs: legDistances
           };
         } else {
           return fallbackHaversineLine(stops, color);
         }
-      } catch (osrmErr) {
+      } catch (e) {
+        console.warn("도로선 라우팅 실패, 직선 보간선으로 전환:", e);
         return fallbackHaversineLine(stops, color);
       }
     }
 
+    // ⭐️ 고대비 네온 옐로우 선형 화살표(──>)
     function createRouteDirectionArrows(pathCoords) {
       if (!pathCoords || pathCoords.length < 5) return;
       
