@@ -12,40 +12,52 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; -webkit-tap-highlight-color: transparent; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #f8fafc; }
 
+    /* ⭐️ 전체 화면을 플렉스 수직 구조로 구성하여 가림 현상 원천 방지 */
+    #app-wrapper {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
     /* ================= 상단 헤더 ================= */
     #header {
-      position: absolute; top: 0; left: 0; right: 0; height: 68px;
+      flex-shrink: 0;
       background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 16px; z-index: 100;
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 10px 16px 8px 16px; z-index: 100;
     }
-    .header-info { display: flex; flex-direction: column; justify-content: center; }
-    .header-info h1 { font-size: 1.08rem; font-weight: 800; color: #0f172a; white-space: nowrap; }
+    .header-top-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .header-info h1 { font-size: 1.05rem; font-weight: 800; color: #0f172a; white-space: nowrap; }
     
     .company-info {
-      display: flex; align-items: center; gap: 8px; margin-top: 2px; font-size: 0.76rem; color: #475569;
+      display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: #475569;
     }
     .call-btn {
       display: inline-flex; align-items: center; gap: 4px;
       background: #10b981; color: #ffffff; text-decoration: none;
       font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 12px;
       transition: background 0.2s; box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+      white-space: nowrap;
     }
     .call-btn:hover { background: #059669; }
 
-    .header-actions {
-      display: flex; align-items: center; gap: 6px;
+    .header-bottom-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
 
     .tab-bar {
-      display: flex; gap: 8px; overflow-x: auto; padding: 4px 0;
+      display: flex; gap: 6px; overflow-x: auto; padding: 2px 0; flex: 1;
       -webkit-overflow-scrolling: touch;
     }
     .tab-bar::-webkit-scrollbar { display: none; }
     
     .tab-btn {
       background: #f1f5f9; border: 1.5px solid #cbd5e1; color: #334155;
-      padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 700;
+      padding: 6px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 700;
       white-space: nowrap; cursor: pointer; transition: all 0.2s;
     }
     .tab-btn:hover { background: #e2e8f0; }
@@ -61,9 +73,12 @@
       box-shadow: 0 2px 8px rgba(59,130,246,0.4);
     }
 
+    .header-actions {
+      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    }
     .action-btn {
-      padding: 7px 12px; border: none; border-radius: 8px; cursor: pointer;
-      font-weight: 700; font-size: 0.8rem; white-space: nowrap; transition: all 0.2s;
+      padding: 6px 10px; border: none; border-radius: 8px; cursor: pointer;
+      font-weight: 700; font-size: 0.78rem; white-space: nowrap; transition: all 0.2s;
     }
     .qr-share-btn {
       background: #2563eb; color: #ffffff;
@@ -73,9 +88,9 @@
       background: #1e293b; color: #fff;
     }
 
-    /* ================= 실시간 운행 현황 알림 배너 ================= */
+    /* ================= ⭐️ 실시간 운행 현황 알림 배너 (상대 배치로 완벽 노출) ================= */
     #liveStatusBar {
-      position: absolute; top: 68px; left: 0; right: 0; height: 42px;
+      flex-shrink: 0; height: 42px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
       padding: 0 16px; font-size: 0.8rem; z-index: 90; gap: 8px;
       overflow-x: auto; overflow-y: hidden;
@@ -114,10 +129,14 @@
       border-color: #60a5fa;
     }
 
-    /* ================= 메인 컨테이너 (PC 데스크탑) ================= */
+    /* ================= 메인 컨테이너 (지도 + 사이드바) ================= */
     #main-container {
-      position: absolute; top: 110px; bottom: 0; left: 0; right: 0;
-      display: flex; width: 100%; height: calc(100vh - 110px);
+      flex: 1;
+      display: flex;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
     }
 
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
@@ -178,7 +197,7 @@
       padding: 1px 6px; border-radius: 4px; white-space: nowrap;
     }
 
-    /* ⭐️ 회차별 시간표 뱃지 스타일 */
+    /* 회차별 시간표 뱃지 스타일 */
     .schedule-rounds-box {
       display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
     }
@@ -369,34 +388,33 @@
       align-items: center; justify-content: center; color: #0f172a;
     }
 
-    /* 모바일 바텀시트 */
+    /* ================= 📱 모바일 바텀시트 ================= */
     @media (max-width: 850px) {
       #header {
-        height: auto; min-height: 58px; padding: 8px 12px;
-        flex-direction: column; align-items: stretch; gap: 6px;
+        padding: 8px 12px 6px 12px; gap: 6px;
       }
-      .header-info {
-        flex-direction: row; align-items: center; justify-content: space-between;
+      .header-top-row {
+        align-items: center;
       }
       .header-info h1 { font-size: 0.95rem; }
-      .company-info { margin-top: 0; font-size: 0.72rem; }
+      .company-info { font-size: 0.72rem; }
       .company-info span { display: none; }
       .company-info::before { content: "㈜여행과 사람"; font-weight: 700; color: #334155; }
       
       .print-btn { display: none !important; }
-      .qr-share-btn { font-size: 0.75rem; padding: 4px 8px; }
+      .qr-share-btn { font-size: 0.74rem; padding: 4px 8px; }
 
-      .tab-bar { padding: 2px 0 4px 0; }
-      .tab-btn { font-size: 0.78rem; padding: 5px 12px; }
+      .tab-bar { padding: 2px 0; }
+      .tab-btn { font-size: 0.78rem; padding: 4px 10px; }
 
       #liveStatusBar {
-        top: 96px; height: 38px; padding: 0 12px; font-size: 0.76rem;
+        height: 38px; padding: 0 12px; font-size: 0.76rem;
       }
       .live-tag { font-size: 0.68rem; padding: 2px 6px; }
       .live-item { font-size: 0.72rem; padding: 3px 8px; }
 
       #main-container {
-        top: 134px; height: calc(100vh - 134px); display: block; position: relative;
+        display: block; position: relative;
       }
       #map {
         width: 100%; height: 100%; position: absolute; top: 0; bottom: 0; left: 0; right: 0;
@@ -459,45 +477,51 @@
 
   <div id="loadingModal">구글 시트에서 최신 노선 데이터 연동 중...</div>
 
-  <!-- 상단 헤더 -->
-  <div id="header">
-    <div class="header-info">
-      <h1>거제시종합사회복지관 셔틀버스</h1>
-      <div class="company-info">
-        <span>2026년 차량운행회사 : ㈜여행과 사람</span>
-        <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
-      </div>
-    </div>
-    <div class="tab-bar" id="tabBar"></div>
-    <div class="header-actions">
-      <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유 / QR코드</button>
-      <button class="action-btn print-btn" onclick="window.print()">A4 인쇄</button>
-    </div>
-  </div>
-
-  <!-- 실시간 운행 현황 알림 배너 -->
-  <div id="liveStatusBar">
-    <span class="live-tag">LIVE 운행</span>
-    <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
-  </div>
-
-  <!-- 메인 뷰 -->
-  <div id="main-container">
-    <div id="map">
-      <div id="routeBadge">실제 도로 경로선 계산 중...</div>
-    </div>
-
-    <!-- 우측(모바일은 하단 서랍시트) 정류장 목록 -->
-    <div id="sidebar">
-      <div class="sheet-handle-bar" id="sheetHandle"></div>
-      <div class="sidebar-header" id="sheetHeader">
-        <span id="courseTitle">노선 안내</span>
-        <div class="header-badges">
-          <span id="stopCount">정류장</span>
-          <span id="totalDistBadge" class="dist-badge">총 0.0 km</span>
+  <div id="app-wrapper">
+    <!-- 상단 헤더 -->
+    <div id="header">
+      <div class="header-top-row">
+        <div class="header-info">
+          <h1>거제시종합사회복지관 셔틀버스</h1>
+        </div>
+        <div class="company-info">
+          <span>2026년 차량운행회사 : ㈜여행과 사람</span>
+          <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
         </div>
       </div>
-      <div id="stopList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      <div class="header-bottom-row">
+        <div class="tab-bar" id="tabBar"></div>
+        <div class="header-actions">
+          <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유 / QR코드</button>
+          <button class="action-btn print-btn" onclick="window.print()">A4 인쇄</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⭐️ 실시간 운행 현황 알림 배너 (헤더 바로 아래 자동 연결) -->
+    <div id="liveStatusBar">
+      <span class="live-tag">LIVE 운행</span>
+      <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
+    </div>
+
+    <!-- 메인 뷰 (지도 + 사이드바) -->
+    <div id="main-container">
+      <div id="map">
+        <div id="routeBadge">실제 도로 경로선 계산 중...</div>
+      </div>
+
+      <!-- 우측(모바일은 하단 서랍시트) 정류장 목록 -->
+      <div id="sidebar">
+        <div class="sheet-handle-bar" id="sheetHandle"></div>
+        <div class="sidebar-header" id="sheetHeader">
+          <span id="courseTitle">노선 안내</span>
+          <div class="header-badges">
+            <span id="stopCount">정류장</span>
+            <span id="totalDistBadge" class="dist-badge">총 0.0 km</span>
+          </div>
+        </div>
+        <div id="stopList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
     </div>
   </div>
 
@@ -583,7 +607,6 @@
       return `${(meters / 1000).toFixed(1)} km`;
     }
 
-    // ⭐️ 회차별 시간표 HTML 생성 및 운행 중 강조 함수
     function buildScheduleHtml(schedules, currentMinutes, windowMins) {
       if (!schedules || schedules.length === 0) return '';
       return schedules.map(s => {
@@ -708,7 +731,6 @@
       loadRouteData();
     };
 
-    // ⭐️ 방식 A(회차별 열 분리) 자동 인식 파서
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -717,7 +739,6 @@
         const rows = json.table.rows || [];
         const result = {};
 
-        // 1행 컬럼 헤더 맵핑
         let colIndexMap = {
           course: 0,
           name: 1,
@@ -726,7 +747,7 @@
           stopNo: -1,
           photo: -1
         };
-        const roundCols = []; // { index: 3, label: '1회차' }
+        const roundCols = [];
 
         cols.forEach((col, idx) => {
           const label = String(col.label || '').trim();
@@ -741,7 +762,6 @@
           }
         });
 
-        // 기본 열 위치 fallback
         if (colIndexMap.desc === -1) colIndexMap.desc = roundCols.length > 0 ? roundCols[roundCols.length - 1].index + 1 : 5;
         if (colIndexMap.stopNo === -1) colIndexMap.stopNo = colIndexMap.desc + 1;
         if (colIndexMap.photo === -1) colIndexMap.photo = colIndexMap.stopNo + 1;
@@ -763,7 +783,6 @@
 
           const isWaypoint = desc.includes('경유') || name.includes('[경유]') || name.includes('(경유)');
 
-          // ⭐️ 회차별 시간 파싱
           const schedules = [];
           const allRawTimes = [];
 
@@ -779,7 +798,6 @@
               }
             });
           } else {
-            // 기존 D, E열 fallback
             const sTime = getVal(3);
             const aTime = getVal(4);
             const matches = `${sTime} ${aTime}`.match(/\b\d{1,2}:\d{2}\b/g) || [];
