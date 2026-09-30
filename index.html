@@ -283,6 +283,18 @@
       padding: 1px 6px; border-radius: 4px; white-space: nowrap;
     }
 
+    /* ⭐️ 2시간 이내 도착 예정 버스 실시간 카운트다운 뱃지 */
+    .eta-alert-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;
+      padding: 4px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 800;
+      margin-top: 4px; box-shadow: 0 1px 3px rgba(194, 65, 12, 0.1);
+    }
+    .eta-alert-badge.imminent {
+      background: #fef2f2; color: #dc2626; border-color: #fee2e2;
+      animation: pulse 1.5s infinite;
+    }
+
     .schedule-rounds-box {
       display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
     }
@@ -338,7 +350,6 @@
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
     }
 
-    /* 내 현재 위치 마커 핀 */
     .my-loc-pin {
       width: 22px; height: 22px; border-radius: 50%;
       background: #0284c7; border: 3px solid #ffffff;
@@ -420,10 +431,9 @@
       margin-top: 6px; cursor: zoom-in;
     }
 
-    /* ⭐️ 카카오맵 길찾기 바로가기 버튼 */
     .popup-nav-btn {
       display: flex; align-items: center; justify-content: center; gap: 6px;
-      width: 100%; padding: 8px 0; margin-top: 10px; border-radius: 8px;
+      width: 100%; padding: 9px 0; margin-top: 10px; border-radius: 8px;
       background: #10b981; color: #ffffff; text-decoration: none;
       font-size: 0.82rem; font-weight: 800; transition: background 0.2s;
     }
@@ -744,7 +754,7 @@
           </div>
 
           <div class="header-actions">
-            <!-- ⭐️ 1번 기능: 내 위치에서 가까운 정류소 찾기 버튼 -->
+            <!-- 1번 기능: 내 위치에서 가까운 정류소 찾기 -->
             <button class="action-btn nearby-btn" onclick="findNearestStop()" title="현재 위치에서 가장 가까운 정류소 찾기">📍 내 주변</button>
             <button class="action-btn table-view-btn" onclick="openTimetableModal()">📋 시간표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유</button>
@@ -856,7 +866,7 @@
     let arrowOverlays = [];
     let currentBubbleOverlay = null;
     let polylines = [];
-    let myLocationOverlay = null; // 내 위치 표시 핀
+    let myLocationOverlay = null;
 
     const GEOJE_BOUNDS = new kakao.maps.LatLngBounds(
       new kakao.maps.LatLng(34.7000, 128.4500),
@@ -873,6 +883,45 @@
       if (!str) return 999;
       const numMatch = str.match(/\d+/);
       return numMatch ? parseInt(numMatch[0], 10) : 999;
+    }
+
+    // ⭐️ [신규] 현재 시각 기준 2시간(1~120분) 이내 도착 예정 버스 잔여 시간 계산
+    function getNextArrivalInfo(schedules, currentMinutes, windowMins) {
+      if (!schedules || schedules.length === 0) return null;
+
+      let bestDiff = Infinity;
+      let nextSchedule = null;
+
+      schedules.forEach(s => {
+        if (!s.time || s.time.includes('미운행')) return;
+        const parts = s.time.split(':');
+        const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        const diff = targetMin - currentMinutes;
+
+        // 현재 시각 기준 2시간(120분) 이내에 오며, 과거 시간(-windowMins보다 이전)이 아닌 것
+        if (diff >= -windowMins && diff <= 120) {
+          if (diff < bestDiff) {
+            bestDiff = diff;
+            nextSchedule = s;
+          }
+        }
+      });
+
+      if (!nextSchedule) return null;
+
+      // 이미 거의 다 왔거나 운행 범위 내에 있는 경우
+      if (Math.abs(bestDiff) <= windowMins) {
+        return {
+          isImminent: true,
+          html: `<div class="eta-alert-badge imminent">🚌 <b>[${nextSchedule.round}]</b> 곧 도착 또는 운행 중! (${nextSchedule.time})</div>`
+        };
+      } else if (bestDiff > 0) {
+        return {
+          isImminent: false,
+          html: `<div class="eta-alert-badge">⏳ <b>[${nextSchedule.round}]</b> 약 ${bestDiff}분 뒤 도착 예정 (${nextSchedule.time})</div>`
+        };
+      }
+      return null;
     }
 
     function handleCourseSelectChange(val) {
@@ -912,7 +961,7 @@
       }
     }
 
-    // ================= ⭐️ 1번 기능: 내 위치에서 가장 가까운 정류소 찾기 =================
+    // 내 위치에서 가장 가까운 정류소 찾기
     function findNearestStop() {
       if (!navigator.geolocation) {
         alert("현재 사용 중이신 기기에서 위치 정보(GPS)를 지원하지 않습니다.");
@@ -930,7 +979,6 @@
           const myLng = pos.coords.longitude;
           const myLatLng = new kakao.maps.LatLng(myLat, myLng);
 
-          // 내 위치 핀 표시
           if (myLocationOverlay) myLocationOverlay.setMap(null);
           const pinDiv = document.createElement('div');
           pinDiv.className = 'my-loc-pin';
@@ -945,7 +993,6 @@
           });
           myLocationOverlay.setMap(map);
 
-          // 등록된 모든 정류장 중 가장 가까운 정류장 계산
           let nearestStop = null;
           let nearestCourse = null;
           let nearestDist = Infinity;
@@ -969,7 +1016,6 @@
             const distStr = nearestDist < 1000 ? `${Math.round(nearestDist)}m` : `${(nearestDist / 1000).toFixed(1)}km`;
             alert(`📍 현재 위치에서 가장 가까운 정류소는\n[${nearestCourse}]의 "${nearestStop.name}" (약 ${distStr}) 입니다.\n해당 정류소로 화면을 이동합니다.`);
 
-            // 해당 코스로 자동 전환 후 카드 클릭
             switchToCourseAndStop(nearestCourse, nearestIndex);
           } else {
             alert("정류소 위치 좌표를 확인할 수 없습니다.");
@@ -1300,7 +1346,6 @@
         const cols = (json && json.table && json.table.cols) || [];
         const rows = (json && json.table && json.table.rows) || [];
 
-        // 1. 헤더(cols) 검사
         if (cols.length >= 2) {
           const k = String(cols[0].label || '').trim();
           const v = String(cols[1].label || '').trim();
@@ -1313,7 +1358,6 @@
           }
         }
 
-        // 2. 전체 행(rows) 검사
         rows.forEach(r => {
           if (!r || !r.c || !Array.isArray(r.c)) return;
 
@@ -1333,7 +1377,7 @@
 
           if (key.includes('차량간격') || key.includes('간격')) {
             const num = parseFloat(valStr);
-            if (!isNaN(num) && num > 0) timeWindowMinutes = valNum;
+            if (!isNaN(num) && num > 0) timeWindowMinutes = num;
           }
 
           if (key.includes('공지') && valStr) {
@@ -1632,6 +1676,7 @@
       polylines = [];
     }
 
+    // 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx) {
       currentSelectedCourseKey = courseName;
       const select = document.getElementById('courseSelect');
@@ -1684,6 +1729,10 @@
 
           const scheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
 
+          // ⭐️ 2시간 이내 도착 버스 안내 계산
+          const nextArrival = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
+          const etaHtml = nextArrival ? nextArrival.html : '';
+
           card = document.createElement('div');
           card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
           card.id = `card-${i}`;
@@ -1704,6 +1753,7 @@
                   ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
                   ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                 </div>
+                ${etaHtml}
                 ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
                 <div class="meta-tags">
                   <span class="dist-tag" id="dist-card-${i}">${stop.distanceText}</span>
@@ -1773,7 +1823,7 @@
               liveBusOverlays.push(busOverlay);
             }
 
-            // ⭐️ 3번 기능: 상세 팝업 내 카카오맵 도보 길찾기 링크 연동
+            // ⭐️ 상세 팝업 (2시간 이내 도착 버스 안내 + 카카오맵 길찾기)
             const openDetailPopup = () => {
               if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
 
@@ -1781,11 +1831,13 @@
               bubbleDiv.className = 'bubble-popup';
               const popupScheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
 
+              const nextArrivalPopup = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
+              const popupEtaHtml = nextArrivalPopup ? nextArrivalPopup.html : '';
+
               const popupImgHtml = stop.photoUrl ? `
                 <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');" title="터치시 크게 보기">
               ` : '';
 
-              // 카카오맵 길찾기 웹/앱 다이렉트 URL 생성
               const kakaoNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
 
               bubbleDiv.innerHTML = `
@@ -1799,6 +1851,7 @@
                   </div>
                   <button class="close-btn" title="닫기">&times;</button>
                 </div>
+                ${popupEtaHtml}
                 ${popupImgHtml}
                 ${popupScheduleHtml ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupScheduleHtml}</div>` : ''}
                 <div class="meta-tags">
@@ -1882,6 +1935,7 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
+    // 전체 노선 보기
     async function selectAllCourses() {
       currentSelectedCourseKey = 'ALL';
       const select = document.getElementById('courseSelect');
@@ -1952,6 +2006,9 @@
 
             const scheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
 
+            const nextArrival = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
+            const etaHtml = nextArrival ? nextArrival.html : '';
+
             card = document.createElement('div');
             card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
             card.id = `all-card-${cIdx}-${i}`;
@@ -1972,6 +2029,7 @@
                     ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
                     ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                   </div>
+                  ${etaHtml}
                   ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
                   <div class="meta-tags">
                     <span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${stop.distanceText}</span>
@@ -2048,6 +2106,9 @@
                 bubbleDiv.className = 'bubble-popup';
                 const popupScheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
 
+                const nextArrivalPopup = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
+                const popupEtaHtml = nextArrivalPopup ? nextArrivalPopup.html : '';
+
                 const popupImgHtml = stop.photoUrl ? `
                   <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');" title="터치시 크게 보기">
                 ` : '';
@@ -2065,6 +2126,7 @@
                     </div>
                     <button class="close-btn" title="닫기">&times;</button>
                   </div>
+                  ${popupEtaHtml}
                   ${popupImgHtml}
                   ${popupScheduleHtml ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupScheduleHtml}</div>` : ''}
                   <div class="meta-tags">
