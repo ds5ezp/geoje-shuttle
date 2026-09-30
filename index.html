@@ -20,7 +20,7 @@
       position: relative;
     }
 
-    /* ================= 큰 글씨 모드 ================= */
+    /* 큰 글씨 모드 */
     body.large-font .header-info h1 { font-size: 1.25rem !important; }
     body.large-font .stop-info h4 { font-size: 1.2rem !important; font-weight: 900 !important; }
     body.large-font .stop-id-tag { font-size: 0.88rem !important; }
@@ -33,7 +33,7 @@
     body.large-font .tt-table { font-size: 1.05rem !important; }
     body.large-font #courseSelect { font-size: 1.05rem !important; }
 
-    /* ================= 상단 종합 영역 ================= */
+    /* 상단 종합 영역 */
     #topCollapsibleArea {
       flex-shrink: 0;
       width: 100%;
@@ -71,7 +71,7 @@
       gap: 4px;
     }
 
-    /* ================= 상단 헤더 ================= */
+    /* 상단 헤더 */
     #header {
       padding: 8px 12px 6px 12px;
       display: flex;
@@ -231,7 +231,7 @@
       cursor: pointer; padding: 2px 6px; font-weight: bold; line-height: 1;
     }
 
-    /* 실시간 운행 현황 알림 배너 */
+    /* 실시간 운행 현황 및 마감 알림 배너 */
     #liveStatusBar {
       width: 100%; min-height: 38px; height: 38px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
@@ -251,8 +251,8 @@
       font-weight: 800; font-size: 0.68rem; animation: pulse 1.5s infinite;
       flex-shrink: 0; display: inline-flex; align-items: center;
     }
-    .live-tag.holiday {
-      background: #64748b !important; animation: none !important;
+    .live-tag.holiday, .live-tag.ended {
+      background: #475569 !important; animation: none !important;
     }
     @keyframes pulse {
       0% { opacity: 1; }
@@ -498,7 +498,6 @@
       margin-top: 6px; cursor: zoom-in;
     }
 
-    /* 팝업 하단 버튼 그룹 */
     .popup-btn-row {
       display: flex; gap: 6px; margin-top: 10px; width: 100%;
     }
@@ -510,7 +509,6 @@
     }
     .popup-nav-btn:hover { background: #059669; }
 
-    /* ⭐️ 4. 카카오 로드뷰 360도 버튼 */
     .popup-roadview-btn {
       flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
       padding: 8px 0; border-radius: 8px;
@@ -628,7 +626,7 @@
     .copy-url-btn:hover { background: #dbeafe; }
     .close-qr-btn { background: #1e293b; color: #ffffff; }
 
-    /* ⭐️ 1. 홈 화면 바로가기(PWA) 안내 모달 */
+    /* 홈 화면 바로가기(PWA) 안내 모달 */
     #pwaModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.78); z-index: 3600;
@@ -791,7 +789,7 @@
           <div id="searchDropdownList"></div>
         </div>
 
-        <!-- 1줄 정돈 헤더 하단 행 -->
+        <!-- 헤더 하단 행 -->
         <div class="header-bottom-row">
           <div class="course-select-wrapper">
             <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
@@ -800,12 +798,11 @@
           </div>
 
           <div class="header-actions">
-            <!-- ⭐️ 1번 기능: 홈 화면 바로가기 추가 안내 버튼 -->
-            <button class="action-btn pwa-btn" onclick="openPwaModal()" title="스마트폰 바탕화면에 바로가기 아이콘 만들기">📲홈추가</button>
+            <button class="action-btn pwa-btn" onclick="openPwaModal()" title="홈 화면에 바로가기 추가">📲홈추가</button>
             <button class="action-btn font-size-btn" onclick="toggleFontSize()" id="btnFontSize" title="글자 크기 확대">🔍글씨</button>
-            <button class="action-btn nearby-btn" onclick="findNearestStop()" title="내 위치 주변 정류소 찾기">📍주변</button>
-            <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="전체 시간표 표 보기">📋표</button>
-            <button class="action-btn qr-share-btn" onclick="openQrModal()" title="노선 공유 링크">🔗</button>
+            <button class="action-btn nearby-btn" onclick="findNearestStop()" title="내 위치 주변 정류소">📍주변</button>
+            <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="전체 시간표 표">📋표</button>
+            <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유 링크">🔗</button>
             <button class="action-btn fold-btn" id="btnFoldHeader" onclick="toggleTopArea()">▲접기</button>
           </div>
         </div>
@@ -820,7 +817,7 @@
         <button class="notice-close-btn" onclick="closeNoticeBanner()" title="닫기">&times;</button>
       </div>
 
-      <!-- 실시간 운행 현황 알림 배너 -->
+      <!-- 실시간 운행 현황 및 운행 마감 안내 배너 -->
       <div id="liveStatusBar">
         <span class="live-tag" id="liveTag">LIVE 운행</span>
         <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
@@ -867,21 +864,19 @@
     </div>
   </div>
 
-  <!-- ⭐️ 1번 기능: 홈 화면 바로가기 추가 안내 모달 -->
+  <!-- 홈 화면 바로가기 안내 모달 -->
   <div id="pwaModal" onclick="closePwaModal(event)">
     <div class="pwa-card" onclick="event.stopPropagation()">
       <h3>📲 스마트폰 홈 화면에 바로가기 추가</h3>
       <div class="pwa-step-box">
         <b>🤖 안드로이드 (삼성 인터넷 / 크롬)</b><br>
-        1. 화면 우측 상단 또는 하단의 <b>더보기 메뉴 (⋮ 또는 ≡)</b>를 누릅니다.<br>
-        2. <b>[홈 화면에 추가]</b> 또는 <b>[현재 페이지 추가]</b>를 선택합니다.<br>
-        3. 바탕화면에 복지관 셔틀버스 아이콘이 바로 생성됩니다.
+        1. 우측 상단 또는 하단의 <b>더보기 메뉴 (⋮ 또는 ≡)</b> 터치<br>
+        2. <b>[홈 화면에 추가]</b> 선택 후 추가
       </div>
       <div class="pwa-step-box">
         <b>🍎 아이폰 (사파리)</b><br>
-        1. 화면 하단 중앙의 <b>공유 버튼 (□에 ↑ 화살표)</b>을 누릅니다.<br>
-        2. 아래로 내려 <b>[홈 화면에 추가]</b>를 누릅니다.<br>
-        3. 우측 상단의 <b>[추가]</b>를 누르면 완료됩니다.
+        1. 하단 중앙의 <b>공유 버튼 (□에 ↑ 화살표)</b> 터치<br>
+        2. 아래로 내려 <b>[홈 화면에 추가]</b> 선택
       </div>
       <button class="pwa-close-btn" onclick="closePwaModal()">확인 완료</button>
     </div>
@@ -941,28 +936,19 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // 1. 홈 화면 추가 모달
-    function openPwaModal() {
-      document.getElementById('pwaModal').style.display = 'flex';
-    }
-    function closePwaModal() {
-      document.getElementById('pwaModal').style.display = 'none';
-    }
+    function openPwaModal() { document.getElementById('pwaModal').style.display = 'flex'; }
+    function closePwaModal() { document.getElementById('pwaModal').style.display = 'none'; }
 
-    // 1. 큰 글씨 모드 토글
     function toggleFontSize() {
       const isLarge = document.body.classList.toggle('large-font');
       const btn = document.getElementById('btnFontSize');
-      if (btn) {
-        btn.innerText = isLarge ? '🔍보통' : '🔍글씨';
-      }
+      if (btn) btn.innerText = isLarge ? '🔍보통' : '🔍글씨';
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // 3. 음성 안내 TTS (Web Speech API)
     function speakStopArrival(stopName, schedules) {
       if (!window.speechSynthesis) {
-        alert("현재 기기에서 음성 안내를 지원하지 않습니다.");
+        alert("기기에서 음성 안내를 지원하지 않습니다.");
         return;
       }
       window.speechSynthesis.cancel();
@@ -988,7 +974,6 @@
       window.speechSynthesis.speak(utterance);
     }
 
-    // 4. 주말/공휴일 감지
     function isNonOperatingDay(d) {
       const day = d.getDay();
       if (day === 0 || day === 6) return true;
@@ -999,7 +984,6 @@
       return holidays.includes(`${m}-${dt}`);
     }
 
-    // 2. 다중 정류장 검색 및 회차/도착시간 동시 표출
     function handleStopSearch(keyword) {
       keyword = keyword.trim().toLowerCase();
       const clearBtn = document.getElementById('searchClearBtn');
@@ -1583,7 +1567,7 @@
 
           if (key.includes('차량간격') || key.includes('간격')) {
             const num = parseFloat(valStr);
-            if (!isNaN(num) && num > 0) timeWindowMinutes = valNum;
+            if (!isNaN(num) && num > 0) timeWindowMinutes = num;
           }
 
           if (key.includes('공지') && valStr) {
@@ -2028,7 +2012,6 @@
               liveBusOverlays.push(busOverlay);
             }
 
-            // ⭐️ 상세 팝업 (길찾기 + 카카오 로드뷰 360도 연동)
             const openDetailPopup = () => {
               if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
 
@@ -2044,7 +2027,6 @@
               ` : '';
 
               const kakaoNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
-              // 카카오 로드뷰 다이렉트 URL
               const kakaoRoadviewUrl = `https://map.kakao.com/link/roadview/${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
 
               bubbleDiv.innerHTML = `
@@ -2568,13 +2550,14 @@
       setInterval(checkActiveBuses, 10000);
     }
 
-    // 4. 주말/공휴일 감지 및 실시간 버스 확인
+    // ⭐️ 3. 운행 종료 자동 감지 로직 포함된 실시간 상태 확인
     function checkActiveBuses() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
       const barText = document.getElementById('liveStatusText');
       const liveTag = document.getElementById('liveTag');
 
+      // 주말/공휴일 체크
       if (isNonOperatingDay(now)) {
         if (liveTag) {
           liveTag.innerText = '미운행일';
@@ -2584,15 +2567,42 @@
           barText.innerHTML = `오늘은 셔틀버스 미운행일(주말/공휴일)입니다. 평일 운행시간표를 참조해 주세요.`;
         }
         return;
-      } else {
+      }
+
+      // 평일 운행 마감 시간 확인 (전체 노선 중 가장 늦은 막차 시간 파악)
+      let latestMinuteToday = 0;
+      Object.keys(routeData).forEach(cName => {
+        const stops = routeData[cName] || [];
+        stops.forEach(s => {
+          (s.schedules || []).forEach(sc => {
+            if (sc.time && !sc.time.includes('미운행')) {
+              const parts = sc.time.split(':');
+              const m = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+              if (m > latestMinuteToday) latestMinuteToday = m;
+            }
+          });
+        });
+      });
+
+      // 막차 시간이 지났거나 오후 6시(18:00=1080분) 이후로 오늘 운행이 끝난 경우
+      if (latestMinuteToday > 0 && currentMinutes > latestMinuteToday + 10) {
         if (liveTag) {
-          liveTag.innerText = 'LIVE 운행';
-          liveTag.classList.remove('holiday');
+          liveTag.innerText = '운행 마감';
+          liveTag.classList.add('ended');
         }
+        if (barText) {
+          barText.innerHTML = `오늘의 셔틀버스 운행이 모두 종료되었습니다. 내일 평일 운행 시간표를 확인해 주세요.`;
+        }
+        return;
+      }
+
+      // 평일 정상 운행 중
+      if (liveTag) {
+        liveTag.innerText = 'LIVE 운행';
+        liveTag.classList.remove('holiday', 'ended');
       }
 
       const activeList = [];
-
       Object.keys(routeData).forEach(courseName => {
         const stops = routeData[courseName];
         stops.forEach((stop, sIdx) => {
