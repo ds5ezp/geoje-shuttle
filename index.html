@@ -209,7 +209,7 @@
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
     }
 
-    /* ⭐️ 도로 진행 방향 선형 화살표(선과 대비되는 형광 옐로우 + 블랙 테두리) */
+    /* ⭐️ 도로 진행 방향 선형 화살표 */
     .route-dir-arrow {
       width: 26px; height: 26px;
       display: flex; align-items: center; justify-content: center;
@@ -655,7 +655,8 @@
             rawTimes: allTimes,
             desc: desc,
             stopNo: stopNo,
-            isWaypoint: isWaypoint
+            isWaypoint: isWaypoint,
+            distanceText: '계산 중...'
           });
         });
 
@@ -832,6 +833,7 @@
       polylines = [];
     }
 
+    // ⭐️ 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx, btnElem) {
       currentSelectedCourseKey = courseName;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -877,6 +879,8 @@
         if (!stop.isWaypoint) {
           displayCounter++;
           displayNum = displayCounter;
+          stop.displayNum = displayNum;
+          if (displayNum === 1) stop.distanceText = '출발점';
 
           const highlightedTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
 
@@ -893,7 +897,7 @@
               </div>
               <div class="meta-tags">
                 ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
-                <span class="dist-tag" id="dist-card-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
+                <span class="dist-tag" id="dist-card-${i}">${stop.distanceText}</span>
               </div>
               <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
             </div>
@@ -958,41 +962,43 @@
               liveBusOverlays.push(busOverlay);
             }
 
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.className = 'bubble-popup';
-            const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
-
-            bubbleDiv.innerHTML = `
-              <div class="popup-header">
-                <div class="popup-title">${displayNum}. ${stop.name}</div>
-                ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                <button class="close-btn" title="닫기">&times;</button>
-              </div>
-              <div class="meta-tags">
-                ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
-                <span class="dist-tag" id="dist-popup-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
-              </div>
-              <div class="popup-addr">📍 ${stop.addr}</div>
-              ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
-            `;
-
-            const bubbleOverlay = new kakao.maps.CustomOverlay({
-              position: adjustedCoords,
-              content: bubbleDiv,
-              yAnchor: 1.0,
-              xAnchor: 0.5,
-              zIndex: 100
-            });
-
-            bubbleDiv.querySelector('.close-btn').onclick = function(e) {
-              e.stopPropagation();
-              bubbleOverlay.setMap(null);
-              currentBubbleOverlay = null;
-            };
-
-            const showDetail = () => {
+            // ⭐️ 팝업 생성 함수 (열릴 때 최신 distanceText를 직접 반영)
+            const openDetailPopup = () => {
               if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
+
+              const bubbleDiv = document.createElement('div');
+              bubbleDiv.className = 'bubble-popup';
+              const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+
+              bubbleDiv.innerHTML = `
+                <div class="popup-header">
+                  <div class="popup-title">${displayNum}. ${stop.name}</div>
+                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                  ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                  <button class="close-btn" title="닫기">&times;</button>
+                </div>
+                <div class="meta-tags">
+                  ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
+                  <span class="dist-tag">${stop.distanceText}</span>
+                </div>
+                <div class="popup-addr">📍 ${stop.addr}</div>
+                ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
+              `;
+
+              const bubbleOverlay = new kakao.maps.CustomOverlay({
+                position: adjustedCoords,
+                content: bubbleDiv,
+                yAnchor: 1.0,
+                xAnchor: 0.5,
+                zIndex: 100
+              });
+
+              bubbleDiv.querySelector('.close-btn').onclick = function(e) {
+                e.stopPropagation();
+                bubbleOverlay.setMap(null);
+                currentBubbleOverlay = null;
+              };
+
               bubbleOverlay.setMap(map);
               currentBubbleOverlay = bubbleOverlay;
 
@@ -1009,8 +1015,8 @@
               }
             };
 
-            badge.onclick = showDetail;
-            if (card) card.onclick = showDetail;
+            badge.onclick = openDetailPopup;
+            if (card) card.onclick = openDetailPopup;
           }
         }
       }
@@ -1035,13 +1041,12 @@
             for (let k = 1; k < validStopsForRouting.length; k++) {
               const currentLegDist = routeResult.legs[legIdx] || 0;
               const curStop = validStopsForRouting[k];
-              
-              const cardTag = document.getElementById(`dist-card-${curStop.arrayIndex}`);
-              const popupTag = document.getElementById(`dist-popup-${curStop.arrayIndex}`);
               const distText = `구간 ${formatDistance(currentLegDist)}`;
               
+              // ⭐️ 정류장 객체에 거리 저장 및 사이드바 갱신
+              curStop.distanceText = distText;
+              const cardTag = document.getElementById(`dist-card-${curStop.arrayIndex}`);
               if (cardTag) cardTag.innerText = distText;
-              if (popupTag) popupTag.innerText = distText;
               legIdx++;
             }
           }
@@ -1054,6 +1059,7 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
+    // ⭐️ 전체 노선 보기
     async function selectAllCourses(btnElem) {
       currentSelectedCourseKey = 'ALL';
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1117,6 +1123,8 @@
             courseDisplayCounter++;
             totalStopsCount++;
             displayNum = courseDisplayCounter;
+            stop.displayNum = displayNum;
+            if (displayNum === 1) stop.distanceText = '출발점';
 
             const highlightedTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
 
@@ -1133,7 +1141,7 @@
                 </div>
                 <div class="meta-tags">
                   ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
-                  <span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
+                  <span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${stop.distanceText}</span>
                 </div>
                 <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
               </div>
@@ -1198,41 +1206,43 @@
                 liveBusOverlays.push(busOverlay);
               }
 
-              const bubbleDiv = document.createElement('div');
-              bubbleDiv.className = 'bubble-popup';
-              const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
-
-              bubbleDiv.innerHTML = `
-                <div class="popup-header">
-                  <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
-                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                  ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                  <button class="close-btn" title="닫기">&times;</button>
-                </div>
-                <div class="meta-tags">
-                  ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
-                  <span class="dist-tag" id="dist-all-popup-${cIdx}-${i}">${displayNum === 1 ? '출발점' : '계산 중...'}</span>
-                </div>
-                <div class="popup-addr">📍 ${stop.addr}</div>
-                ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
-              `;
-
-              const bubbleOverlay = new kakao.maps.CustomOverlay({
-                position: adjustedCoords,
-                content: bubbleDiv,
-                yAnchor: 1.0,
-                xAnchor: 0.5,
-                zIndex: 100
-              });
-
-              bubbleDiv.querySelector('.close-btn').onclick = function(e) {
-                e.stopPropagation();
-                bubbleOverlay.setMap(null);
-                currentBubbleOverlay = null;
-              };
-
-              const showDetail = () => {
+              // ⭐️ 전체 노선 팝업 열기 함수
+              const openAllDetailPopup = () => {
                 if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
+
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = 'bubble-popup';
+                const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+
+                bubbleDiv.innerHTML = `
+                  <div class="popup-header">
+                    <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
+                    ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                    ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                    <button class="close-btn" title="닫기">&times;</button>
+                  </div>
+                  <div class="meta-tags">
+                    ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
+                    <span class="dist-tag">${stop.distanceText}</span>
+                  </div>
+                  <div class="popup-addr">📍 ${stop.addr}</div>
+                  ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
+                `;
+
+                const bubbleOverlay = new kakao.maps.CustomOverlay({
+                  position: adjustedCoords,
+                  content: bubbleDiv,
+                  yAnchor: 1.0,
+                  xAnchor: 0.5,
+                  zIndex: 100
+                });
+
+                bubbleDiv.querySelector('.close-btn').onclick = function(e) {
+                  e.stopPropagation();
+                  bubbleOverlay.setMap(null);
+                  currentBubbleOverlay = null;
+                };
+
                 bubbleOverlay.setMap(map);
                 currentBubbleOverlay = bubbleOverlay;
 
@@ -1249,8 +1259,8 @@
                 }
               };
 
-              badgeElem.onclick = showDetail;
-              if (card) card.onclick = showDetail;
+              badgeElem.onclick = openAllDetailPopup;
+              if (card) card.onclick = openAllDetailPopup;
             }
           }
         }
@@ -1269,13 +1279,12 @@
               for (let k = 1; k < courseValidStopsForRouting.length; k++) {
                 const currentLegDist = courseRes.legs[legIdx] || 0;
                 const curStop = courseValidStopsForRouting[k];
-
-                const cardTag = document.getElementById(`dist-all-card-${cIdx}-${curStop.arrayIndex}`);
-                const popupTag = document.getElementById(`dist-all-popup-${cIdx}-${curStop.arrayIndex}`);
                 const distText = `구간 ${formatDistance(currentLegDist)}`;
 
+                // ⭐️ 정류장 객체에 최신 거리 저장 및 사이드바 텍스트 업데이트
+                curStop.distanceText = distText;
+                const cardTag = document.getElementById(`dist-all-card-${cIdx}-${curStop.arrayIndex}`);
                 if (cardTag) cardTag.innerText = distText;
-                if (popupTag) popupTag.innerText = distText;
                 legIdx++;
               }
             }
@@ -1363,7 +1372,6 @@
       }
     }
 
-    // ⭐️ 선 색상에 묻히지 않는 고대비 네온 옐로우 화살표 생성
     function createRouteDirectionArrows(pathCoords) {
       if (!pathCoords || pathCoords.length < 5) return;
       
@@ -1379,7 +1387,6 @@
         arrowDiv.className = 'route-dir-arrow';
         arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing - 90}deg)`;
         
-        // 옐로우 바디(#FACC15) + 블랙 외곽선(#0F172A)
         arrowDiv.innerHTML = `
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
