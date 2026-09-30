@@ -20,7 +20,7 @@
       position: relative;
     }
 
-    /* ================= ⭐️ 접고 펼쳐지는 상단 종합 영역 ================= */
+    /* ================= 상단 종합 영역 ================= */
     #topCollapsibleArea {
       flex-shrink: 0;
       width: 100%;
@@ -31,16 +31,14 @@
       position: relative;
     }
 
-    /* 접혔을 때 클래스 */
     #topCollapsibleArea.collapsed {
       transform: translateY(-100%);
-      margin-bottom: -100%; /* 레이아웃상 위로 완전히 밀어냄 */
+      margin-bottom: -100%;
       position: absolute;
       top: 0;
       left: 0;
     }
 
-    /* 상단 영역이 접혔을 때 지도를 가리지 않고 나타나는 미니 재표시 바 */
     #topExpandTab {
       display: none;
       position: absolute;
@@ -117,9 +115,13 @@
       display: flex; align-items: center; gap: 6px; flex-shrink: 0;
     }
     .action-btn {
-      padding: 6px 10px; border: none; border-radius: 8px; cursor: pointer;
+      padding: 6px 11px; border: none; border-radius: 8px; cursor: pointer;
       font-weight: 700; font-size: 0.78rem; white-space: nowrap; transition: all 0.2s;
     }
+    .table-view-btn {
+      background: #047857; color: #ffffff; box-shadow: 0 1px 3px rgba(4,120,87,0.3);
+    }
+    .table-view-btn:hover { background: #065f46; }
     .qr-share-btn {
       background: #2563eb; color: #ffffff;
     }
@@ -131,7 +133,7 @@
       background: #64748b; color: #fff; display: none;
     }
 
-    /* ================= ⭐️ 실시간 운행 현황 알림 배너 ================= */
+    /* ================= 실시간 운행 현황 알림 배너 ================= */
     #liveStatusBar {
       width: 100%; min-height: 42px; height: 42px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
@@ -377,6 +379,77 @@
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
+    /* ================= ⭐️ 전체 시간표 표(Table) 팝업 모달 ================= */
+    #timetableModal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.78); z-index: 3500;
+      align-items: center; justify-content: center; padding: 12px;
+    }
+    .timetable-card {
+      background: #ffffff; width: 100%; max-width: 900px; height: 90vh;
+      border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .tt-header {
+      padding: 16px 20px 12px 20px; border-bottom: 1.5px solid #e2e8f0;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #f8fafc; flex-shrink: 0;
+    }
+    .tt-header-left h3 { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
+    .tt-header-left p { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+    .tt-close-btn {
+      background: none; border: none; font-size: 24px; color: #64748b;
+      cursor: pointer; padding: 4px; font-weight: bold; line-height: 1;
+    }
+    .tt-close-btn:hover { color: #0f172a; }
+
+    .tt-tabs {
+      display: flex; gap: 8px; padding: 10px 16px; background: #ffffff;
+      border-bottom: 1px solid #e2e8f0; overflow-x: auto; flex-shrink: 0;
+    }
+    .tt-tab-btn {
+      padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700;
+      border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; cursor: pointer; white-space: nowrap;
+    }
+    .tt-tab-btn.active {
+      background: #047857; color: #ffffff; border-color: #047857;
+    }
+
+    .tt-body {
+      flex: 1; overflow: auto; padding: 14px 16px; -webkit-overflow-scrolling: touch;
+    }
+    .tt-table {
+      width: 100%; border-collapse: collapse; font-size: 0.84rem; text-align: center;
+      min-width: 580px;
+    }
+    .tt-table th, .tt-table td {
+      border: 1px solid #cbd5e1; padding: 8px 6px;
+    }
+    .tt-table th {
+      background: #f1f5f9; color: #1e293b; font-weight: 800; position: sticky; top: 0; z-index: 10;
+    }
+    .tt-table th.th-stop { width: 32%; text-align: left; padding-left: 12px; }
+    .tt-table td.td-stop {
+      text-align: left; padding-left: 12px; font-weight: 700; color: #0f172a;
+    }
+    .tt-table td.td-bokji { background: #fef2f2; color: #dc2626; font-weight: 800; }
+    .tt-table td.td-active-time {
+      background: #fee2e2; color: #dc2626; font-weight: 800;
+    }
+    .tt-table tr:hover td { background-color: #f8fafc; }
+
+    .tt-footer {
+      padding: 12px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+      display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; flex-shrink: 0;
+    }
+    .tt-action-btn {
+      padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
+      cursor: pointer; border: none; transition: background 0.2s;
+    }
+    .tt-copy-link-btn { background: #2563eb; color: #fff; }
+    .tt-copy-text-btn { background: #047857; color: #fff; }
+    .tt-print-btn { background: #1e293b; color: #fff; }
+
     /* QR코드 모달 팝업 */
     #qrModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -441,6 +514,7 @@
       
       .print-btn { display: none !important; }
       .qr-share-btn { font-size: 0.74rem; padding: 4px 8px; }
+      .table-view-btn { font-size: 0.74rem; padding: 4px 8px; }
 
       .tab-bar { padding: 2px 0; }
       .tab-btn { font-size: 0.78rem; padding: 4px 10px; }
@@ -502,13 +576,23 @@
       .stop-card { padding: 10px 12px; }
       .stop-info h4 { font-size: 0.92rem; }
       .stop-photo-box { height: 110px; }
+
+      .timetable-card { height: 96vh; }
+      .tt-header { padding: 12px 14px; }
+      .tt-table { font-size: 0.78rem; }
     }
 
     @media print {
-      #header, #liveStatusBar, #qrModal, #photoZoomModal, #topCollapsibleArea { display: none !important; }
-      #main-container { position: static; height: auto; display: block; }
-      #map { height: 420px !important; }
-      #sidebar { width: 100%; box-shadow: none; position: static; height: auto; }
+      #header, #liveStatusBar, #qrModal, #photoZoomModal, #topCollapsibleArea, #topExpandTab { display: none !important; }
+      #timetableModal {
+        position: static !important; display: block !important; background: none !important; padding: 0 !important;
+      }
+      .timetable-card {
+        height: auto !important; box-shadow: none !important; max-width: 100% !important; border-radius: 0 !important;
+      }
+      .tt-tabs, .tt-footer, .tt-close-btn { display: none !important; }
+      .tt-body { overflow: visible !important; padding: 0 !important; }
+      .tt-table { width: 100% !important; min-width: 100% !important; }
     }
   </style>
 </head>
@@ -517,12 +601,12 @@
   <div id="loadingModal">구글 시트에서 최신 노선 데이터 연동 중...</div>
 
   <div id="app-wrapper">
-    <!-- ⭐️ 접혔을 때 화면 상단에 떠서 다시 누르면 내려오게 하는 탭 -->
+    <!-- 접혔을 때 화면 상단에 떠서 다시 누르면 내려오게 하는 탭 -->
     <div id="topExpandTab" onclick="expandTopArea()">
       <span>🚌 노선 및 운행현황 열기 ▼</span>
     </div>
 
-    <!-- ⭐️ 접고 펼쳐지는 상단 종합 영역 (헤더 + LIVE 배너) -->
+    <!-- 접고 펼쳐지는 상단 종합 영역 (헤더 + LIVE 배너) -->
     <div id="topCollapsibleArea">
       <!-- 상단 헤더 -->
       <div id="header">
@@ -538,14 +622,16 @@
         <div class="header-bottom-row">
           <div class="tab-bar" id="tabBar"></div>
           <div class="header-actions">
-            <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유 / QR코드</button>
+            <!-- ⭐️ 시간표 표 보기 버튼 추가 -->
+            <button class="action-btn table-view-btn" onclick="openTimetableModal()">📋 시간표 표로 보기</button>
+            <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 노선 공유</button>
             <button class="action-btn fold-btn" id="btnFoldHeader" onclick="toggleTopArea()">▲ 접기</button>
             <button class="action-btn print-btn" onclick="window.print()">A4 인쇄</button>
           </div>
         </div>
       </div>
 
-      <!-- ⭐️️ 실시간 운행 현황 알림 배너 (상대 높이로 완전 표시) -->
+      <!-- 실시간 운행 현황 알림 배너 -->
       <div id="liveStatusBar">
         <span class="live-tag">LIVE 운행</span>
         <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
@@ -569,6 +655,29 @@
           </div>
         </div>
         <div id="stopList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⭐️ 전체 셔틀버스 시간표 표(Table) 모달 팝업 -->
+  <div id="timetableModal" onclick="closeTimetableModal(event)">
+    <div class="timetable-card" onclick="event.stopPropagation()">
+      <div class="tt-header">
+        <div class="tt-header-left">
+          <h3 id="ttModalTitle">2026년 셔틀버스 운행 시간표</h3>
+          <p id="ttModalSubtitle">운행업체: ㈜여행과 사람 | 문의: 055-687-4000</p>
+        </div>
+        <button class="tt-close-btn" onclick="closeTimetableModal()">&times;</button>
+      </div>
+      <!-- 코스 전환 탭 -->
+      <div class="tt-tabs" id="ttTabsContainer"></div>
+      <!-- 시간표 테이블 본문 -->
+      <div class="tt-body" id="ttTableContainer"></div>
+      <!-- 하단 공유 / 복사 버튼 그룹 -->
+      <div class="tt-footer">
+        <button class="tt-action-btn tt-copy-link-btn" onclick="copyTimetableShareUrl()">🔗 시간표 링크 복사</button>
+        <button class="tt-action-btn tt-copy-text-btn" onclick="copyTimetableText()">📱 카카오톡 텍스트 복사</button>
+        <button class="tt-action-btn tt-print-btn" onclick="window.print()">🖨️ 시간표 인쇄</button>
       </div>
     </div>
   </div>
@@ -599,10 +708,12 @@
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
 
     let routeData = {};
+    let detectedRoundLabels = []; // ['1회차', '2회차', '3회차', '4회차', '5회차', '6회차', '7회차']
     const masterStopMapByNo = {};
     const masterStopMapByName = {};
     let timeWindowMinutes = 3;
     let currentSelectedCourseKey = null;
+    let currentTimetableCourseKey = null;
 
     const routeCache = {};
 
@@ -625,7 +736,155 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // ⭐️ 상단 영역 접기 / 펼치기 제어
+    // ================= ⭐️ 시간표 표(Table) 팝업 로직 =================
+    function openTimetableModal(targetCourse) {
+      const courses = Object.keys(routeData);
+      if (courses.length === 0) return;
+
+      currentTimetableCourseKey = targetCourse || currentSelectedCourseKey;
+      if (!currentTimetableCourseKey || currentTimetableCourseKey === 'ALL') {
+        currentTimetableCourseKey = courses[0];
+      }
+
+      renderTimetableTabs();
+      renderTimetableTable(currentTimetableCourseKey);
+
+      document.getElementById('timetableModal').style.display = 'flex';
+    }
+
+    function closeTimetableModal(e) {
+      document.getElementById('timetableModal').style.display = 'none';
+    }
+
+    function renderTimetableTabs() {
+      const container = document.getElementById('ttTabsContainer');
+      container.innerHTML = '';
+      const courses = Object.keys(routeData);
+
+      courses.forEach(cName => {
+        const btn = document.createElement('button');
+        btn.className = `tt-tab-btn ${cName === currentTimetableCourseKey ? 'active' : ''}`;
+        btn.innerText = cName;
+        btn.onclick = () => {
+          currentTimetableCourseKey = cName;
+          document.querySelectorAll('.tt-tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          renderTimetableTable(cName);
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function renderTimetableTable(courseName) {
+      const container = document.getElementById('ttTableContainer');
+      const stops = (routeData[courseName] || []).filter(s => !s.isWaypoint);
+
+      if (stops.length === 0) {
+        container.innerHTML = '<p style="padding:20px; text-align:center; color:#64748b;">등록된 정류소 정보가 없습니다.</p>';
+        return;
+      }
+
+      // 해당 코스에 존재하는 회차 컬럼 목록 수집
+      const roundSet = new Set();
+      stops.forEach(s => {
+        (s.schedules || []).forEach(sc => roundSet.add(sc.round));
+      });
+      const roundCols = Array.from(roundSet);
+
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      let tableHtml = `
+        <table class="tt-table">
+          <thead>
+            <tr>
+              <th style="width:40px;">No</th>
+              <th class="th-stop">정류장명</th>
+              ${roundCols.map(r => `<th>${r}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      stops.forEach((s, idx) => {
+        const isBokji = s.name.includes('복지관');
+        tableHtml += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td class="td-stop ${isBokji ? 'td-bokji' : ''}">
+              ${s.name}
+              ${s.stopNo ? `<span style="font-size:0.7rem; color:#64748b; font-weight:normal;"> (${s.stopNo})</span>` : ''}
+            </td>
+        `;
+
+        roundCols.forEach(rCol => {
+          const matched = (s.schedules || []).find(sc => sc.round === rCol);
+          const timeText = matched ? matched.time : '-';
+
+          let isNowActive = false;
+          if (timeText && timeText.includes(':')) {
+            const parts = timeText.split(':');
+            const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+            if (Math.abs(currentMinutes - targetMin) <= timeWindowMinutes) {
+              isNowActive = true;
+            }
+          }
+
+          tableHtml += `
+            <td class="${isNowActive ? 'td-active-time' : ''}">
+              ${timeText === '미운행' ? '<span style="color:#94a3b8;">미운행</span>' : timeText}
+            </td>
+          `;
+        });
+
+        tableHtml += `</tr>`;
+      });
+
+      tableHtml += `</tbody></table>`;
+      container.innerHTML = tableHtml;
+    }
+
+    // 시간표 링크 복사
+    function copyTimetableShareUrl() {
+      const baseUrl = window.location.origin + window.location.pathname;
+      const shareUrl = `${baseUrl}?view=timetable&course=${encodeURIComponent(currentTimetableCourseKey)}`;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+          alert(`[${currentTimetableCourseKey}] 시간표 열람 링크가 복사되었습니다!`);
+        });
+      }
+    }
+
+    // 카카오톡 전송용 텍스트 복사
+    function copyTimetableText() {
+      const stops = (routeData[currentTimetableCourseKey] || []).filter(s => !s.isWaypoint);
+      if (stops.length === 0) return;
+
+      let msg = `🚌 [거제시종합사회복지관 셔틀버스 시간표]\n`;
+      msg += `📍 노선: ${currentTimetableCourseKey}\n`;
+      msg += `📞 문의: ㈜여행과 사람 (055-687-4000)\n`;
+      msg += `--------------------------------\n`;
+
+      stops.forEach((s, idx) => {
+        const times = (s.schedules || [])
+          .filter(sc => sc.time && !sc.time.includes('미운행'))
+          .map(sc => `${sc.round} ${sc.time}`)
+          .join(' / ');
+        msg += `${idx + 1}. ${s.name}: ${times || '미운행'}\n`;
+      });
+
+      msg += `--------------------------------\n`;
+      msg += `실시간 위치: ${window.location.origin + window.location.pathname}`;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(msg).then(() => {
+          alert("카카오톡 전송용 시간표 텍스트가 복사되었습니다!\n원하는 채팅방에 붙여넣기(Ctrl+V) 하세요.");
+        });
+      }
+    }
+
+    // 상단 영역 접기 / 펼치기
     function collapseTopArea() {
       const area = document.getElementById('topCollapsibleArea');
       const expandTab = document.getElementById('topExpandTab');
@@ -805,6 +1064,7 @@
       loadRouteData();
     };
 
+    // ⭐️ 1~7회차 동적 감지 파서
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -831,7 +1091,7 @@
           else if (label.includes('설명')) colIndexMap.desc = idx;
           else if (label.includes('번호')) colIndexMap.stopNo = idx;
           else if (label.includes('사진') || label.includes('이미지')) colIndexMap.photo = idx;
-          else if (label.includes('회차')) {
+          else if (label.includes('회차') || label.includes('회')) {
             roundCols.push({ index: idx, label: label });
           }
         });
@@ -900,6 +1160,12 @@
         routeData = result;
         initTabs();
         startRealtimeCheck();
+
+        // URL 파라미터로 시간표 바로 열람 요청이 있는 경우
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('view') === 'timetable') {
+          openTimetableModal(urlParams.get('course'));
+        }
       } catch (err) {
         alert("노선데이터 변환 오류: " + err.message);
       }
@@ -934,7 +1200,6 @@
       loadSettings();
     };
 
-    // ⭐️ 상단 영역 스와이프 업(접기)/다운(열기) 제스처 등록
     function initTopAreaGestures() {
       const topArea = document.getElementById('topCollapsibleArea');
       if (!topArea) return;
@@ -950,7 +1215,6 @@
         const endY = e.changedTouches[0].clientY;
         const diffY = endY - startY;
 
-        // 위로 30px 이상 튕겨 올리면 접기
         if (diffY < -30) {
           collapseTopArea();
         }
@@ -1094,7 +1358,6 @@
       polylines = [];
     }
 
-    // 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx, btnElem) {
       currentSelectedCourseKey = courseName;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1338,7 +1601,6 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // 전체 노선 보기
     async function selectAllCourses(btnElem) {
       currentSelectedCourseKey = 'ALL';
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1599,7 +1861,6 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // 기본 도로 라우팅 엔진 (OSRM)
     async function drawSingleRoadLine(courseKey, stops, color) {
       if (routeCache[courseKey]) {
         const cached = routeCache[courseKey];
