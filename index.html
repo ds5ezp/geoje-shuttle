@@ -20,6 +20,20 @@
       position: relative;
     }
 
+    /* ================= 1. 큰 글씨 모드 스타일 정의 ================= */
+    body.large-font .header-info h1 { font-size: 1.25rem !important; }
+    body.large-font .stop-info h4 { font-size: 1.2rem !important; font-weight: 900 !important; }
+    body.large-font .stop-id-tag { font-size: 0.88rem !important; }
+    body.large-font .round-pill { font-size: 0.95rem !important; padding: 5px 10px !important; }
+    body.large-font .eta-alert-badge { font-size: 0.96rem !important; padding: 6px 12px !important; }
+    body.large-font .stop-info .desc { font-size: 0.95rem !important; }
+    body.large-font .bubble-popup .popup-title { font-size: 1.25rem !important; }
+    body.large-font .bubble-popup .popup-addr { font-size: 0.92rem !important; }
+    body.large-font .bubble-popup .popup-desc { font-size: 0.9rem !important; }
+    body.large-font .tt-table { font-size: 1.05rem !important; }
+    body.large-font .action-btn { font-size: 0.9rem !important; }
+    body.large-font #courseSelect { font-size: 1.05rem !important; }
+
     /* ================= 상단 종합 영역 ================= */
     #topCollapsibleArea {
       flex-shrink: 0;
@@ -83,22 +97,41 @@
     }
     .call-btn:hover { background: #059669; }
 
+    .header-middle-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    /* ⭐️ 2. 정류장 검색 인풋 */
+    .stop-search-box {
+      flex: 1; position: relative; display: flex; align-items: center;
+    }
+    .stop-search-box input {
+      width: 100%; height: 36px; padding: 0 32px 0 10px;
+      border: 1.5px solid #cbd5e1; border-radius: 8px;
+      font-size: 0.84rem; font-weight: 700; color: #0f172a; outline: none;
+      background: #f8fafc;
+    }
+    .stop-search-box input:focus { border-color: #2563eb; background: #fff; }
+    .search-clear-btn {
+      position: absolute; right: 8px; background: none; border: none;
+      font-size: 16px; color: #94a3b8; cursor: pointer; display: none;
+    }
+
     .header-bottom-row {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap;
     }
 
     .course-select-wrapper {
-      flex: 1; position: relative; display: flex; align-items: center;
+      flex: 1; min-width: 150px; position: relative; display: flex; align-items: center;
     }
     .course-select-wrapper select {
       width: 100%;
       height: 38px;
-      padding: 0 32px 0 12px;
+      padding: 0 32px 0 10px;
       background: #f1f5f9;
       color: #0f172a;
       border: 1.5px solid #cbd5e1;
       border-radius: 10px;
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       font-weight: 800;
       cursor: pointer;
       appearance: none;
@@ -120,31 +153,31 @@
     }
 
     .header-actions {
-      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+      display: flex; align-items: center; gap: 5px; flex-shrink: 0;
     }
     .action-btn {
       height: 38px;
-      padding: 0 11px; border: none; border-radius: 10px; cursor: pointer;
-      font-weight: 700; font-size: 0.78rem; white-space: nowrap; transition: all 0.2s;
-      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      padding: 0 9px; border: none; border-radius: 8px; cursor: pointer;
+      font-weight: 700; font-size: 0.76rem; white-space: nowrap; transition: all 0.2s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+    }
+    .font-size-btn {
+      background: #ea580c; color: #ffffff;
     }
     .nearby-btn {
-      background: #2563eb; color: #ffffff; box-shadow: 0 1px 3px rgba(37,99,235,0.3);
+      background: #2563eb; color: #ffffff;
     }
-    .nearby-btn:hover { background: #1d4ed8; }
     .table-view-btn {
-      background: #047857; color: #ffffff; box-shadow: 0 1px 3px rgba(4,120,87,0.3);
+      background: #047857; color: #ffffff;
     }
-    .table-view-btn:hover { background: #065f46; }
     .qr-share-btn {
       background: #475569; color: #ffffff;
     }
-    .qr-share-btn:hover { background: #334155; }
     .fold-btn {
       background: #64748b; color: #fff; display: none;
     }
 
-    /* ================= 공지사항 배너 스타일 ================= */
+    /* 공지사항 배너 스타일 */
     #noticeBanner {
       display: none;
       width: 100%;
@@ -173,7 +206,7 @@
       cursor: pointer; padding: 2px 6px; font-weight: bold; line-height: 1;
     }
 
-    /* ================= 실시간 운행 현황 알림 배너 ================= */
+    /* 실시간 운행 현황 알림 배너 */
     #liveStatusBar {
       width: 100%; min-height: 42px; height: 42px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
@@ -192,6 +225,9 @@
       background: #ef4444; color: #fff; padding: 3px 8px; border-radius: 12px;
       font-weight: 800; font-size: 0.72rem; animation: pulse 1.5s infinite;
       flex-shrink: 0; display: inline-flex; align-items: center;
+    }
+    .live-tag.holiday {
+      background: #64748b !important; animation: none !important;
     }
     @keyframes pulse {
       0% { opacity: 1; }
@@ -215,7 +251,7 @@
       border-color: #60a5fa;
     }
 
-    /* ================= 메인 컨테이너 ================= */
+    /* 메인 컨테이너 */
     #main-container {
       flex: 1;
       display: flex;
@@ -283,7 +319,15 @@
       padding: 1px 6px; border-radius: 4px; white-space: nowrap;
     }
 
-    /* ⭐️ 2시간 이내 도착 예정 버스 실시간 카운트다운 뱃지 */
+    /* ⭐️ 3. 음성 안내 TTS 버튼 */
+    .tts-speak-btn {
+      background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;
+      border-radius: 6px; padding: 2px 7px; font-size: 0.74rem; font-weight: 800;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
+    }
+    .tts-speak-btn:hover { background: #bae6fd; }
+
+    /* 도착 예정 버스 잔여 시간 뱃지 */
     .eta-alert-badge {
       display: inline-flex; align-items: center; gap: 5px;
       background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;
@@ -585,10 +629,11 @@
       .company-info span { display: none; }
       .company-info::before { content: "㈜여행과 사람"; font-weight: 700; color: #334155; }
       
-      .nearby-btn { font-size: 0.74rem; padding: 0 8px; }
-      .qr-share-btn { font-size: 0.74rem; padding: 0 8px; }
-      .table-view-btn { font-size: 0.74rem; padding: 0 8px; }
-      .course-select-wrapper select { font-size: 0.82rem; height: 36px; }
+      .nearby-btn { font-size: 0.72rem; padding: 0 6px; }
+      .font-size-btn { font-size: 0.72rem; padding: 0 6px; }
+      .qr-share-btn { font-size: 0.72rem; padding: 0 6px; }
+      .table-view-btn { font-size: 0.72rem; padding: 0 6px; }
+      .course-select-wrapper select { font-size: 0.8rem; height: 36px; }
       .action-btn { height: 36px; }
 
       #noticeBanner {
@@ -746,6 +791,15 @@
             <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
           </div>
         </div>
+
+        <!-- ⭐️ 2. 정류장 검색창 -->
+        <div class="header-middle-row">
+          <div class="stop-search-box">
+            <input type="text" id="stopSearchInput" placeholder="🔎 정류장 이름 또는 번호 검색 (예: 포로수용소, 1000)" oninput="handleStopSearch(this.value)">
+            <button class="search-clear-btn" id="searchClearBtn" onclick="clearStopSearch()">&times;</button>
+          </div>
+        </div>
+
         <div class="header-bottom-row">
           <div class="course-select-wrapper">
             <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
@@ -754,8 +808,9 @@
           </div>
 
           <div class="header-actions">
-            <!-- 1번 기능: 내 위치에서 가까운 정류소 찾기 -->
-            <button class="action-btn nearby-btn" onclick="findNearestStop()" title="현재 위치에서 가장 가까운 정류소 찾기">📍 내 주변</button>
+            <!-- ⭐️ 1. 큰 글씨 모드 토글 버튼 -->
+            <button class="action-btn font-size-btn" onclick="toggleFontSize()" id="btnFontSize">🔍 큰글씨</button>
+            <button class="action-btn nearby-btn" onclick="findNearestStop()" title="현재 위치에서 가장 가까운 정류소 찾기">📍 내주변</button>
             <button class="action-btn table-view-btn" onclick="openTimetableModal()">📋 시간표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유</button>
             <button class="action-btn fold-btn" id="btnFoldHeader" onclick="toggleTopArea()">▲ 접기</button>
@@ -774,7 +829,7 @@
 
       <!-- 실시간 운행 현황 알림 배너 -->
       <div id="liveStatusBar">
-        <span class="live-tag">LIVE 운행</span>
+        <span class="live-tag" id="liveTag">LIVE 운행</span>
         <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
       </div>
     </div>
@@ -873,6 +928,107 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
+    // ================= ⭐️ 1. 큰 글씨 모드 토글 =================
+    function toggleFontSize() {
+      const isLarge = document.body.classList.toggle('large-font');
+      const btn = document.getElementById('btnFontSize');
+      if (btn) {
+        btn.innerText = isLarge ? '🔍 보통글씨' : '🔍 큰글씨';
+      }
+      setTimeout(() => { if (map) map.relayout(); }, 200);
+    }
+
+    // ================= ⭐️ 3. 음성 안내 TTS (Web Speech API) =================
+    function speakStopArrival(stopName, schedules) {
+      if (!window.speechSynthesis) {
+        alert("현재 기기에서 음성 안내를 지원하지 않습니다.");
+        return;
+      }
+      window.speechSynthesis.cancel(); // 이전 음성 중단
+
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const eta = getNextArrivalInfo(schedules, currentMinutes, timeWindowMinutes);
+
+      let text = `${stopName} 정류소입니다. `;
+      if (eta && eta.targetSchedule) {
+        if (eta.isImminent) {
+          text += `현재 ${eta.targetSchedule.round} 셔틀버스가 곧 도착하거나 운행 중입니다.`;
+        } else {
+          text += `다음 셔틀버스는 ${eta.targetSchedule.round}, 약 ${eta.diff}분 뒤 ${eta.targetSchedule.time}에 도착할 예정입니다.`;
+        }
+      } else {
+        text += `앞으로 2시간 이내에 예정된 버스가 없거나 오늘 운행이 종료되었습니다.`;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ko-KR';
+      utterance.rate = 0.9; // 어르신 맞춤 천천히 읽기
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // ================= ⭐️ 4. 휴일 및 주말 미운행 자동 확인 =================
+    function isNonOperatingDay(d) {
+      const day = d.getDay();
+      if (day === 0 || day === 6) return true; // 토요일, 일요일 미운행
+
+      // 기본 양력 공휴일 체크 (필요시 추가)
+      const m = d.getMonth() + 1;
+      const dt = d.getDate();
+      const holidays = ['1-1', '3-1', '5-5', '6-6', '8-15', '10-3', '10-9', '12-25'];
+      if (holidays.includes(`${m}-${dt}`)) return true;
+
+      return false;
+    }
+
+    // ================= ⭐️ 2. 정류장 검색 기능 =================
+    function handleStopSearch(keyword) {
+      keyword = keyword.trim().toLowerCase();
+      const clearBtn = document.getElementById('searchClearBtn');
+      if (clearBtn) clearBtn.style.display = keyword ? 'block' : 'none';
+
+      if (!keyword) {
+        // 검색어 없으면 현재 코스 복원
+        if (currentSelectedCourseKey && currentSelectedCourseKey !== 'ALL') {
+          const courses = Object.keys(routeData);
+          selectCourse(currentSelectedCourseKey, courses.indexOf(currentSelectedCourseKey));
+        }
+        return;
+      }
+
+      // 전체 노선에서 정류소 검색
+      let foundStop = null;
+      let foundCourse = null;
+      let foundIndex = 0;
+
+      for (const cName of Object.keys(routeData)) {
+        const stops = routeData[cName] || [];
+        for (let i = 0; i < stops.length; i++) {
+          const s = stops[i];
+          if (s.isWaypoint) continue;
+          if (s.name.toLowerCase().includes(keyword) || (s.stopNo && s.stopNo.includes(keyword))) {
+            foundStop = s;
+            foundCourse = cName;
+            foundIndex = i;
+            break;
+          }
+        }
+        if (foundStop) break;
+      }
+
+      if (foundStop) {
+        switchToCourseAndStop(foundCourse, foundIndex);
+      }
+    }
+
+    function clearStopSearch() {
+      const input = document.getElementById('stopSearchInput');
+      if (input) {
+        input.value = '';
+        handleStopSearch('');
+      }
+    }
+
     function closeNoticeBanner() {
       const banner = document.getElementById('noticeBanner');
       if (banner) banner.style.display = 'none';
@@ -885,7 +1041,7 @@
       return numMatch ? parseInt(numMatch[0], 10) : 999;
     }
 
-    // ⭐️ [신규] 현재 시각 기준 2시간(1~120분) 이내 도착 예정 버스 잔여 시간 계산
+    // 2시간(1~120분) 이내 도착 예정 버스 계산 (객체 반환 강화)
     function getNextArrivalInfo(schedules, currentMinutes, windowMins) {
       if (!schedules || schedules.length === 0) return null;
 
@@ -898,7 +1054,6 @@
         const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
         const diff = targetMin - currentMinutes;
 
-        // 현재 시각 기준 2시간(120분) 이내에 오며, 과거 시간(-windowMins보다 이전)이 아닌 것
         if (diff >= -windowMins && diff <= 120) {
           if (diff < bestDiff) {
             bestDiff = diff;
@@ -909,15 +1064,18 @@
 
       if (!nextSchedule) return null;
 
-      // 이미 거의 다 왔거나 운행 범위 내에 있는 경우
       if (Math.abs(bestDiff) <= windowMins) {
         return {
           isImminent: true,
+          diff: bestDiff,
+          targetSchedule: nextSchedule,
           html: `<div class="eta-alert-badge imminent">🚌 <b>[${nextSchedule.round}]</b> 곧 도착 또는 운행 중! (${nextSchedule.time})</div>`
         };
       } else if (bestDiff > 0) {
         return {
           isImminent: false,
+          diff: bestDiff,
+          targetSchedule: nextSchedule,
           html: `<div class="eta-alert-badge">⏳ <b>[${nextSchedule.round}]</b> 약 ${bestDiff}분 뒤 도착 예정 (${nextSchedule.time})</div>`
         };
       }
@@ -1390,7 +1548,7 @@
           }
         });
       } catch (e) {
-        console.warn("'설정' 시트 파싱 예외 처리:", e);
+        console.warn("'설정' 시트 파싱 예외:", e);
       } finally {
         loadStationList();
       }
@@ -1676,7 +1834,6 @@
       polylines = [];
     }
 
-    // 단일 코스 선택 렌더링
     async function selectCourse(courseName, colorIdx) {
       currentSelectedCourseKey = courseName;
       const select = document.getElementById('courseSelect');
@@ -1729,7 +1886,6 @@
 
           const scheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
 
-          // ⭐️ 2시간 이내 도착 버스 안내 계산
           const nextArrival = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
           const etaHtml = nextArrival ? nextArrival.html : '';
 
@@ -1744,6 +1900,7 @@
             </div>
           ` : '';
 
+          // ⭐️ 3. 음성 안내 버튼 삽입
           card.innerHTML = `
             <div class="card-top">
               <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
@@ -1752,6 +1909,7 @@
                   <h4>${stop.name}</h4>
                   ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
                   ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                  <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
                 </div>
                 ${etaHtml}
                 ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
@@ -1823,7 +1981,6 @@
               liveBusOverlays.push(busOverlay);
             }
 
-            // ⭐️ 상세 팝업 (2시간 이내 도착 버스 안내 + 카카오맵 길찾기)
             const openDetailPopup = () => {
               if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
 
@@ -1847,6 +2004,7 @@
                     <div class="popup-tags-row">
                       ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
                       ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                      <button class="tts-speak-btn" onclick="speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성안내</button>
                     </div>
                   </div>
                   <button class="close-btn" title="닫기">&times;</button>
@@ -1935,7 +2093,6 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // 전체 노선 보기
     async function selectAllCourses() {
       currentSelectedCourseKey = 'ALL';
       const select = document.getElementById('courseSelect');
@@ -2028,6 +2185,7 @@
                     <h4>${stop.name}</h4>
                     ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
                     ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성듣기</button>
                   </div>
                   ${etaHtml}
                   ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
@@ -2122,6 +2280,7 @@
                       <div class="popup-tags-row">
                         ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
                         ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                        <button class="tts-speak-btn" onclick="speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성안내</button>
                       </div>
                     </div>
                     <button class="close-btn" title="닫기">&times;</button>
@@ -2352,9 +2511,30 @@
       setInterval(checkActiveBuses, 10000);
     }
 
+    // ⭐️ 4. 주말/공휴일 감지 및 실시간 버스 확인
     function checkActiveBuses() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const barText = document.getElementById('liveStatusText');
+      const liveTag = document.getElementById('liveTag');
+
+      // 주말 또는 공휴일인 경우 운행 종료 안내
+      if (isNonOperatingDay(now)) {
+        if (liveTag) {
+          liveTag.innerText = '미운행일';
+          liveTag.classList.add('holiday');
+        }
+        if (barText) {
+          barText.innerHTML = `오늘은 셔틀버스 미운행일(주말/공휴일)입니다. 평일 운행시간표를 참조해 주세요.`;
+        }
+        return;
+      } else {
+        if (liveTag) {
+          liveTag.innerText = 'LIVE 운행';
+          liveTag.classList.remove('holiday');
+        }
+      }
+
       const activeList = [];
 
       Object.keys(routeData).forEach(courseName => {
@@ -2379,7 +2559,6 @@
         });
       });
 
-      const barText = document.getElementById('liveStatusText');
       if (activeList.length === 0) {
         barText.innerHTML = `현재 운행 예정 범위(기준 ±${timeWindowMinutes}분)에 있는 차량이 없습니다. (현재 시각 ${now.toTimeString().substring(0,5)})`;
       } else {
