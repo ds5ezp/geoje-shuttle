@@ -87,7 +87,6 @@
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
 
-    /* ⭐️ 노선 선택 풀다운 메뉴 스타일 */
     .course-select-wrapper {
       flex: 1; position: relative; display: flex; align-items: center;
     }
@@ -186,7 +185,7 @@
       border-color: #60a5fa;
     }
 
-    /* ================= 메인 컨테이너 (지도 + 사이드바) ================= */
+    /* ================= 메인 컨테이너 ================= */
     #main-container {
       flex: 1;
       display: flex;
@@ -616,7 +615,7 @@
       <span>🚌 노선 및 운행현황 열기 ▼</span>
     </div>
 
-    <!-- 접고 펼쳐지는 상단 종합 영역 (헤더 + LIVE 배너) -->
+    <!-- 접고 펼쳐지는 상단 종합 영역 -->
     <div id="topCollapsibleArea">
       <!-- 상단 헤더 -->
       <div id="header">
@@ -630,7 +629,6 @@
           </div>
         </div>
         <div class="header-bottom-row">
-          <!-- ⭐️️ 가로 스크롤 대신 한 번에 열람 가능한 풀다운 메뉴 -->
           <div class="course-select-wrapper">
             <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
               <option value="ALL">🌐 전체 노선망</option>
@@ -653,13 +651,12 @@
       </div>
     </div>
 
-    <!-- 메인 뷰 (지도 + 사이드바) -->
+    <!-- 메인 뷰 -->
     <div id="main-container">
       <div id="map">
         <div id="routeBadge">실제 도로 경로선 계산 중...</div>
       </div>
 
-      <!-- 우측(모바일은 하단 서랍시트) 정류장 목록 -->
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
         <div class="sidebar-header" id="sheetHeader">
@@ -747,7 +744,13 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // ================= ⭐️ 풀다운 메뉴 변경 이벤트 =================
+    // ⭐️ 회차명에서 숫자만 추출하여 정렬 기준값 반환 (예: "1회차" -> 1, "1회" -> 1)
+    function parseRoundNumber(str) {
+      if (!str) return 999;
+      const numMatch = str.match(/\d+/);
+      return numMatch ? parseInt(numMatch[0], 10) : 999;
+    }
+
     function handleCourseSelectChange(val) {
       if (val === 'ALL') {
         selectAllCourses();
@@ -785,7 +788,7 @@
       }
     }
 
-    // ================= 시간표 표(Table) 팝업 로직 =================
+    // ================= ⭐️ 시간표 표(Table) 팝업 로직 =================
     function openTimetableModal(targetCourse) {
       const courses = Object.keys(routeData);
       if (courses.length === 0) return;
@@ -833,11 +836,18 @@
         return;
       }
 
+      // 해당 코스에 존재하는 회차 컬럼 목록 수집
       const roundSet = new Set();
       stops.forEach(s => {
-        (s.schedules || []).forEach(sc => roundSet.add(sc.round));
+        (s.schedules || []).forEach(sc => {
+          if (sc.round) roundSet.add(sc.round);
+        });
       });
-      const roundCols = Array.from(roundSet);
+
+      // ⭐️️ 핵심 수정: 회차 번호 기준(1회차 -> 2회차 -> 3회차 ...) 오름차순 강제 정렬
+      const roundCols = Array.from(roundSet).sort((a, b) => {
+        return parseRoundNumber(a) - parseRoundNumber(b);
+      });
 
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -913,7 +923,9 @@
       msg += `--------------------------------\n`;
 
       stops.forEach((s, idx) => {
-        const times = (s.schedules || [])
+        // 정렬된 회차 순서대로 시간표 작성
+        const sortedSchedules = [...(s.schedules || [])].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
+        const times = sortedSchedules
           .filter(sc => sc.time && !sc.time.includes('미운행'))
           .map(sc => `${sc.round} ${sc.time}`)
           .join(' / ');
@@ -930,7 +942,6 @@
       }
     }
 
-    // 상단 영역 접기 / 펼치기
     function collapseTopArea() {
       const area = document.getElementById('topCollapsibleArea');
       const expandTab = document.getElementById('topExpandTab');
@@ -986,9 +997,12 @@
       return `${(meters / 1000).toFixed(1)} km`;
     }
 
+    // ⭐️ 뱃지 표시 시에도 회차 순서 정렬 반영
     function buildScheduleHtml(schedules, currentMinutes, windowMins) {
       if (!schedules || schedules.length === 0) return '';
-      return schedules.map(s => {
+      const sorted = [...schedules].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
+
+      return sorted.map(s => {
         if (!s.time || s.time.includes('미운행')) {
           return `<span class="round-pill none"><b>${s.round}</b> 미운행</span>`;
         }
@@ -1140,6 +1154,9 @@
             roundCols.push({ index: idx, label: label });
           }
         });
+
+        // ⭐️ 시트 컬럼 자체도 회차 번호순으로 사전 정렬
+        roundCols.sort((a, b) => parseRoundNumber(a.label) - parseRoundNumber(b.label));
 
         if (colIndexMap.desc === -1) colIndexMap.desc = roundCols.length > 0 ? roundCols[roundCols.length - 1].index + 1 : 5;
         if (colIndexMap.stopNo === -1) colIndexMap.stopNo = colIndexMap.desc + 1;
