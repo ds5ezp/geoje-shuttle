@@ -20,6 +20,7 @@
       position: relative;
     }
 
+    /* ================= 상단 종합 영역 ================= */
     #topCollapsibleArea {
       flex-shrink: 0;
       width: 100%;
@@ -57,6 +58,7 @@
       gap: 4px;
     }
 
+    /* ================= 상단 헤더 ================= */
     #header {
       padding: 10px 16px 8px 16px;
       display: flex;
@@ -124,21 +126,25 @@
       height: 38px;
       padding: 0 11px; border: none; border-radius: 10px; cursor: pointer;
       font-weight: 700; font-size: 0.78rem; white-space: nowrap; transition: all 0.2s;
-      display: inline-flex; align-items: center; justify-content: center;
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
     }
+    .nearby-btn {
+      background: #2563eb; color: #ffffff; box-shadow: 0 1px 3px rgba(37,99,235,0.3);
+    }
+    .nearby-btn:hover { background: #1d4ed8; }
     .table-view-btn {
       background: #047857; color: #ffffff; box-shadow: 0 1px 3px rgba(4,120,87,0.3);
     }
     .table-view-btn:hover { background: #065f46; }
     .qr-share-btn {
-      background: #2563eb; color: #ffffff;
+      background: #475569; color: #ffffff;
     }
-    .qr-share-btn:hover { background: #1d4ed8; }
+    .qr-share-btn:hover { background: #334155; }
     .fold-btn {
       background: #64748b; color: #fff; display: none;
     }
 
-    /* 공지사항 배너 스타일 */
+    /* ================= 공지사항 배너 스타일 ================= */
     #noticeBanner {
       display: none;
       width: 100%;
@@ -167,7 +173,7 @@
       cursor: pointer; padding: 2px 6px; font-weight: bold; line-height: 1;
     }
 
-    /* 실시간 운행 현황 알림 배너 */
+    /* ================= 실시간 운행 현황 알림 배너 ================= */
     #liveStatusBar {
       width: 100%; min-height: 42px; height: 42px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
@@ -209,7 +215,7 @@
       border-color: #60a5fa;
     }
 
-    /* 메인 컨테이너 */
+    /* ================= 메인 컨테이너 ================= */
     #main-container {
       flex: 1;
       display: flex;
@@ -332,6 +338,20 @@
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
     }
 
+    /* 내 현재 위치 마커 핀 */
+    .my-loc-pin {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #0284c7; border: 3px solid #ffffff;
+      box-shadow: 0 0 0 8px rgba(2, 132, 199, 0.25);
+      animation: myLocPulse 2s infinite ease-in-out;
+      transform: translate(-50%, -50%);
+    }
+    @keyframes myLocPulse {
+      0% { box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.4); }
+      70% { box-shadow: 0 0 0 14px rgba(2, 132, 199, 0); }
+      100% { box-shadow: 0 0 0 2px rgba(2, 132, 199, 0); }
+    }
+
     .route-dir-arrow {
       width: 26px; height: 26px;
       display: flex; align-items: center; justify-content: center;
@@ -399,6 +419,15 @@
       width: 100%; height: 145px; border-radius: 8px; object-fit: cover;
       margin-top: 6px; cursor: zoom-in;
     }
+
+    /* ⭐️ 카카오맵 길찾기 바로가기 버튼 */
+    .popup-nav-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 8px 0; margin-top: 10px; border-radius: 8px;
+      background: #10b981; color: #ffffff; text-decoration: none;
+      font-size: 0.82rem; font-weight: 800; transition: background 0.2s;
+    }
+    .popup-nav-btn:hover { background: #059669; }
 
     #loadingModal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -546,6 +575,7 @@
       .company-info span { display: none; }
       .company-info::before { content: "㈜여행과 사람"; font-weight: 700; color: #334155; }
       
+      .nearby-btn { font-size: 0.74rem; padding: 0 8px; }
       .qr-share-btn { font-size: 0.74rem; padding: 0 8px; }
       .table-view-btn { font-size: 0.74rem; padding: 0 8px; }
       .course-select-wrapper select { font-size: 0.82rem; height: 36px; }
@@ -714,6 +744,8 @@
           </div>
 
           <div class="header-actions">
+            <!-- ⭐️ 1번 기능: 내 위치에서 가까운 정류소 찾기 버튼 -->
+            <button class="action-btn nearby-btn" onclick="findNearestStop()" title="현재 위치에서 가장 가까운 정류소 찾기">📍 내 주변</button>
             <button class="action-btn table-view-btn" onclick="openTimetableModal()">📋 시간표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유</button>
             <button class="action-btn fold-btn" id="btnFoldHeader" onclick="toggleTopArea()">▲ 접기</button>
@@ -824,6 +856,7 @@
     let arrowOverlays = [];
     let currentBubbleOverlay = null;
     let polylines = [];
+    let myLocationOverlay = null; // 내 위치 표시 핀
 
     const GEOJE_BOUNDS = new kakao.maps.LatLngBounds(
       new kakao.maps.LatLng(34.7000, 128.4500),
@@ -879,6 +912,78 @@
       }
     }
 
+    // ================= ⭐️ 1번 기능: 내 위치에서 가장 가까운 정류소 찾기 =================
+    function findNearestStop() {
+      if (!navigator.geolocation) {
+        alert("현재 사용 중이신 기기에서 위치 정보(GPS)를 지원하지 않습니다.");
+        return;
+      }
+
+      const badge = document.getElementById('routeBadge');
+      badge.style.display = 'block';
+      badge.innerText = '현재 내 위치를 확인하고 있습니다...';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          badge.style.display = 'none';
+          const myLat = pos.coords.latitude;
+          const myLng = pos.coords.longitude;
+          const myLatLng = new kakao.maps.LatLng(myLat, myLng);
+
+          // 내 위치 핀 표시
+          if (myLocationOverlay) myLocationOverlay.setMap(null);
+          const pinDiv = document.createElement('div');
+          pinDiv.className = 'my-loc-pin';
+          pinDiv.title = '현재 내 위치';
+
+          myLocationOverlay = new kakao.maps.CustomOverlay({
+            position: myLatLng,
+            content: pinDiv,
+            yAnchor: 0.5,
+            xAnchor: 0.5,
+            zIndex: 150
+          });
+          myLocationOverlay.setMap(map);
+
+          // 등록된 모든 정류장 중 가장 가까운 정류장 계산
+          let nearestStop = null;
+          let nearestCourse = null;
+          let nearestDist = Infinity;
+          let nearestIndex = 0;
+
+          Object.keys(routeData).forEach(cName => {
+            const stops = routeData[cName] || [];
+            stops.forEach((s, idx) => {
+              if (s.isWaypoint || !s.coords) return;
+              const d = calcHaversineMeters(myLat, myLng, s.coords.getLat(), s.coords.getLng());
+              if (d < nearestDist) {
+                nearestDist = d;
+                nearestStop = s;
+                nearestCourse = cName;
+                nearestIndex = idx;
+              }
+            });
+          });
+
+          if (nearestStop) {
+            const distStr = nearestDist < 1000 ? `${Math.round(nearestDist)}m` : `${(nearestDist / 1000).toFixed(1)}km`;
+            alert(`📍 현재 위치에서 가장 가까운 정류소는\n[${nearestCourse}]의 "${nearestStop.name}" (약 ${distStr}) 입니다.\n해당 정류소로 화면을 이동합니다.`);
+
+            // 해당 코스로 자동 전환 후 카드 클릭
+            switchToCourseAndStop(nearestCourse, nearestIndex);
+          } else {
+            alert("정류소 위치 좌표를 확인할 수 없습니다.");
+          }
+        },
+        (err) => {
+          badge.style.display = 'none';
+          alert("스마트폰의 위치(GPS) 권한을 허용해 주셔야 내 주변 정류소를 찾을 수 있습니다.");
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    // ================= 시간표 표(Table) 팝업 로직 =================
     function openTimetableModal(targetCourse) {
       const courses = Object.keys(routeData);
       if (courses.length === 0) return;
@@ -1190,7 +1295,6 @@
       }, 3000);
     }
 
-    // ⭐️ 오류 방지 및 공지사항 B2 파싱 로직
     window.handleSettings = function(json) {
       try {
         const cols = (json && json.table && json.table.cols) || [];
@@ -1229,14 +1333,12 @@
 
           if (key.includes('차량간격') || key.includes('간격')) {
             const num = parseFloat(valStr);
-            if (!isNaN(num) && num > 0) timeWindowMinutes = num;
+            if (!isNaN(num) && num > 0) timeWindowMinutes = valNum;
           }
 
-          // A열이 '공지'이고 B열에 텍스트가 있는 경우 표출
           if (key.includes('공지') && valStr) {
             applyNotice(valStr);
           } else if (cellValues.some(v => v.includes('공지'))) {
-            // 위치가 틀어져 있더라도 공지 키워드 바로 다음 셀 값을 추출
             const idx = cellValues.findIndex(v => v.includes('공지'));
             if (idx >= 0 && cellValues[idx + 1]) {
               applyNotice(cellValues[idx + 1]);
@@ -1671,6 +1773,7 @@
               liveBusOverlays.push(busOverlay);
             }
 
+            // ⭐️ 3번 기능: 상세 팝업 내 카카오맵 도보 길찾기 링크 연동
             const openDetailPopup = () => {
               if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
 
@@ -1681,6 +1784,9 @@
               const popupImgHtml = stop.photoUrl ? `
                 <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');" title="터치시 크게 보기">
               ` : '';
+
+              // 카카오맵 길찾기 웹/앱 다이렉트 URL 생성
+              const kakaoNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
 
               bubbleDiv.innerHTML = `
                 <div class="popup-header">
@@ -1700,6 +1806,7 @@
                 </div>
                 <div class="popup-addr">📍 ${stop.addr}</div>
                 ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
+                <a href="${kakaoNaviUrl}" target="_blank" class="popup-nav-btn">🚶 카카오맵 길찾기 (도보/내비)</a>
               `;
 
               const bubbleOverlay = new kakao.maps.CustomOverlay({
@@ -1945,6 +2052,8 @@
                   <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');" title="터치시 크게 보기">
                 ` : '';
 
+                const kakaoNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
+
                 bubbleDiv.innerHTML = `
                   <div class="popup-header">
                     <div class="popup-title-area">
@@ -1963,6 +2072,7 @@
                   </div>
                   <div class="popup-addr">📍 ${stop.addr}</div>
                   ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
+                  <a href="${kakaoNaviUrl}" target="_blank" class="popup-nav-btn">🚶 카카오맵 길찾기 (도보/내비)</a>
                 `;
 
                 const bubbleOverlay = new kakao.maps.CustomOverlay({
