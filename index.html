@@ -123,7 +123,7 @@
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
     #sidebar {
-      width: 390px; height: 100%; background: #ffffff;
+      width: 400px; height: 100%; background: #ffffff;
       box-shadow: -2px 0 10px rgba(0,0,0,0.08); overflow-y: auto;
       padding: 16px; display: flex; flex-direction: column; gap: 10px;
       z-index: 50;
@@ -166,41 +166,49 @@
     }
     .stop-num.bokji { background: #dc2626 !important; }
     
-    .stop-info { flex: 1; }
-    .stop-info-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .stop-info h4 { font-size: 0.96rem; font-weight: 800; color: #0f172a; }
+    .stop-info { flex: 1; min-width: 0; }
+    .stop-info-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
+    .stop-info h4 { font-size: 0.98rem; font-weight: 800; color: #0f172a; word-break: break-all; }
     .stop-id-tag {
-      background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
-      font-size: 0.72rem; font-weight: bold; padding: 1px 6px; border-radius: 4px;
+      background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;
+      font-size: 0.72rem; font-weight: 700; padding: 1px 7px; border-radius: 4px; white-space: nowrap;
     }
     .live-active-tag {
       background: #ef4444; color: #fff; font-size: 0.68rem; font-weight: bold;
-      padding: 1px 6px; border-radius: 4px;
+      padding: 1px 6px; border-radius: 4px; white-space: nowrap;
+    }
+
+    /* ⭐️ 회차별 시간표 뱃지 스타일 */
+    .schedule-rounds-box {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
+    }
+    .round-pill {
+      font-size: 0.76rem; padding: 3px 8px; border-radius: 6px;
+      background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;
+      display: inline-flex; align-items: center; gap: 4px; font-weight: 600;
+    }
+    .round-pill b { font-weight: 800; color: #1d4ed8; }
+    .round-pill.active {
+      background: #ef4444 !important; color: #ffffff !important;
+      border-color: #ef4444 !important; font-weight: 800;
+      box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4);
+    }
+    .round-pill.active b { color: #ffffff !important; }
+    .round-pill.none {
+      background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0;
     }
 
     .meta-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
-    .time-tag {
-      background: #eff6ff; color: #1e40af; font-size: 0.78rem; font-weight: 700;
-      padding: 3px 8px; border-radius: 6px; border: 1px solid #bfdbfe;
-      display: inline-flex; align-items: center; gap: 3px; flex-wrap: wrap;
-    }
-    .time-normal { color: #2563eb; font-weight: 700; }
-    .time-active-pill {
-      background: #ef4444; color: #ffffff !important; font-weight: 800;
-      padding: 2px 7px; border-radius: 4px;
-      box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4);
-      display: inline-block;
-    }
     .dist-tag {
       background: #ecfdf5; color: #065f46; font-size: 0.74rem; font-weight: 700;
       padding: 3px 7px; border-radius: 4px; border: 1px solid #a7f3d0;
     }
-    .stop-info .desc { font-size: 0.8rem; color: #475569; margin-top: 4px; line-height: 1.4; }
+    .stop-info .desc { font-size: 0.8rem; color: #475569; margin-top: 4px; line-height: 1.4; word-break: break-all; }
 
     /* 정류소 현장 사진 썸네일 스타일 */
     .stop-photo-box {
       width: 100%; height: 135px; border-radius: 8px; overflow: hidden;
-      margin-top: 6px; position: relative; background: #e2e8f0; cursor: zoom-in;
+      margin-top: 4px; position: relative; background: #e2e8f0; cursor: zoom-in;
     }
     .stop-photo-box img {
       width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s;
@@ -259,11 +267,11 @@
       50% { transform: translateX(-50%) translateY(-6px); }
     }
 
-    /* 팝업 버블 스타일 (사진 영역 추가) */
+    /* 팝업 버블 스타일 */
     .bubble-popup {
       position: relative; background: #ffffff; border-radius: 14px;
-      padding: 12px 14px; box-shadow: 0 6px 22px rgba(0,0,0,0.28);
-      border: 1px solid #cbd5e1; width: 270px; bottom: 22px;
+      padding: 14px 16px; box-shadow: 0 6px 22px rgba(0,0,0,0.28);
+      border: 1px solid #cbd5e1; width: 310px; bottom: 22px;
     }
     .bubble-popup::after {
       content: ''; position: absolute; bottom: -8px; left: 50%;
@@ -271,22 +279,30 @@
       border-style: solid; border-color: #ffffff transparent transparent transparent;
     }
     .bubble-popup .popup-header {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 4px; gap: 6px;
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 8px; margin-bottom: 6px;
     }
-    .bubble-popup .popup-title { font-size: 0.96rem; font-weight: 800; color: #0f172a; }
+    .bubble-popup .popup-title-area {
+      flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0;
+    }
+    .bubble-popup .popup-title {
+      font-size: 1.02rem; font-weight: 800; color: #0f172a; word-break: break-all; line-height: 1.35;
+    }
+    .bubble-popup .popup-tags-row {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px;
+    }
     .bubble-popup .close-btn {
-      background: none; border: none; font-size: 18px; color: #94a3b8;
-      cursor: pointer; padding: 0 4px; font-weight: bold; line-height: 1;
+      background: none; border: none; font-size: 20px; color: #94a3b8;
+      cursor: pointer; padding: 0 2px; font-weight: bold; line-height: 1; flex-shrink: 0;
     }
     .bubble-popup .close-btn:hover { color: #0f172a; }
-    .bubble-popup .popup-addr { font-size: 0.78rem; color: #64748b; line-height: 1.35; margin-top: 4px; }
+    .bubble-popup .popup-addr { font-size: 0.8rem; color: #64748b; line-height: 1.35; margin-top: 6px; word-break: break-all; }
     .bubble-popup .popup-desc {
-      font-size: 0.76rem; color: #334155; margin-top: 5px; line-height: 1.35;
-      background: #f8fafc; padding: 6px 8px; border-radius: 6px;
+      font-size: 0.78rem; color: #334155; margin-top: 6px; line-height: 1.35;
+      background: #f8fafc; padding: 6px 8px; border-radius: 6px; word-break: break-all;
     }
     .popup-photo {
-      width: 100%; height: 140px; border-radius: 8px; object-fit: cover;
+      width: 100%; height: 145px; border-radius: 8px; object-fit: cover;
       margin-top: 6px; cursor: zoom-in;
     }
 
@@ -328,7 +344,7 @@
     .copy-url-btn:hover { background: #dbeafe; }
     .close-qr-btn { background: #1e293b; color: #ffffff; }
 
-    /* ⭐️ 정류소 사진 전체화면 확대 모달 */
+    /* 정류소 사진 전체화면 확대 모달 */
     #photoZoomModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.88); z-index: 4000;
@@ -537,14 +553,12 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // ⭐️ 구글 드라이브 및 범용 이미지 링크 자동 변환
     function formatImageUrl(url) {
       if (!url) return '';
       url = url.trim();
       if (url.includes('drive.google.com')) {
         const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
         if (idMatch && idMatch[1]) {
-          // 구글 드라이브 썸네일 고화질 엔진 주소로 변환
           return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
         }
       }
@@ -569,17 +583,19 @@
       return `${(meters / 1000).toFixed(1)} km`;
     }
 
-    function formatTimeWithHighlight(timeText, currentMinutes, windowMins) {
-      if (!timeText) return '';
-      return timeText.replace(/\b(\d{1,2}:\d{2})\b/g, (match, tStr) => {
-        const parts = tStr.split(':');
-        const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-        const diff = Math.abs(currentMinutes - targetMin);
-        if (diff <= windowMins) {
-          return `<span class="time-active-pill">${tStr}</span>`;
+    // ⭐️ 회차별 시간표 HTML 생성 및 운행 중 강조 함수
+    function buildScheduleHtml(schedules, currentMinutes, windowMins) {
+      if (!schedules || schedules.length === 0) return '';
+      return schedules.map(s => {
+        if (!s.time || s.time.includes('미운행')) {
+          return `<span class="round-pill none"><b>${s.round}</b> 미운행</span>`;
         }
-        return `<span class="time-normal">${tStr}</span>`;
-      });
+        const parts = s.time.split(':');
+        const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+        const isActive = Math.abs(currentMinutes - targetMin) <= windowMins;
+
+        return `<span class="round-pill ${isActive ? 'active' : ''}"><b>${s.round}</b> ${s.time}</span>`;
+      }).join('');
     }
 
     function calcHaversineMeters(lat1, lon1, lat2, lon2) {
@@ -692,42 +708,85 @@
       loadRouteData();
     };
 
-    // ⭐️ H열(사진 링크) 추가 파싱
+    // ⭐️ 방식 A(회차별 열 분리) 자동 인식 파서
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
       try {
+        const cols = json.table.cols || [];
         const rows = json.table.rows || [];
         const result = {};
+
+        // 1행 컬럼 헤더 맵핑
+        let colIndexMap = {
+          course: 0,
+          name: 1,
+          addr: 2,
+          desc: -1,
+          stopNo: -1,
+          photo: -1
+        };
+        const roundCols = []; // { index: 3, label: '1회차' }
+
+        cols.forEach((col, idx) => {
+          const label = String(col.label || '').trim();
+          if (label.includes('코스')) colIndexMap.course = idx;
+          else if (label.includes('정류장명')) colIndexMap.name = idx;
+          else if (label.includes('주소')) colIndexMap.addr = idx;
+          else if (label.includes('설명')) colIndexMap.desc = idx;
+          else if (label.includes('번호')) colIndexMap.stopNo = idx;
+          else if (label.includes('사진') || label.includes('이미지')) colIndexMap.photo = idx;
+          else if (label.includes('회차')) {
+            roundCols.push({ index: idx, label: label });
+          }
+        });
+
+        // 기본 열 위치 fallback
+        if (colIndexMap.desc === -1) colIndexMap.desc = roundCols.length > 0 ? roundCols[roundCols.length - 1].index + 1 : 5;
+        if (colIndexMap.stopNo === -1) colIndexMap.stopNo = colIndexMap.desc + 1;
+        if (colIndexMap.photo === -1) colIndexMap.photo = colIndexMap.stopNo + 1;
 
         rows.forEach((r, idx) => {
           const c = r.c;
           if (!c) return;
 
-          const course    = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
-          const name      = c[1] ? String(c[1].f || c[1].v || '').trim() : '';
-          const addr      = c[2] ? String(c[2].f || c[2].v || '').trim() : '';
-          const startTime = c[3] ? String(c[3].f || c[3].v || '').trim() : '';
-          const arrTime   = c[4] ? String(c[4].f || c[4].v || '').trim() : '';
-          const desc      = c[5] ? String(c[5].f || c[5].v || '').trim() : '';
-          const stopNo    = c[6] ? String(c[6].f || c[6].v || '').replace(/,/g, '').trim() : '';
-          const photoUrl  = c[7] ? formatImageUrl(String(c[7].f || c[7].v || '')) : ''; // H열: 사진 링크
+          const getVal = (i) => (i >= 0 && c[i]) ? String(c[i].f || c[i].v || '').trim() : '';
+
+          const course = getVal(colIndexMap.course);
+          const name   = getVal(colIndexMap.name);
+          const addr   = getVal(colIndexMap.addr);
+          const desc   = getVal(colIndexMap.desc);
+          const stopNo = getVal(colIndexMap.stopNo).replace(/,/g, '');
+          const photoUrl = formatImageUrl(getVal(colIndexMap.photo));
 
           if (!course || !name || course === "코스구분" || course === "코스명") return;
 
           const isWaypoint = desc.includes('경유') || name.includes('[경유]') || name.includes('(경유)');
 
-          let timeText = '';
-          if (startTime && arrTime) {
-            timeText = `${startTime} (도착: ${arrTime})`;
-          } else {
-            timeText = startTime || arrTime;
-          }
+          // ⭐️ 회차별 시간 파싱
+          const schedules = [];
+          const allRawTimes = [];
 
-          const allTimes = [];
-          const matchedTimes = `${startTime} ${arrTime}`.match(/\b\d{1,2}:\d{2}\b/g);
-          if (matchedTimes) {
-            matchedTimes.forEach(t => allTimes.push(t));
+          if (roundCols.length > 0) {
+            roundCols.forEach(rc => {
+              const tVal = getVal(rc.index);
+              const m = tVal.match(/\b\d{1,2}:\d{2}\b/);
+              if (m) {
+                schedules.push({ round: rc.label, time: m[0] });
+                allRawTimes.push(m[0]);
+              } else if (tVal.includes('미운행')) {
+                schedules.push({ round: rc.label, time: '미운행' });
+              }
+            });
+          } else {
+            // 기존 D, E열 fallback
+            const sTime = getVal(3);
+            const aTime = getVal(4);
+            const matches = `${sTime} ${aTime}`.match(/\b\d{1,2}:\d{2}\b/g) || [];
+            matches.forEach((t, tIdx) => {
+              schedules.push({ round: `${tIdx + 1}회차`, time: t });
+              allRawTimes.push(t);
+            });
           }
 
           if (!result[course]) result[course] = [];
@@ -736,8 +795,8 @@
             courseName: course,
             name: name,
             addr: addr || name,
-            time: timeText,
-            rawTimes: allTimes,
+            schedules: schedules,
+            rawTimes: allRawTimes,
             desc: desc,
             stopNo: stopNo,
             photoUrl: photoUrl,
@@ -968,7 +1027,7 @@
           stop.displayNum = displayNum;
           if (displayNum === 1) stop.distanceText = '출발점';
 
-          const highlightedTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+          const scheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
 
           card = document.createElement('div');
           card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
@@ -987,11 +1046,11 @@
               <div class="stop-info">
                 <div class="stop-info-header">
                   <h4>${stop.name}</h4>
-                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                  ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
                   ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                 </div>
+                ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
                 <div class="meta-tags">
-                  ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
                   <span class="dist-tag" id="dist-card-${i}">${stop.distanceText}</span>
                 </div>
                 <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
@@ -1064,7 +1123,7 @@
 
               const bubbleDiv = document.createElement('div');
               bubbleDiv.className = 'bubble-popup';
-              const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+              const popupScheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
 
               const popupImgHtml = stop.photoUrl ? `
                 <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');" title="터치시 크게 보기">
@@ -1072,14 +1131,18 @@
 
               bubbleDiv.innerHTML = `
                 <div class="popup-header">
-                  <div class="popup-title">${displayNum}. ${stop.name}</div>
-                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                  ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                  <div class="popup-title-area">
+                    <div class="popup-title">${displayNum}. ${stop.name}</div>
+                    <div class="popup-tags-row">
+                      ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
+                      ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                    </div>
+                  </div>
                   <button class="close-btn" title="닫기">&times;</button>
                 </div>
                 ${popupImgHtml}
+                ${popupScheduleHtml ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupScheduleHtml}</div>` : ''}
                 <div class="meta-tags">
-                  ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
                   <span class="dist-tag">${stop.distanceText}</span>
                 </div>
                 <div class="popup-addr">📍 ${stop.addr}</div>
@@ -1226,7 +1289,7 @@
             stop.displayNum = displayNum;
             if (displayNum === 1) stop.distanceText = '출발점';
 
-            const highlightedTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+            const scheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
 
             card = document.createElement('div');
             card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
@@ -1245,11 +1308,11 @@
                 <div class="stop-info">
                   <div class="stop-info-header">
                     <h4>${stop.name}</h4>
-                    ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                    ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
                     ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                   </div>
+                  ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
                   <div class="meta-tags">
-                    ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
                     <span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${stop.distanceText}</span>
                   </div>
                   <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
@@ -1322,7 +1385,7 @@
 
                 const bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'bubble-popup';
-                const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
+                const popupScheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
 
                 const popupImgHtml = stop.photoUrl ? `
                   <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');" title="터치시 크게 보기">
@@ -1330,14 +1393,18 @@
 
                 bubbleDiv.innerHTML = `
                   <div class="popup-header">
-                    <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
-                    ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                    ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                    <div class="popup-title-area">
+                      <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
+                      <div class="popup-tags-row">
+                        ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
+                        ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                      </div>
+                    </div>
                     <button class="close-btn" title="닫기">&times;</button>
                   </div>
                   ${popupImgHtml}
+                  ${popupScheduleHtml ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupScheduleHtml}</div>` : ''}
                   <div class="meta-tags">
-                    ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
                     <span class="dist-tag">${stop.distanceText}</span>
                   </div>
                   <div class="popup-addr">📍 ${stop.addr}</div>
