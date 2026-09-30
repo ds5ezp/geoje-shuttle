@@ -190,7 +190,7 @@
     }
     .live-item:hover { background: rgba(59, 130, 246, 0.6); }
 
-    /* ================= ⭐️ 2단 관제 레이아웃 (좌측 타임라인 + 우측 지도) ================= */
+    /* ================= ⭐️ 세로 타임라인 관제 레이아웃 ================= */
     #main-container {
       flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden;
     }
@@ -198,7 +198,7 @@
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
     #sidebar {
-      width: 420px; height: 100%; background: #ffffff;
+      width: 440px; height: 100%; background: #ffffff;
       box-shadow: 2px 0 12px rgba(0,0,0,0.08); overflow-y: auto;
       padding: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 50; flex-shrink: 0;
     }
@@ -213,24 +213,38 @@
     .header-badges span { font-size: 0.78rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
     .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
-    #stopList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    #stopList {
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0;
+      position: relative; padding-left: 12px; margin-top: 6px;
+    }
+
+    /* 세로 연결 타임라인 선 */
+    #stopList::before {
+      content: ''; position: absolute; top: 16px; bottom: 16px; left: 26px;
+      width: 3px; background: #cbd5e1; z-index: 1;
+    }
 
     .course-section-title {
       font-size: 0.88rem; font-weight: 800; padding: 6px 10px; border-radius: 6px;
-      margin-top: 10px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;
+      margin-top: 10px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; z-index: 2;
     }
 
     .stop-card {
       background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px;
-      padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 8px;
+      padding: 12px 14px 12px 28px; cursor: pointer; transition: all 0.2s;
+      display: flex; flex-direction: column; gap: 8px; position: relative; margin-bottom: 10px; z-index: 2;
     }
     .stop-card:hover, .stop-card.active { background: #eff6ff; border-color: #2563eb; transform: translateY(-1px); }
     .stop-card.now-running { border-color: #ef4444; background: #fef2f2; }
 
     .card-top { display: flex; gap: 12px; align-items: flex-start; }
+    
+    /* 타임라인 상에 걸치는 정류소 번호 원 (아이콘) */
     .stop-num {
+      position: absolute; left: -14px; top: 16px;
       width: 28px; height: 28px; border-radius: 50%; background: #2563eb;
-      color: #fff; font-weight: 800; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      color: #fff; font-weight: 800; font-size: 0.82rem; display: flex; align-items: center; justify-content: center;
+      border: 3px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 3;
     }
     .stop-num.bokji { background: #dc2626 !important; }
     
@@ -323,7 +337,7 @@
       position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 0.78rem; font-weight: bold; z-index: 500; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    /* 시간표, QR, PWA, 사진 확대 모달 공통 */
+    /* 모달 공통 */
     #timetableModal, #qrModal, #pwaModal, #photoZoomModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.78); z-index: 3500; align-items: center; justify-content: center; padding: 12px;
     }
@@ -386,7 +400,9 @@
       .sheet-handle-bar::after { content: ''; width: 44px; height: 5px; background: #cbd5e1; border-radius: 3px; }
 
       .sidebar-header { padding-bottom: 8px; font-size: 0.95rem; }
-      .stop-card { padding: 10px 12px; }
+      .stop-card { padding: 10px 12px 10px 24px; }
+      .stop-num { width: 24px; height: 24px; left: -12px; font-size: 0.75rem; }
+      #stopList::before { left: 24px; }
       .stop-info h4 { font-size: 0.92rem; }
       .stop-photo-box { height: 110px; }
     }
@@ -448,7 +464,7 @@
       <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
     </div>
 
-    <!-- ⭐️ 2단 관제 메인 뷰 (좌측 타임라인 + 우측 지도) -->
+    <!-- 2단 관제 메인 뷰 (좌측 타임라인 + 우측 지도) -->
     <div id="main-container">
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
@@ -483,7 +499,7 @@
       <div class="tt-footer">
         <button class="tt-action-btn tt-copy-link-btn" onclick="copyTimetableShareUrl()">🔗 링크 복사</button>
         <button class="tt-action-btn tt-copy-text-btn" onclick="copyTimetableText()">📱 텍스트 복사</button>
-        <button class="tt-action-btn tt-print-btn" onclick="printTimetableTable()">🖨️️ 인쇄</button>
+        <button class="tt-action-btn tt-print-btn" onclick="printTimetableTable()">🖨 인쇄</button>
       </div>
     </div>
   </div>
@@ -880,7 +896,6 @@
 
     function openQrModal() {
       const shareUrl = getShareUrl();
-      const name = currentSelectedCourseKey === 'ALL' ? '전체 노선망' : (currentSelectedCourseKey || '전체 노선');
       document.getElementById('qrModal').style.display = 'flex';
       document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
     }
@@ -1100,8 +1115,8 @@
             </div>` : '';
 
           card.innerHTML = `
+            <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
             <div class="card-top">
-              <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
               <div class="stop-info">
                 <div class="stop-info-header">
                   <h4>${stop.name}</h4>
@@ -1295,8 +1310,8 @@
               </div>` : '';
 
             card.innerHTML = `
+              <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
               <div class="card-top">
-                <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
                 <div class="stop-info">
                   <div class="stop-info-header">
                     <h4>${stop.name}</h4>
@@ -1384,7 +1399,7 @@
                 if (card) {
                   document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
                   card.classList.add('active');
-                  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
               };
             }
