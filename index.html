@@ -115,28 +115,41 @@
       font-size: 16px; color: #94a3b8; cursor: pointer; display: none;
     }
 
-    /* ⭐️ 다중 검색 결과 드롭다운 목록 */
+    /* 검색 결과 드롭다운 */
     #searchDropdownList {
       display: none; position: absolute; top: 38px; left: 0; right: 0;
       background: #ffffff; border: 1.5px solid #2563eb; border-radius: 8px;
-      max-height: 220px; overflow-y: auto; z-index: 1000;
+      max-height: 260px; overflow-y: auto; z-index: 1000;
       box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
     .search-result-item {
       padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
-      display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem;
+      display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem;
+      transition: background 0.15s;
     }
     .search-result-item:hover { background: #eff6ff; }
-    .search-result-item .item-main { font-weight: 800; color: #0f172a; }
+    .search-item-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 6px;
+    }
+    .search-result-item .item-main { font-weight: 800; color: #0f172a; font-size: 0.86rem; }
     .search-result-item .item-course {
       background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 4px;
-      font-size: 0.72rem; font-weight: 700;
+      font-size: 0.72rem; font-weight: 700; white-space: nowrap;
     }
     .search-result-item .item-no {
       color: #64748b; font-size: 0.72rem; margin-left: 6px;
     }
+    /* 검색 결과 내 회차 및 도착 시간 리스트 */
+    .search-item-times {
+      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px;
+    }
+    .search-time-chip {
+      background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;
+      font-size: 0.7rem; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+    }
+    .search-time-chip b { color: #2563eb; }
 
-    /* ⭐️ 모바일 1줄 배치 헤더 하단 행 */
+    /* 헤더 하단 행 */
     .header-bottom-row {
       display: flex; align-items: center; gap: 4px; width: 100%; flex-wrap: nowrap;
     }
@@ -628,7 +641,7 @@
       align-items: center; justify-content: center; color: #0f172a;
     }
 
-    /* ================= 📱 모바일 반응형 (1줄 배치 최적화) ================= */
+    /* 모바일 반응형 (1줄 레이아웃 최적화) */
     @media (max-width: 850px) {
       .fold-btn { display: inline-block !important; }
 
@@ -642,20 +655,13 @@
       
       .stop-search-box input { height: 32px; font-size: 0.8rem; }
 
-      /* ⭐️ 모바일 1줄 배치 핵심: 여백 축소 및 아이콘/텍스트 최적화 */
-      .header-bottom-row {
-        gap: 3px;
-      }
+      .header-bottom-row { gap: 3px; }
       .course-select-wrapper select {
         font-size: 0.78rem; height: 32px; padding: 0 18px 0 6px;
       }
-      .course-select-wrapper::after {
-        right: 6px; font-size: 8px;
-      }
+      .course-select-wrapper::after { right: 6px; font-size: 8px; }
 
-      .header-actions {
-        gap: 3px;
-      }
+      .header-actions { gap: 3px; }
       .action-btn {
         height: 32px; padding: 0 5px; font-size: 0.7rem; border-radius: 6px;
       }
@@ -742,7 +748,7 @@
           </div>
         </div>
 
-        <!-- ⭐️️ 정류장 검색창 및 다중 결과 드롭다운 -->
+        <!-- ⭐️ 정류장 검색창 및 다중 결과 드롭다운 -->
         <div class="header-middle-row">
           <div class="stop-search-box">
             <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색 (예: 포로수용소, 아이파크)" oninput="handleStopSearch(this.value)">
@@ -921,7 +927,7 @@
     // 4. 주말/공휴일 감지
     function isNonOperatingDay(d) {
       const day = d.getDay();
-      if (day === 0 || day === 6) return true; // 주말
+      if (day === 0 || day === 6) return true;
 
       const m = d.getMonth() + 1;
       const dt = d.getDate();
@@ -929,7 +935,7 @@
       return holidays.includes(`${m}-${dt}`);
     }
 
-    // ⭐️ 2. 다중 정류장 검색 및 추천 목록 표출
+    // ⭐️ 2. 다중 정류장 검색 및 회차/도착시간 동시 표출
     function handleStopSearch(keyword) {
       keyword = keyword.trim().toLowerCase();
       const clearBtn = document.getElementById('searchClearBtn');
@@ -952,6 +958,7 @@
               courseName: cName,
               stopName: s.name,
               stopNo: s.stopNo,
+              schedules: s.schedules || [],
               stopIndex: idx
             });
           }
@@ -961,18 +968,36 @@
       if (!dropdown) return;
 
       if (matches.length === 0) {
-        dropdown.innerHTML = `<div style="padding:10px; color:#64748b; font-size:0.8rem; text-align:center;">일치하는 정류소가 없습니다.</div>`;
+        dropdown.innerHTML = `<div style="padding:12px; color:#64748b; font-size:0.8rem; text-align:center;">일치하는 정류소가 없습니다.</div>`;
         dropdown.style.display = 'block';
       } else {
-        dropdown.innerHTML = matches.map(m => `
-          <div class="search-result-item" onclick="selectSearchResult('${m.courseName}', ${m.stopIndex})">
-            <div>
-              <span class="item-main">${m.stopName}</span>
-              ${m.stopNo ? `<span class="item-no">(No.${m.stopNo})</span>` : ''}
+        dropdown.innerHTML = matches.map(m => {
+          // 운행되는 회차 시간 뱃지 목록 생성
+          const sorted = [...m.schedules].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
+          const activeTimes = sorted.filter(sc => sc.time && !sc.time.includes('미운행'));
+          
+          let timesHtml = '';
+          if (activeTimes.length > 0) {
+            timesHtml = activeTimes.map(sc => `<span class="search-time-chip"><b>${sc.round}</b> ${sc.time}</span>`).join('');
+          } else {
+            timesHtml = `<span style="font-size:0.72rem; color:#94a3b8;">운행 시간 없음</span>`;
+          }
+
+          return `
+            <div class="search-result-item" onclick="selectSearchResult('${m.courseName}', ${m.stopIndex})">
+              <div class="search-item-top">
+                <div>
+                  <span class="item-main">${m.stopName}</span>
+                  ${m.stopNo ? `<span class="item-no">(No.${m.stopNo})</span>` : ''}
+                </div>
+                <span class="item-course">${m.courseName}</span>
+              </div>
+              <div class="search-item-times">
+                ${timesHtml}
+              </div>
             </div>
-            <span class="item-course">${m.courseName}</span>
-          </div>
-        `).join('');
+          `;
+        }).join('');
         dropdown.style.display = 'block';
       }
     }
@@ -991,7 +1016,6 @@
       handleStopSearch('');
     }
 
-    // 문서 클릭 시 검색 드롭다운 닫기
     document.addEventListener('click', (e) => {
       const dropdown = document.getElementById('searchDropdownList');
       const input = document.getElementById('stopSearchInput');
@@ -1155,7 +1179,6 @@
       );
     }
 
-    // 시간표 모달 로직
     function openTimetableModal(targetCourse) {
       const courses = Object.keys(routeData);
       if (courses.length === 0) return;
@@ -1421,6 +1444,7 @@
       
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
       document.getElementById('qrImage').src = qrApiUrl;
+
       document.getElementById('qrModal').style.display = 'flex';
     }
 
@@ -2415,7 +2439,7 @@
         
         arrowDiv.innerHTML = `
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 12H19M19 12L12 5M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         `;
@@ -2471,7 +2495,6 @@
       setInterval(checkActiveBuses, 10000);
     }
 
-    // 4. 주말/공휴일 감지 및 실시간 버스 확인
     function checkActiveBuses() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
