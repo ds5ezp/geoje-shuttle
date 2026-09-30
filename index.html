@@ -123,7 +123,7 @@
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
     #sidebar {
-      width: 380px; height: 100%; background: #ffffff;
+      width: 390px; height: 100%; background: #ffffff;
       box-shadow: -2px 0 10px rgba(0,0,0,0.08); overflow-y: auto;
       padding: 16px; display: flex; flex-direction: column; gap: 10px;
       z-index: 50;
@@ -147,7 +147,7 @@
     .stop-card {
       background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px;
       padding: 12px 14px; cursor: pointer; transition: all 0.2s;
-      display: flex; gap: 12px; align-items: flex-start;
+      display: flex; flex-direction: column; gap: 8px;
     }
     .stop-card:hover, .stop-card.active {
       background: #eff6ff; border-color: #2563eb; transform: translateY(-1px);
@@ -155,16 +155,20 @@
     .stop-card.now-running {
       border-color: #ef4444; background: #fef2f2;
     }
+
+    .card-top {
+      display: flex; gap: 12px; align-items: flex-start;
+    }
     .stop-num {
-      width: 26px; height: 26px; border-radius: 50%; background: #2563eb;
-      color: #fff; font-weight: 800; font-size: 0.85rem;
+      width: 28px; height: 28px; border-radius: 50%; background: #2563eb;
+      color: #fff; font-weight: 800; font-size: 0.88rem;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .stop-num.bokji { background: #dc2626 !important; }
     
     .stop-info { flex: 1; }
     .stop-info-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .stop-info h4 { font-size: 0.93rem; font-weight: 700; color: #0f172a; }
+    .stop-info h4 { font-size: 0.96rem; font-weight: 800; color: #0f172a; }
     .stop-id-tag {
       background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;
       font-size: 0.72rem; font-weight: bold; padding: 1px 6px; border-radius: 4px;
@@ -176,14 +180,14 @@
 
     .meta-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
     .time-tag {
-      background: #eff6ff; color: #1e40af; font-size: 0.76rem; font-weight: 600;
+      background: #eff6ff; color: #1e40af; font-size: 0.78rem; font-weight: 700;
       padding: 3px 8px; border-radius: 6px; border: 1px solid #bfdbfe;
       display: inline-flex; align-items: center; gap: 3px; flex-wrap: wrap;
     }
-    .time-normal { color: #3b82f6; font-weight: 600; }
+    .time-normal { color: #2563eb; font-weight: 700; }
     .time-active-pill {
       background: #ef4444; color: #ffffff !important; font-weight: 800;
-      padding: 1px 6px; border-radius: 4px;
+      padding: 2px 7px; border-radius: 4px;
       box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4);
       display: inline-block;
     }
@@ -191,19 +195,34 @@
       background: #ecfdf5; color: #065f46; font-size: 0.74rem; font-weight: 700;
       padding: 3px 7px; border-radius: 4px; border: 1px solid #a7f3d0;
     }
-    .stop-info .desc { font-size: 0.78rem; color: #64748b; margin-top: 4px; line-height: 1.4; }
+    .stop-info .desc { font-size: 0.8rem; color: #475569; margin-top: 4px; line-height: 1.4; }
+
+    /* 정류소 현장 사진 썸네일 스타일 */
+    .stop-photo-box {
+      width: 100%; height: 135px; border-radius: 8px; overflow: hidden;
+      margin-top: 6px; position: relative; background: #e2e8f0; cursor: zoom-in;
+    }
+    .stop-photo-box img {
+      width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s;
+    }
+    .stop-photo-box:hover img { transform: scale(1.03); }
+    .photo-badge {
+      position: absolute; bottom: 6px; right: 6px; background: rgba(15, 23, 42, 0.75);
+      color: #fff; font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 12px;
+      pointer-events: none;
+    }
 
     /* 지도 마커 뱃지 */
     .bus-marker-badge {
-      width: 30px; height: 30px; border-radius: 50%;
-      background: #2563eb; color: #ffffff; font-weight: 800; font-size: 13px;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #2563eb; color: #ffffff; font-weight: 800; font-size: 14px;
       display: flex; align-items: center; justify-content: center;
       border: 2px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.35);
       cursor: pointer; transform: translate(-50%, -50%);
       transition: transform 0.15s ease;
     }
     .bus-marker-badge:hover { transform: translate(-50%, -50%) scale(1.15); }
-    .bus-marker-badge.복지관 { background: #dc2626 !important; width: 34px; height: 34px; font-size: 14px; }
+    .bus-marker-badge.복지관 { background: #dc2626 !important; width: 36px; height: 36px; font-size: 15px; }
     .bus-marker-badge.now-active {
       background: #ef4444 !important; border: 3px solid #fef08a !important;
       box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
@@ -240,10 +259,11 @@
       50% { transform: translateX(-50%) translateY(-6px); }
     }
 
+    /* 팝업 버블 스타일 (사진 영역 추가) */
     .bubble-popup {
-      position: relative; background: #ffffff; border-radius: 12px;
-      padding: 12px 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-      border: 1px solid #cbd5e1; min-width: 220px; max-width: 280px; bottom: 22px;
+      position: relative; background: #ffffff; border-radius: 14px;
+      padding: 12px 14px; box-shadow: 0 6px 22px rgba(0,0,0,0.28);
+      border: 1px solid #cbd5e1; width: 270px; bottom: 22px;
     }
     .bubble-popup::after {
       content: ''; position: absolute; bottom: -8px; left: 50%;
@@ -254,16 +274,20 @@
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 4px; gap: 6px;
     }
-    .bubble-popup .popup-title { font-size: 0.92rem; font-weight: 800; color: #0f172a; }
+    .bubble-popup .popup-title { font-size: 0.96rem; font-weight: 800; color: #0f172a; }
     .bubble-popup .close-btn {
-      background: none; border: none; font-size: 16px; color: #94a3b8;
+      background: none; border: none; font-size: 18px; color: #94a3b8;
       cursor: pointer; padding: 0 4px; font-weight: bold; line-height: 1;
     }
     .bubble-popup .close-btn:hover { color: #0f172a; }
-    .bubble-popup .popup-addr { font-size: 0.76rem; color: #64748b; line-height: 1.35; margin-top: 4px; }
+    .bubble-popup .popup-addr { font-size: 0.78rem; color: #64748b; line-height: 1.35; margin-top: 4px; }
     .bubble-popup .popup-desc {
-      font-size: 0.74rem; color: #334155; margin-top: 5px; line-height: 1.35;
-      background: #f8fafc; padding: 5px 8px; border-radius: 6px;
+      font-size: 0.76rem; color: #334155; margin-top: 5px; line-height: 1.35;
+      background: #f8fafc; padding: 6px 8px; border-radius: 6px;
+    }
+    .popup-photo {
+      width: 100%; height: 140px; border-radius: 8px; object-fit: cover;
+      margin-top: 6px; cursor: zoom-in;
     }
 
     #loadingModal {
@@ -303,6 +327,31 @@
     .copy-url-btn { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
     .copy-url-btn:hover { background: #dbeafe; }
     .close-qr-btn { background: #1e293b; color: #ffffff; }
+
+    /* ⭐️ 정류소 사진 전체화면 확대 모달 */
+    #photoZoomModal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.88); z-index: 4000;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .zoom-content {
+      position: relative; max-width: 92%; max-height: 85%;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    #zoomedImg {
+      max-width: 100%; max-height: 75vh; border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5); object-fit: contain;
+    }
+    .zoom-caption {
+      color: #ffffff; font-size: 1rem; font-weight: bold; margin-top: 12px;
+      text-align: center; line-height: 1.4;
+    }
+    .close-zoom-btn {
+      position: absolute; top: -45px; right: 0; background: #ffffff;
+      border: none; border-radius: 50%; width: 36px; height: 36px;
+      font-size: 20px; font-weight: bold; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; color: #0f172a;
+    }
 
     /* 모바일 바텀시트 */
     @media (max-width: 850px) {
@@ -378,11 +427,12 @@
       }
 
       .stop-card { padding: 10px 12px; }
-      .stop-info h4 { font-size: 0.88rem; }
+      .stop-info h4 { font-size: 0.92rem; }
+      .stop-photo-box { height: 110px; }
     }
 
     @media print {
-      #header, #liveStatusBar, #qrModal { display: none !important; }
+      #header, #liveStatusBar, #qrModal, #photoZoomModal { display: none !important; }
       #main-container { position: static; height: auto; display: block; }
       #map { height: 420px !important; }
       #sidebar { width: 100%; box-shadow: none; position: static; height: auto; }
@@ -448,6 +498,15 @@
     </div>
   </div>
 
+  <!-- 정류소 사진 큰 화면 확대 팝업 -->
+  <div id="photoZoomModal" onclick="closePhotoZoom()">
+    <div class="zoom-content" onclick="event.stopPropagation()">
+      <button class="close-zoom-btn" onclick="closePhotoZoom()">&times;</button>
+      <img id="zoomedImg" src="" alt="정류소 현장 사진 확대">
+      <div class="zoom-caption" id="zoomedCaption"></div>
+    </div>
+  </div>
+
   <script>
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
 
@@ -477,6 +536,30 @@
       new kakao.maps.LatLng(34.7000, 128.4500),
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
+
+    // ⭐️ 구글 드라이브 및 범용 이미지 링크 자동 변환
+    function formatImageUrl(url) {
+      if (!url) return '';
+      url = url.trim();
+      if (url.includes('drive.google.com')) {
+        const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+        if (idMatch && idMatch[1]) {
+          // 구글 드라이브 썸네일 고화질 엔진 주소로 변환
+          return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
+        }
+      }
+      return url;
+    }
+
+    function openPhotoZoom(imgSrc, titleText) {
+      document.getElementById('zoomedImg').src = imgSrc;
+      document.getElementById('zoomedCaption').innerText = titleText;
+      document.getElementById('photoZoomModal').style.display = 'flex';
+    }
+
+    function closePhotoZoom() {
+      document.getElementById('photoZoomModal').style.display = 'none';
+    }
 
     function formatDistance(meters) {
       if (meters === undefined || meters === null || isNaN(meters)) return '확인 불가';
@@ -609,6 +692,7 @@
       loadRouteData();
     };
 
+    // ⭐️ H열(사진 링크) 추가 파싱
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -627,6 +711,7 @@
           const arrTime   = c[4] ? String(c[4].f || c[4].v || '').trim() : '';
           const desc      = c[5] ? String(c[5].f || c[5].v || '').trim() : '';
           const stopNo    = c[6] ? String(c[6].f || c[6].v || '').replace(/,/g, '').trim() : '';
+          const photoUrl  = c[7] ? formatImageUrl(String(c[7].f || c[7].v || '')) : ''; // H열: 사진 링크
 
           if (!course || !name || course === "코스구분" || course === "코스명") return;
 
@@ -655,6 +740,7 @@
             rawTimes: allTimes,
             desc: desc,
             stopNo: stopNo,
+            photoUrl: photoUrl,
             isWaypoint: isWaypoint,
             distanceText: '계산 중...'
           });
@@ -887,20 +973,31 @@
           card = document.createElement('div');
           card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
           card.id = `card-${i}`;
-          card.innerHTML = `
-            <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
-            <div class="stop-info">
-              <div class="stop-info-header">
-                <h4>${stop.name}</h4>
-                ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-              </div>
-              <div class="meta-tags">
-                ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
-                <span class="dist-tag" id="dist-card-${i}">${stop.distanceText}</span>
-              </div>
-              <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
+
+          const photoHtml = stop.photoUrl ? `
+            <div class="stop-photo-box" onclick="event.stopPropagation(); openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');">
+              <img src="${stop.photoUrl}" alt="${stop.name} 전경 사진" loading="lazy">
+              <span class="photo-badge">📷 정류소 전경 (터치시 확대)</span>
             </div>
+          ` : '';
+
+          card.innerHTML = `
+            <div class="card-top">
+              <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
+              <div class="stop-info">
+                <div class="stop-info-header">
+                  <h4>${stop.name}</h4>
+                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                  ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                </div>
+                <div class="meta-tags">
+                  ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
+                  <span class="dist-tag" id="dist-card-${i}">${stop.distanceText}</span>
+                </div>
+                <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
+              </div>
+            </div>
+            ${photoHtml}
           `;
           list.appendChild(card);
         }
@@ -969,6 +1066,10 @@
               bubbleDiv.className = 'bubble-popup';
               const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
 
+              const popupImgHtml = stop.photoUrl ? `
+                <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');" title="터치시 크게 보기">
+              ` : '';
+
               bubbleDiv.innerHTML = `
                 <div class="popup-header">
                   <div class="popup-title">${displayNum}. ${stop.name}</div>
@@ -976,6 +1077,7 @@
                   ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                   <button class="close-btn" title="닫기">&times;</button>
                 </div>
+                ${popupImgHtml}
                 <div class="meta-tags">
                   ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
                   <span class="dist-tag">${stop.distanceText}</span>
@@ -1129,20 +1231,31 @@
             card = document.createElement('div');
             card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
             card.id = `all-card-${cIdx}-${i}`;
-            card.innerHTML = `
-              <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
-              <div class="stop-info">
-                <div class="stop-info-header">
-                  <h4>${stop.name}</h4>
-                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                  ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                </div>
-                <div class="meta-tags">
-                  ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
-                  <span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${stop.distanceText}</span>
-                </div>
-                <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
+
+            const photoHtml = stop.photoUrl ? `
+              <div class="stop-photo-box" onclick="event.stopPropagation(); openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');">
+                <img src="${stop.photoUrl}" alt="${stop.name} 전경 사진" loading="lazy">
+                <span class="photo-badge">📷 정류소 전경 (터치시 확대)</span>
               </div>
+            ` : '';
+
+            card.innerHTML = `
+              <div class="card-top">
+                <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
+                <div class="stop-info">
+                  <div class="stop-info-header">
+                    <h4>${stop.name}</h4>
+                    ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                    ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
+                  </div>
+                  <div class="meta-tags">
+                    ${stop.time ? `<span class="time-tag">🕒 ${highlightedTimeHtml}</span>` : ''}
+                    <span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${stop.distanceText}</span>
+                  </div>
+                  <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
+                </div>
+              </div>
+              ${photoHtml}
             `;
             list.appendChild(card);
           }
@@ -1211,6 +1324,10 @@
                 bubbleDiv.className = 'bubble-popup';
                 const popupTimeHtml = formatTimeWithHighlight(stop.time, currentMinutes, timeWindowMinutes);
 
+                const popupImgHtml = stop.photoUrl ? `
+                  <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');" title="터치시 크게 보기">
+                ` : '';
+
                 bubbleDiv.innerHTML = `
                   <div class="popup-header">
                     <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
@@ -1218,6 +1335,7 @@
                     ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
                     <button class="close-btn" title="닫기">&times;</button>
                   </div>
+                  ${popupImgHtml}
                   <div class="meta-tags">
                     ${stop.time ? `<span class="time-tag">🕒 ${popupTimeHtml}</span>` : ''}
                     <span class="dist-tag">${stop.distanceText}</span>
@@ -1298,7 +1416,7 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    // ⭐️ [안정적인 기존 기본 도로 라우팅 OSRM 엔진]
+    // 기본 도로 라우팅 엔진 (OSRM)
     async function drawSingleRoadLine(courseKey, stops, color) {
       if (routeCache[courseKey]) {
         const cached = routeCache[courseKey];
@@ -1369,7 +1487,7 @@
       }
     }
 
-    // ⭐️ 고대비 네온 옐로우 선형 화살표(──>)
+    // 선명한 화살표 생성
     function createRouteDirectionArrows(pathCoords) {
       if (!pathCoords || pathCoords.length < 5) return;
       
