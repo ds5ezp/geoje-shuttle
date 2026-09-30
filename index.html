@@ -87,36 +87,47 @@
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
 
-    .tab-bar {
-      display: flex; gap: 6px; overflow-x: auto; padding: 2px 0; flex: 1;
-      -webkit-overflow-scrolling: touch;
+    /* ⭐️ 노선 선택 풀다운 메뉴 스타일 */
+    .course-select-wrapper {
+      flex: 1; position: relative; display: flex; align-items: center;
     }
-    .tab-bar::-webkit-scrollbar { display: none; }
-    
-    .tab-btn {
-      background: #f1f5f9; border: 1.5px solid #cbd5e1; color: #334155;
-      padding: 6px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 700;
-      white-space: nowrap; cursor: pointer; transition: all 0.2s;
+    .course-select-wrapper select {
+      width: 100%;
+      height: 38px;
+      padding: 0 32px 0 12px;
+      background: #f1f5f9;
+      color: #0f172a;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
     }
-    .tab-btn:hover { background: #e2e8f0; }
-    .tab-btn.active {
-      background: #2563eb; color: #ffffff; border-color: #2563eb;
-      box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+    .course-select-wrapper select:focus {
+      border-color: #2563eb;
+      background: #ffffff;
     }
-    .tab-btn.all-view-btn {
-      background: #0f172a; color: #ffffff; border-color: #0f172a;
-    }
-    .tab-btn.all-view-btn.active {
-      background: #3b82f6; border-color: #3b82f6;
-      box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+    .course-select-wrapper::after {
+      content: '▼';
+      font-size: 11px;
+      color: #64748b;
+      position: absolute;
+      right: 12px;
+      pointer-events: none;
     }
 
     .header-actions {
       display: flex; align-items: center; gap: 6px; flex-shrink: 0;
     }
     .action-btn {
-      padding: 6px 11px; border: none; border-radius: 8px; cursor: pointer;
+      height: 38px;
+      padding: 0 11px; border: none; border-radius: 10px; cursor: pointer;
       font-weight: 700; font-size: 0.78rem; white-space: nowrap; transition: all 0.2s;
+      display: inline-flex; align-items: center; justify-content: center;
     }
     .table-view-btn {
       background: #047857; color: #ffffff; box-shadow: 0 1px 3px rgba(4,120,87,0.3);
@@ -379,7 +390,7 @@
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    /* ================= ⭐️ 전체 시간표 표(Table) 팝업 모달 ================= */
+    /* 전체 시간표 표(Table) 팝업 모달 */
     #timetableModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.78); z-index: 3500;
@@ -513,11 +524,10 @@
       .company-info::before { content: "㈜여행과 사람"; font-weight: 700; color: #334155; }
       
       .print-btn { display: none !important; }
-      .qr-share-btn { font-size: 0.74rem; padding: 4px 8px; }
-      .table-view-btn { font-size: 0.74rem; padding: 4px 8px; }
-
-      .tab-bar { padding: 2px 0; }
-      .tab-btn { font-size: 0.78rem; padding: 4px 10px; }
+      .qr-share-btn { font-size: 0.74rem; padding: 0 8px; }
+      .table-view-btn { font-size: 0.74rem; padding: 0 8px; }
+      .course-select-wrapper select { font-size: 0.82rem; height: 36px; }
+      .action-btn { height: 36px; }
 
       #liveStatusBar {
         min-height: 38px !important; height: 38px !important;
@@ -620,11 +630,16 @@
           </div>
         </div>
         <div class="header-bottom-row">
-          <div class="tab-bar" id="tabBar"></div>
+          <!-- ⭐️️ 가로 스크롤 대신 한 번에 열람 가능한 풀다운 메뉴 -->
+          <div class="course-select-wrapper">
+            <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
+              <option value="ALL">🌐 전체 노선망</option>
+            </select>
+          </div>
+
           <div class="header-actions">
-            <!-- ⭐️ 시간표 표 보기 버튼 추가 -->
-            <button class="action-btn table-view-btn" onclick="openTimetableModal()">📋 시간표 표로 보기</button>
-            <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 노선 공유</button>
+            <button class="action-btn table-view-btn" onclick="openTimetableModal()">📋 시간표</button>
+            <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유</button>
             <button class="action-btn fold-btn" id="btnFoldHeader" onclick="toggleTopArea()">▲ 접기</button>
             <button class="action-btn print-btn" onclick="window.print()">A4 인쇄</button>
           </div>
@@ -659,7 +674,7 @@
     </div>
   </div>
 
-  <!-- ⭐️ 전체 셔틀버스 시간표 표(Table) 모달 팝업 -->
+  <!-- 전체 셔틀버스 시간표 표(Table) 모달 팝업 -->
   <div id="timetableModal" onclick="closeTimetableModal(event)">
     <div class="timetable-card" onclick="event.stopPropagation()">
       <div class="tt-header">
@@ -669,11 +684,8 @@
         </div>
         <button class="tt-close-btn" onclick="closeTimetableModal()">&times;</button>
       </div>
-      <!-- 코스 전환 탭 -->
       <div class="tt-tabs" id="ttTabsContainer"></div>
-      <!-- 시간표 테이블 본문 -->
       <div class="tt-body" id="ttTableContainer"></div>
-      <!-- 하단 공유 / 복사 버튼 그룹 -->
       <div class="tt-footer">
         <button class="tt-action-btn tt-copy-link-btn" onclick="copyTimetableShareUrl()">🔗 시간표 링크 복사</button>
         <button class="tt-action-btn tt-copy-text-btn" onclick="copyTimetableText()">📱 카카오톡 텍스트 복사</button>
@@ -708,7 +720,6 @@
     const SPREADSHEET_ID = "1QlfkQgzaIqB8gRSkFgQowxXV9pQU507050R2hv7CTyw";
 
     let routeData = {};
-    let detectedRoundLabels = []; // ['1회차', '2회차', '3회차', '4회차', '5회차', '6회차', '7회차']
     const masterStopMapByNo = {};
     const masterStopMapByName = {};
     let timeWindowMinutes = 3;
@@ -736,7 +747,45 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // ================= ⭐️ 시간표 표(Table) 팝업 로직 =================
+    // ================= ⭐️ 풀다운 메뉴 변경 이벤트 =================
+    function handleCourseSelectChange(val) {
+      if (val === 'ALL') {
+        selectAllCourses();
+      } else {
+        const courses = Object.keys(routeData);
+        const idx = courses.indexOf(val);
+        selectCourse(val, idx >= 0 ? idx : 0);
+      }
+    }
+
+    function initCourseDropdown() {
+      const select = document.getElementById('courseSelect');
+      select.innerHTML = '<option value="ALL">🌐 전체 노선망 보기</option>';
+
+      const courses = Object.keys(routeData);
+      courses.forEach(cName => {
+        const opt = document.createElement('option');
+        opt.value = cName;
+        opt.innerText = `🚌 ${cName}`;
+        select.appendChild(opt);
+      });
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryCourse = urlParams.get('course');
+
+      if (queryCourse === 'ALL') {
+        select.value = 'ALL';
+        selectAllCourses();
+      } else if (queryCourse && courses.includes(queryCourse)) {
+        select.value = queryCourse;
+        selectCourse(queryCourse, courses.indexOf(queryCourse));
+      } else if (courses.length > 0) {
+        select.value = courses[0];
+        selectCourse(courses[0], 0);
+      }
+    }
+
+    // ================= 시간표 표(Table) 팝업 로직 =================
     function openTimetableModal(targetCourse) {
       const courses = Object.keys(routeData);
       if (courses.length === 0) return;
@@ -784,7 +833,6 @@
         return;
       }
 
-      // 해당 코스에 존재하는 회차 컬럼 목록 수집
       const roundSet = new Set();
       stops.forEach(s => {
         (s.schedules || []).forEach(sc => roundSet.add(sc.round));
@@ -844,7 +892,6 @@
       container.innerHTML = tableHtml;
     }
 
-    // 시간표 링크 복사
     function copyTimetableShareUrl() {
       const baseUrl = window.location.origin + window.location.pathname;
       const shareUrl = `${baseUrl}?view=timetable&course=${encodeURIComponent(currentTimetableCourseKey)}`;
@@ -856,7 +903,6 @@
       }
     }
 
-    // 카카오톡 전송용 텍스트 복사
     function copyTimetableText() {
       const stops = (routeData[currentTimetableCourseKey] || []).filter(s => !s.isWaypoint);
       if (stops.length === 0) return;
@@ -1064,7 +1110,6 @@
       loadRouteData();
     };
 
-    // ⭐️ 1~7회차 동적 감지 파서
     window.handleRouteData = function(json) {
       document.getElementById('loadingModal').style.display = 'none';
 
@@ -1158,10 +1203,9 @@
         });
 
         routeData = result;
-        initTabs();
+        initCourseDropdown();
         startRealtimeCheck();
 
-        // URL 파라미터로 시간표 바로 열람 요청이 있는 경우
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('view') === 'timetable') {
           openTimetableModal(urlParams.get('course'));
@@ -1302,47 +1346,6 @@
       document.body.appendChild(s2);
     }
 
-    function initTabs() {
-      const tabBar = document.getElementById('tabBar');
-      tabBar.innerHTML = '';
-      const courses = Object.keys(routeData);
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const queryCourse = urlParams.get('course');
-
-      const allBtn = document.createElement('button');
-      allBtn.className = 'tab-btn all-view-btn';
-      allBtn.innerHTML = '🌐 전체 노선';
-      allBtn.onclick = () => selectAllCourses(allBtn);
-      tabBar.appendChild(allBtn);
-
-      let targetBtn = null;
-      let targetCourseName = null;
-      let targetIdx = 0;
-
-      courses.forEach((cName, idx) => {
-        const btn = document.createElement('button');
-        btn.className = 'tab-btn';
-        btn.innerText = cName;
-        btn.onclick = () => selectCourse(cName, idx, btn);
-        tabBar.appendChild(btn);
-
-        if (queryCourse && queryCourse === cName) {
-          targetBtn = btn;
-          targetCourseName = cName;
-          targetIdx = idx;
-        }
-      });
-
-      if (queryCourse === 'ALL') {
-        selectAllCourses(allBtn);
-      } else if (targetBtn && targetCourseName) {
-        selectCourse(targetCourseName, targetIdx, targetBtn);
-      } else if (courses.length > 0) {
-        selectCourse(courses[0], 0, tabBar.children[1]);
-      }
-    }
-
     function clearMapLayers() {
       markerOverlays.forEach(o => o.setMap(null));
       markerOverlays = [];
@@ -1358,10 +1361,12 @@
       polylines = [];
     }
 
-    async function selectCourse(courseName, colorIdx, btnElem) {
+    async function selectCourse(courseName, colorIdx) {
       currentSelectedCourseKey = courseName;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      if (btnElem) btnElem.classList.add('active');
+      const select = document.getElementById('courseSelect');
+      if (select && select.value !== courseName) {
+        select.value = courseName;
+      }
 
       clearMapLayers();
 
@@ -1601,10 +1606,12 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    async function selectAllCourses(btnElem) {
+    async function selectAllCourses() {
       currentSelectedCourseKey = 'ALL';
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      if (btnElem) btnElem.classList.add('active');
+      const select = document.getElementById('courseSelect');
+      if (select && select.value !== 'ALL') {
+        select.value = 'ALL';
+      }
 
       clearMapLayers();
 
@@ -2049,22 +2056,23 @@
     }
 
     function switchToCourseAndStop(targetCourse, targetStopIdx) {
-      const tabBtns = document.querySelectorAll('.tab-btn');
-      tabBtns.forEach((btn, idx) => {
-        if (btn.innerText === targetCourse) {
-          selectCourse(targetCourse, idx - 1, btn);
-          setTimeout(() => {
-            const card = document.getElementById(`card-${targetStopIdx}`);
-            if (card) {
-              const sidebar = document.getElementById('sidebar');
-              if (sidebar) sidebar.classList.remove('minimized');
+      const select = document.getElementById('courseSelect');
+      if (select) select.value = targetCourse;
 
-              card.click();
-              card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-          }, 400);
+      const courses = Object.keys(routeData);
+      const idx = courses.indexOf(targetCourse);
+      selectCourse(targetCourse, idx >= 0 ? idx : 0);
+
+      setTimeout(() => {
+        const card = document.getElementById(`card-${targetStopIdx}`);
+        if (card) {
+          const sidebar = document.getElementById('sidebar');
+          if (sidebar) sidebar.classList.remove('minimized');
+
+          card.click();
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      });
+      }, 400);
     }
 
     function resolveStopCoordinates(stop) {
