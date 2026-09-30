@@ -136,9 +136,6 @@
       background: #2563eb; color: #ffffff;
     }
     .qr-share-btn:hover { background: #1d4ed8; }
-    .print-btn {
-      background: #1e293b; color: #fff;
-    }
     .fold-btn {
       background: #64748b; color: #fff; display: none;
     }
@@ -389,7 +386,7 @@
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    /* 전체 시간표 표(Table) 팝업 모달 */
+    /* ================= ⭐️ 전체 시간표 표(Table) 팝업 모달 ================= */
     #timetableModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.78); z-index: 3500;
@@ -522,7 +519,6 @@
       .company-info span { display: none; }
       .company-info::before { content: "㈜여행과 사람"; font-weight: 700; color: #334155; }
       
-      .print-btn { display: none !important; }
       .qr-share-btn { font-size: 0.74rem; padding: 0 8px; }
       .table-view-btn { font-size: 0.74rem; padding: 0 8px; }
       .course-select-wrapper select { font-size: 0.82rem; height: 36px; }
@@ -591,17 +587,73 @@
       .tt-table { font-size: 0.78rem; }
     }
 
+    /* ================= 🖨️ ⭐️ 인쇄 전용 CSS (시간표 표만 깔끔하게 출력) ================= */
     @media print {
-      #header, #liveStatusBar, #qrModal, #photoZoomModal, #topCollapsibleArea, #topExpandTab { display: none !important; }
+      /* 지도, 사이드바, 헤더 등 화면의 모든 기본 요소를 완전히 숨김 */
+      body, html {
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+        background: #ffffff !important;
+      }
+      #topCollapsibleArea, #topExpandTab, #main-container, #qrModal, #photoZoomModal, .tt-tabs, .tt-footer, .tt-close-btn {
+        display: none !important;
+      }
+
+      /* 시간표 모달 창을 일반 문서 형태로 변환 */
       #timetableModal {
-        position: static !important; display: block !important; background: none !important; padding: 0 !important;
+        display: block !important;
+        position: static !important;
+        background: none !important;
+        padding: 0 !important;
+        width: 100% !important;
+        height: auto !important;
       }
       .timetable-card {
-        height: auto !important; box-shadow: none !important; max-width: 100% !important; border-radius: 0 !important;
+        max-width: 100% !important;
+        height: auto !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        overflow: visible !important;
+        border: none !important;
       }
-      .tt-tabs, .tt-footer, .tt-close-btn { display: none !important; }
-      .tt-body { overflow: visible !important; padding: 0 !important; }
-      .tt-table { width: 100% !important; min-width: 100% !important; }
+      .tt-header {
+        background: none !important;
+        padding: 0 0 16px 0 !important;
+        border-bottom: 2px solid #0f172a !important;
+        margin-bottom: 12px !important;
+      }
+      .tt-header-left h3 {
+        font-size: 1.4rem !important;
+        color: #000000 !important;
+      }
+      .tt-header-left p {
+        font-size: 0.85rem !important;
+        color: #333333 !important;
+      }
+      .tt-body {
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      .tt-table {
+        width: 100% !important;
+        min-width: 100% !important;
+        font-size: 0.82rem !important;
+        border: 1.5px solid #000000 !important;
+      }
+      .tt-table th, .tt-table td {
+        border: 1px solid #333333 !important;
+        padding: 6px 4px !important;
+        color: #000000 !important;
+      }
+      .tt-table th {
+        background: #e2e8f0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .tt-table td.td-bokji {
+        font-weight: 800 !important;
+      }
     }
   </style>
 </head>
@@ -639,7 +691,6 @@
             <button class="action-btn table-view-btn" onclick="openTimetableModal()">📋 시간표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()">🔗 공유</button>
             <button class="action-btn fold-btn" id="btnFoldHeader" onclick="toggleTopArea()">▲ 접기</button>
-            <button class="action-btn print-btn" onclick="window.print()">A4 인쇄</button>
           </div>
         </div>
       </div>
@@ -686,7 +737,8 @@
       <div class="tt-footer">
         <button class="tt-action-btn tt-copy-link-btn" onclick="copyTimetableShareUrl()">🔗 시간표 링크 복사</button>
         <button class="tt-action-btn tt-copy-text-btn" onclick="copyTimetableText()">📱 카카오톡 텍스트 복사</button>
-        <button class="tt-action-btn tt-print-btn" onclick="window.print()">🖨️ 시간표 인쇄</button>
+        <!-- ⭐️ 시간표 전용 인쇄 함수 호출 -->
+        <button class="tt-action-btn tt-print-btn" onclick="printTimetableTable()">🖨️ 시간표 인쇄</button>
       </div>
     </div>
   </div>
@@ -744,7 +796,6 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // ⭐️ 회차명에서 숫자만 추출하여 정렬 기준값 반환 (예: "1회차" -> 1, "1회" -> 1)
     function parseRoundNumber(str) {
       if (!str) return 999;
       const numMatch = str.match(/\d+/);
@@ -831,12 +882,14 @@
       const container = document.getElementById('ttTableContainer');
       const stops = (routeData[courseName] || []).filter(s => !s.isWaypoint);
 
+      // 인쇄용 제목 갱신
+      document.getElementById('ttModalTitle').innerText = `2026년 셔틀버스 운행 시간표 [${courseName}]`;
+
       if (stops.length === 0) {
         container.innerHTML = '<p style="padding:20px; text-align:center; color:#64748b;">등록된 정류소 정보가 없습니다.</p>';
         return;
       }
 
-      // 해당 코스에 존재하는 회차 컬럼 목록 수집
       const roundSet = new Set();
       stops.forEach(s => {
         (s.schedules || []).forEach(sc => {
@@ -844,7 +897,6 @@
         });
       });
 
-      // ⭐️️ 핵심 수정: 회차 번호 기준(1회차 -> 2회차 -> 3회차 ...) 오름차순 강제 정렬
       const roundCols = Array.from(roundSet).sort((a, b) => {
         return parseRoundNumber(a) - parseRoundNumber(b);
       });
@@ -902,6 +954,12 @@
       container.innerHTML = tableHtml;
     }
 
+    // ⭐️ 시간표 전용 인쇄 함수
+    function printTimetableTable() {
+      // 시간표 모달이 열려있는 상태에서 인쇄 실행
+      window.print();
+    }
+
     function copyTimetableShareUrl() {
       const baseUrl = window.location.origin + window.location.pathname;
       const shareUrl = `${baseUrl}?view=timetable&course=${encodeURIComponent(currentTimetableCourseKey)}`;
@@ -923,7 +981,6 @@
       msg += `--------------------------------\n`;
 
       stops.forEach((s, idx) => {
-        // 정렬된 회차 순서대로 시간표 작성
         const sortedSchedules = [...(s.schedules || [])].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
         const times = sortedSchedules
           .filter(sc => sc.time && !sc.time.includes('미운행'))
@@ -997,7 +1054,6 @@
       return `${(meters / 1000).toFixed(1)} km`;
     }
 
-    // ⭐️ 뱃지 표시 시에도 회차 순서 정렬 반영
     function buildScheduleHtml(schedules, currentMinutes, windowMins) {
       if (!schedules || schedules.length === 0) return '';
       const sorted = [...schedules].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
@@ -1155,7 +1211,6 @@
           }
         });
 
-        // ⭐️ 시트 컬럼 자체도 회차 번호순으로 사전 정렬
         roundCols.sort((a, b) => parseRoundNumber(a.label) - parseRoundNumber(b.label));
 
         if (colIndexMap.desc === -1) colIndexMap.desc = roundCols.length > 0 ? roundCols[roundCols.length - 1].index + 1 : 5;
@@ -1973,7 +2028,7 @@
         arrowDiv.innerHTML = `
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 12H19M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         `;
 
