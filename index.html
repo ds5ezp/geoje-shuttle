@@ -3,26 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>거제시종합사회복지관 셔틀버스 노선 안내</title>
+  <title>거제시종합사회복지관 셔틀버스 관제 시스템</title>
 
   <!-- 카카오맵 SDK -->
   <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f01d8615df654cbc9c30cca0069570ba&libraries=services"></script>
 
-  <!-- ⭐️ Firebase SDK 추가 -->
+  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // ⭐️ 본인의 파이어베이스 설정 정보 입력
     const firebaseConfig = {
-     apiKey: "AIzaSyDIOaN5jLCjjjK-xKUi4Bb-f4597panqDo",
-  authDomain: "gjcwbus.firebaseapp.com",
-  projectId: "gjcwbus",
-  storageBucket: "gjcwbus.firebasestorage.app",
-  databaseURL: "https://gjcwbus-default-rtdb.asia-southeast1.firebasedatabase.app",
-  messagingSenderId: "427511689115",
-  appId: "1:427511689115:web:f409857185be5668d1fb3e",
-  measurementId: "G-8RNZ3ESW56"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -32,7 +30,6 @@
 
     window.initRealtimeBusTracking = function() {
       const liveBusRef = ref(db, 'liveBuses/');
-      
       onValue(liveBusRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
@@ -42,7 +39,6 @@
           if (!pos || !pos.lat || !pos.lng) return;
 
           const busLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
-
           if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
             updateRealtimeBusMarker(courseName, busLatLng);
           }
@@ -52,7 +48,6 @@
 
     function updateRealtimeBusMarker(courseName, latLng) {
       if (!window.map) return;
-
       if (window.realtimeBusMarkers[courseName]) {
         window.realtimeBusMarkers[courseName].setPosition(latLng);
       } else {
@@ -77,7 +72,7 @@
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; -webkit-tap-highlight-color: transparent; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #f8fafc; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #f1f5f9; }
 
     #app-wrapper {
       display: flex;
@@ -87,728 +82,313 @@
       position: relative;
     }
 
+    /* 큰 글씨 모드 */
     body.large-font .header-info h1 { font-size: 1.25rem !important; }
-    body.large-font .stop-info h4 { font-size: 1.2rem !important; font-weight: 900 !important; }
-    body.large-font .stop-id-tag { font-size: 0.88rem !important; }
-    body.large-font .round-pill { font-size: 0.95rem !important; padding: 5px 10px !important; }
-    body.large-font .eta-alert-badge { font-size: 0.96rem !important; padding: 6px 12px !important; }
-    body.large-font .stop-info .desc { font-size: 0.95rem !important; }
-    body.large-font .bubble-popup .popup-title { font-size: 1.25rem !important; }
-    body.large-font .bubble-popup .popup-addr { font-size: 0.92rem !important; }
-    body.large-font .bubble-popup .popup-desc { font-size: 0.9rem !important; }
+    body.large-font .stop-info h4 { font-size: 1.15rem !important; font-weight: 900 !important; }
+    body.large-font .round-pill { font-size: 0.92rem !important; }
+    body.large-font .bubble-popup .popup-title { font-size: 1.2rem !important; }
     body.large-font .tt-table { font-size: 1.05rem !important; }
     body.large-font #courseSelect { font-size: 1.05rem !important; }
 
-    #topCollapsibleArea {
-      flex-shrink: 0;
-      width: 100%;
-      background: #ffffff;
-      z-index: 100;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-      position: relative;
-    }
-
-    #topCollapsibleArea.collapsed {
-      transform: translateY(-100%);
-      margin-bottom: -100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-    }
-
-    #topExpandTab {
-      display: none;
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.9);
-      color: #ffffff;
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 800;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      cursor: pointer;
-      z-index: 95;
-      align-items: center;
-      gap: 4px;
-    }
-
+    /* 상단 헤더 영역 */
     #header {
-      padding: 8px 12px 6px 12px;
+      flex-shrink: 0;
+      background: #ffffff;
+      padding: 10px 16px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      background: #ffffff;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      z-index: 100;
     }
     .header-top-row {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
-    .header-info h1 { font-size: 1.02rem; font-weight: 800; color: #0f172a; white-space: nowrap; }
-    
-    .company-info {
-      display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: #475569;
-    }
+    .header-info h1 { font-size: 1.1rem; font-weight: 800; color: #0f172a; }
+    .company-info { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #475569; }
     .call-btn {
-      display: inline-flex; align-items: center; gap: 4px;
       background: #10b981; color: #ffffff; text-decoration: none;
-      font-size: 0.72rem; font-weight: 700; padding: 3px 8px; border-radius: 12px;
-      transition: background 0.2s; box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
-      white-space: nowrap;
+      font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 12px;
+      display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(16,185,129,0.3);
     }
     .call-btn:hover { background: #059669; }
 
-    .header-middle-row {
-      position: relative; width: 100%;
-    }
-    .stop-search-box {
-      position: relative; display: flex; align-items: center; width: 100%;
-    }
+    .header-middle-row { display: flex; align-items: center; gap: 8px; }
+    .stop-search-box { position: relative; display: flex; align-items: center; width: 100%; }
     .stop-search-box input {
-      width: 100%; height: 34px; padding: 0 32px 0 10px;
+      width: 100%; height: 36px; padding: 0 32px 0 10px;
       border: 1.5px solid #cbd5e1; border-radius: 8px;
-      font-size: 0.84rem; font-weight: 700; color: #0f172a; outline: none;
-      background: #f8fafc;
+      font-size: 0.85rem; font-weight: 700; color: #0f172a; outline: none; background: #f8fafc;
     }
     .stop-search-box input:focus { border-color: #2563eb; background: #fff; }
     .search-clear-btn {
-      position: absolute; right: 8px; background: none; border: none;
-      font-size: 16px; color: #94a3b8; cursor: pointer; display: none;
+      position: absolute; right: 8px; background: none; border: none; font-size: 16px; color: #94a3b8; cursor: pointer; display: none;
     }
 
     #searchDropdownList {
-      display: none; position: absolute; top: 38px; left: 0; right: 0;
+      display: none; position: absolute; top: 40px; left: 0; right: 0;
       background: #ffffff; border: 1.5px solid #2563eb; border-radius: 8px;
-      max-height: 260px; overflow-y: auto; z-index: 1000;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      max-height: 260px; overflow-y: auto; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
     .search-result-item {
-      padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
-      display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem;
-      transition: background 0.15s;
+      padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem;
     }
     .search-result-item:hover { background: #eff6ff; }
-    .search-item-top {
-      display: flex; align-items: center; justify-content: space-between; gap: 6px;
-    }
-    .search-result-item .item-main { font-weight: 800; color: #0f172a; font-size: 0.86rem; }
-    .search-result-item .item-course {
-      background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 4px;
-      font-size: 0.72rem; font-weight: 700; white-space: nowrap;
-    }
-    .search-result-item .item-no {
-      color: #64748b; font-size: 0.72rem; margin-left: 6px;
-    }
-    .search-item-times {
-      display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px;
-    }
-    .search-time-chip {
-      background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;
-      font-size: 0.7rem; font-weight: 700; padding: 1px 5px; border-radius: 4px;
-    }
+    .search-item-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .search-result-item .item-main { font-weight: 800; color: #0f172a; }
+    .search-result-item .item-course { background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
+    .search-result-item .item-no { color: #64748b; font-size: 0.72rem; margin-left: 6px; }
+    .search-item-times { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+    .search-time-chip { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; font-size: 0.7rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
     .search-time-chip b { color: #2563eb; }
 
-    .header-bottom-row {
-      display: flex; align-items: center; gap: 4px; width: 100%; flex-wrap: nowrap;
-    }
-
-    .course-select-wrapper {
-      flex: 1; min-width: 0; position: relative; display: flex; align-items: center;
-    }
+    .header-bottom-row { display: flex; align-items: center; gap: 6px; }
+    .course-select-wrapper { flex: 1; position: relative; display: flex; align-items: center; }
     .course-select-wrapper select {
-      width: 100%;
-      height: 34px;
-      padding: 0 24px 0 8px;
-      background: #f1f5f9;
-      color: #0f172a;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      font-weight: 800;
-      cursor: pointer;
-      appearance: none;
-      -webkit-appearance: none;
-      outline: none;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      overflow: hidden;
+      width: 100%; height: 36px; padding: 0 28px 0 10px; background: #f1f5f9; color: #0f172a;
+      border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; font-weight: 800; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none;
     }
-    .course-select-wrapper select:focus {
-      border-color: #2563eb;
-      background: #ffffff;
-    }
-    .course-select-wrapper::after {
-      content: '▼';
-      font-size: 9px;
-      color: #64748b;
-      position: absolute;
-      right: 8px;
-      pointer-events: none;
-    }
+    .course-select-wrapper select:focus { border-color: #2563eb; background: #ffffff; }
+    .course-select-wrapper::after { content: '▼'; font-size: 9px; color: #64748b; position: absolute; right: 10px; pointer-events: none; }
 
-    .header-actions {
-      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
-    }
+    .header-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
     .action-btn {
-      height: 34px;
-      padding: 0 7px; border: none; border-radius: 7px; cursor: pointer;
-      font-weight: 700; font-size: 0.74rem; white-space: nowrap; transition: all 0.2s;
-      display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+      height: 36px; padding: 0 9px; border: none; border-radius: 8px; cursor: pointer;
+      font-weight: 700; font-size: 0.76rem; white-space: nowrap; transition: all 0.2s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 3px;
     }
     .pwa-btn { background: #0284c7; color: #ffffff; }
     .font-size-btn { background: #ea580c; color: #ffffff; }
     .nearby-btn { background: #2563eb; color: #ffffff; }
     .table-view-btn { background: #047857; color: #ffffff; }
     .qr-share-btn { background: #475569; color: #ffffff; }
-    .fold-btn { background: #64748b; color: #fff; }
 
+    /* 공지사항 띠 배너 */
     #noticeBanner {
-      display: none;
-      width: 100%;
-      background: #fffbeb;
-      color: #b45309;
-      border-top: 1px solid #fef3c7;
-      border-bottom: 1px solid #fde68a;
-      padding: 7px 12px;
-      font-size: 0.8rem;
-      font-weight: 700;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      box-sizing: border-box;
-      line-height: 1.4;
+      display: none; width: 100%; background: #fffbeb; color: #b45309;
+      border-top: 1px solid #fef3c7; border-bottom: 1px solid #fde68a;
+      padding: 7px 16px; font-size: 0.8rem; font-weight: 700; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box;
     }
-    .notice-content {
-      display: flex; align-items: center; gap: 6px; flex: 1; word-break: break-all;
-    }
-    .notice-badge {
-      background: #f59e0b; color: #ffffff; font-size: 0.7rem; font-weight: 800;
-      padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
-    }
-    .notice-close-btn {
-      background: none; border: none; font-size: 16px; color: #92400e;
-      cursor: pointer; padding: 2px 6px; font-weight: bold; line-height: 1;
-    }
+    .notice-content { display: flex; align-items: center; gap: 6px; flex: 1; word-break: break-all; }
+    .notice-badge { background: #f59e0b; color: #ffffff; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+    .notice-close-btn { background: none; border: none; font-size: 16px; color: #92400e; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 
+    /* 실시간 운행 현황 배너 */
     #liveStatusBar {
-      width: 100%; min-height: 38px; height: 38px;
-      background: #0f172a; color: #ffffff; display: flex; align-items: center;
-      padding: 0 12px; font-size: 0.76rem; gap: 8px;
-      overflow-x: auto; overflow-y: hidden;
-      white-space: nowrap;
-      -webkit-overflow-scrolling: touch;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      box-sizing: border-box;
+      width: 100%; height: 38px; background: #0f172a; color: #ffffff; display: flex; align-items: center;
+      padding: 0 16px; font-size: 0.78rem; gap: 8px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; box-sizing: border-box;
     }
-    #liveStatusBar::-webkit-scrollbar { height: 3px; }
-    #liveStatusBar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.25); border-radius: 2px; }
-    #liveStatusBar::-webkit-scrollbar-track { background: transparent; }
-
     .live-tag {
-      background: #ef4444; color: #fff; padding: 2px 6px; border-radius: 12px;
-      font-weight: 800; font-size: 0.68rem; animation: pulse 1.5s infinite;
-      flex-shrink: 0; display: inline-flex; align-items: center;
+      background: #ef4444; color: #fff; padding: 2px 7px; border-radius: 12px; font-weight: 800; font-size: 0.7rem; animation: pulse 1.5s infinite; flex-shrink: 0;
     }
-    .live-tag.holiday, .live-tag.ended {
-      background: #475569 !important; animation: none !important;
-    }
-    @keyframes pulse {
-      0% { opacity: 1; }
-      50% { opacity: 0.4; }
-      100% { opacity: 1; }
-    }
-
-    #liveStatusText {
-      display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
-    }
-
+    .live-tag.holiday, .live-tag.ended { background: #475569 !important; animation: none !important; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    #liveStatusText { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .live-item {
-      background: rgba(255, 255, 255, 0.1); padding: 3px 8px; border-radius: 20px;
-      cursor: pointer; white-space: nowrap; transition: all 0.2s;
-      display: inline-flex; align-items: center; gap: 4px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      font-size: 0.72rem; flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.1); padding: 3px 8px; border-radius: 20px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 0.74rem; flex-shrink: 0;
     }
-    .live-item:hover {
-      background: rgba(59, 130, 246, 0.6);
-      border-color: #60a5fa;
-    }
+    .live-item:hover { background: rgba(59, 130, 246, 0.6); }
 
+    /* ================= ⭐️ 2단 관제 레이아웃 (좌측 타임라인 + 우측 지도) ================= */
     #main-container {
-      flex: 1;
-      display: flex;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      overflow: hidden;
+      flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden;
     }
 
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
     #sidebar {
-      width: 400px; height: 100%; background: #ffffff;
-      box-shadow: -2px 0 10px rgba(0,0,0,0.08); overflow-y: auto;
-      padding: 16px; display: flex; flex-direction: column; gap: 10px;
-      z-index: 50;
+      width: 420px; height: 100%; background: #ffffff;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.08); overflow-y: auto;
+      padding: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 50; flex-shrink: 0;
     }
     .sheet-handle-bar { display: none; }
 
     .sidebar-header {
-      font-size: 0.98rem; font-weight: 800; color: #0f172a;
+      font-size: 1.02rem; font-weight: 800; color: #0f172a;
       display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0;
     }
     .header-badges { display: flex; gap: 6px; align-items: center; }
     .header-badges span { font-size: 0.78rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
     .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
+    #stopList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+
     .course-section-title {
       font-size: 0.88rem; font-weight: 800; padding: 6px 10px; border-radius: 6px;
-      margin-top: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;
+      margin-top: 10px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;
     }
 
     .stop-card {
       background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px;
-      padding: 12px 14px; cursor: pointer; transition: all 0.2s;
-      display: flex; flex-direction: column; gap: 8px;
+      padding: 12px 14px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 8px;
     }
-    .stop-card:hover, .stop-card.active {
-      background: #eff6ff; border-color: #2563eb; transform: translateY(-1px);
-    }
-    .stop-card.now-running {
-      border-color: #ef4444; background: #fef2f2;
-    }
+    .stop-card:hover, .stop-card.active { background: #eff6ff; border-color: #2563eb; transform: translateY(-1px); }
+    .stop-card.now-running { border-color: #ef4444; background: #fef2f2; }
 
-    .card-top {
-      display: flex; gap: 12px; align-items: flex-start;
-    }
+    .card-top { display: flex; gap: 12px; align-items: flex-start; }
     .stop-num {
       width: 28px; height: 28px; border-radius: 50%; background: #2563eb;
-      color: #fff; font-weight: 800; font-size: 0.88rem;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      color: #fff; font-weight: 800; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .stop-num.bokji { background: #dc2626 !important; }
     
     .stop-info { flex: 1; min-width: 0; }
     .stop-info-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
     .stop-info h4 { font-size: 0.98rem; font-weight: 800; color: #0f172a; word-break: break-all; }
-    .stop-id-tag {
-      background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;
-      font-size: 0.72rem; font-weight: 700; padding: 1px 7px; border-radius: 4px; white-space: nowrap;
-    }
-    .live-active-tag {
-      background: #ef4444; color: #fff; font-size: 0.68rem; font-weight: bold;
-      padding: 1px 6px; border-radius: 4px; white-space: nowrap;
-    }
+    .stop-id-tag { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-size: 0.72rem; font-weight: 700; padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
+    .live-active-tag { background: #ef4444; color: #fff; font-size: 0.68rem; font-weight: bold; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
 
     .tts-speak-btn {
       background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;
-      border-radius: 6px; padding: 2px 7px; font-size: 0.74rem; font-weight: 800;
-      cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
+      border-radius: 6px; padding: 2px 7px; font-size: 0.74rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
     }
     .tts-speak-btn:hover { background: #bae6fd; }
 
     .eta-alert-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;
-      padding: 4px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 800;
-      margin-top: 4px; box-shadow: 0 1px 3px rgba(194, 65, 12, 0.1);
+      display: inline-flex; align-items: center; gap: 5px; background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;
+      padding: 4px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 800; margin-top: 4px; box-shadow: 0 1px 3px rgba(194,65,12,0.1);
     }
-    .eta-alert-badge.imminent {
-      background: #fef2f2; color: #dc2626; border-color: #fee2e2;
-      animation: pulse 1.5s infinite;
-    }
+    .eta-alert-badge.imminent { background: #fef2f2; color: #dc2626; border-color: #fee2e2; animation: pulse 1.5s infinite; }
 
-    .schedule-rounds-box {
-      display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;
-    }
+    .schedule-rounds-box { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .round-pill {
-      font-size: 0.76rem; padding: 3px 8px; border-radius: 6px;
-      background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;
-      display: inline-flex; align-items: center; gap: 4px; font-weight: 600;
+      font-size: 0.76rem; padding: 3px 8px; border-radius: 6px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;
     }
     .round-pill b { font-weight: 800; color: #1d4ed8; }
-    .round-pill.active {
-      background: #ef4444 !important; color: #ffffff !important;
-      border-color: #ef4444 !important; font-weight: 800;
-      box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4);
-    }
+    .round-pill.active { background: #ef4444 !important; color: #ffffff !important; border-color: #ef4444 !important; font-weight: 800; box-shadow: 0 1px 4px rgba(239,68,68,0.4); }
     .round-pill.active b { color: #ffffff !important; }
-    .round-pill.none {
-      background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0;
-    }
+    .round-pill.none { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; }
 
     .meta-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
-    .dist-tag {
-      background: #ecfdf5; color: #065f46; font-size: 0.74rem; font-weight: 700;
-      padding: 3px 7px; border-radius: 4px; border: 1px solid #a7f3d0;
-    }
+    .dist-tag { background: #ecfdf5; color: #065f46; font-size: 0.74rem; font-weight: 700; padding: 3px 7px; border-radius: 4px; border: 1px solid #a7f3d0; }
     .stop-info .desc { font-size: 0.8rem; color: #475569; margin-top: 4px; line-height: 1.4; word-break: break-all; }
 
-    .stop-photo-box {
-      width: 100%; height: 135px; border-radius: 8px; overflow: hidden;
-      margin-top: 4px; position: relative; background: #e2e8f0; cursor: zoom-in;
-    }
-    .stop-photo-box img {
-      width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s;
-    }
+    .stop-photo-box { width: 100%; height: 130px; border-radius: 8px; overflow: hidden; margin-top: 4px; position: relative; background: #e2e8f0; cursor: zoom-in; }
+    .stop-photo-box img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
     .stop-photo-box:hover img { transform: scale(1.03); }
-    .photo-badge {
-      position: absolute; bottom: 6px; right: 6px; background: rgba(15, 23, 42, 0.75);
-      color: #fff; font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 12px;
-      pointer-events: none;
-    }
+    .photo-badge { position: absolute; bottom: 6px; right: 6px; background: rgba(15,23,42,0.75); color: #fff; font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 12px; pointer-events: none; }
 
+    /* 지도 마커 및 팝업 스타일 */
     .bus-marker-badge {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: #2563eb; color: #ffffff; font-weight: 800; font-size: 14px;
-      display: flex; align-items: center; justify-content: center;
-      border: 2px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.35);
-      cursor: pointer; transform: translate(-50%, -50%);
-      transition: transform 0.15s ease;
+      width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #ffffff; font-weight: 800; font-size: 14px;
+      display: flex; align-items: center; justify-content: center; border: 2px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.35); cursor: pointer; transform: translate(-50%, -50%); transition: transform 0.15s ease;
     }
     .bus-marker-badge:hover { transform: translate(-50%, -50%) scale(1.15); }
     .bus-marker-badge.복지관 { background: #dc2626 !important; width: 36px; height: 36px; font-size: 15px; }
-    .bus-marker-badge.now-active {
-      background: #ef4444 !important; border: 3px solid #fef08a !important;
-      box-shadow: 0 0 12px rgba(239, 68, 68, 0.9); transform: translate(-50%, -50%) scale(1.25);
-    }
+    .bus-marker-badge.now-active { background: #ef4444 !important; border: 3px solid #fef08a !important; box-shadow: 0 0 12px rgba(239,68,68,0.9); transform: translate(-50%, -50%) scale(1.25); }
 
     .my-loc-pin {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: #0284c7; border: 3px solid #ffffff;
-      box-shadow: 0 0 0 8px rgba(2, 132, 199, 0.25);
-      animation: myLocPulse 2s infinite ease-in-out;
-      transform: translate(-50%, -50%);
+      width: 22px; height: 22px; border-radius: 50%; background: #0284c7; border: 3px solid #ffffff;
+      box-shadow: 0 0 0 8px rgba(2,132,199,0.25); animation: myLocPulse 2s infinite ease-in-out; transform: translate(-50%, -50%);
     }
-    @keyframes myLocPulse {
-      0% { box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.4); }
-      70% { box-shadow: 0 0 0 14px rgba(2, 132, 199, 0); }
-      100% { box-shadow: 0 0 0 2px rgba(2, 132, 199, 0); }
-    }
+    @keyframes myLocPulse { 0% { box-shadow: 0 0 0 2px rgba(2,132,199,0.4); } 70% { box-shadow: 0 0 0 14px rgba(2,132,199,0); } 100% { box-shadow: 0 0 0 2px rgba(2,132,199,0); } }
 
-    .route-dir-arrow {
-      width: 26px; height: 26px;
-      display: flex; align-items: center; justify-content: center;
-      pointer-events: none; transform-origin: center center;
-      filter: drop-shadow(0px 1px 3px rgba(0, 0, 0, 0.65));
-    }
-    .route-dir-arrow svg {
-      width: 100%; height: 100%; overflow: visible;
-    }
+    .route-dir-arrow { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; pointer-events: none; transform-origin: center center; filter: drop-shadow(0px 1px 3px rgba(0,0,0,0.65)); }
+    .route-dir-arrow svg { width: 100%; height: 100%; overflow: visible; }
 
     .live-bus-badge {
-      position: absolute; bottom: 22px; left: 50%;
-      transform: translateX(-50%); background: #ffffff;
-      border: 2px solid #ef4444; border-radius: 20px;
-      padding: 2px 7px; font-size: 13px; font-weight: 800;
-      color: #ef4444; box-shadow: 0 3px 10px rgba(239, 68, 68, 0.5);
-      display: flex; align-items: center; gap: 3px; white-space: nowrap;
-      animation: bounceBus 1.2s infinite ease-in-out;
-      pointer-events: none; z-index: 200;
+      position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); background: #ffffff;
+      border: 2px solid #ef4444; border-radius: 20px; padding: 2px 7px; font-size: 13px; font-weight: 800; color: #ef4444; box-shadow: 0 3px 10px rgba(239,68,68,0.5); display: flex; align-items: center; gap: 3px; white-space: nowrap; animation: bounceBus 1.2s infinite ease-in-out; pointer-events: none; z-index: 200;
     }
-    .live-bus-badge::after {
-      content: ''; position: absolute; bottom: -6px; left: 50%;
-      transform: translateX(-50%); border-width: 6px 5px 0 5px;
-      border-style: solid; border-color: #ef4444 transparent transparent transparent;
-    }
-    @keyframes bounceBus {
-      0%, 100% { transform: translateX(-50%) translateY(0); }
-      50% { transform: translateX(-50%) translateY(-6px); }
-    }
+    .live-bus-badge::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-width: 6px 5px 0 5px; border-style: solid; border-color: #ef4444 transparent transparent transparent; }
+    @keyframes bounceBus { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
 
     .bubble-popup {
-      position: relative; background: #ffffff; border-radius: 14px;
-      padding: 14px 16px; box-shadow: 0 6px 22px rgba(0,0,0,0.28);
-      border: 1px solid #cbd5e1; width: 310px; bottom: 22px;
+      position: relative; background: #ffffff; border-radius: 14px; padding: 14px 16px;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.28); border: 1px solid #cbd5e1; width: 310px; bottom: 22px;
     }
-    .bubble-popup::after {
-      content: ''; position: absolute; bottom: -8px; left: 50%;
-      transform: translateX(-50%); border-width: 8px 8px 0 8px;
-      border-style: solid; border-color: #ffffff transparent transparent transparent;
-    }
-    .bubble-popup .popup-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: 8px; margin-bottom: 6px;
-    }
-    .bubble-popup .popup-title-area {
-      flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0;
-    }
-    .bubble-popup .popup-title {
-      font-size: 1.02rem; font-weight: 800; color: #0f172a; word-break: break-all; line-height: 1.35;
-    }
-    .bubble-popup .popup-tags-row {
-      display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px;
-    }
-    .bubble-popup .close-btn {
-      background: none; border: none; font-size: 20px; color: #94a3b8;
-      cursor: pointer; padding: 0 2px; font-weight: bold; line-height: 1; flex-shrink: 0;
-    }
+    .bubble-popup::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); border-width: 8px 8px 0 8px; border-style: solid; border-color: #ffffff transparent transparent transparent; }
+    .bubble-popup .popup-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .bubble-popup .popup-title-area { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .bubble-popup .popup-title { font-size: 1.02rem; font-weight: 800; color: #0f172a; word-break: break-all; line-height: 1.35; }
+    .bubble-popup .popup-tags-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+    .bubble-popup .close-btn { background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 0 2px; font-weight: bold; line-height: 1; flex-shrink: 0; }
     .bubble-popup .close-btn:hover { color: #0f172a; }
     .bubble-popup .popup-addr { font-size: 0.8rem; color: #64748b; line-height: 1.35; margin-top: 6px; word-break: break-all; }
-    .bubble-popup .popup-desc {
-      font-size: 0.78rem; color: #334155; margin-top: 6px; line-height: 1.35;
-      background: #f8fafc; padding: 6px 8px; border-radius: 6px; word-break: break-all;
-    }
-    .popup-photo {
-      width: 100%; height: 145px; border-radius: 8px; object-fit: cover;
-      margin-top: 6px; cursor: zoom-in;
-    }
+    .bubble-popup .popup-desc { font-size: 0.78rem; color: #334155; margin-top: 6px; line-height: 1.35; background: #f8fafc; padding: 6px 8px; border-radius: 6px; word-break: break-all; }
+    .popup-photo { width: 100%; height: 140px; border-radius: 8px; object-fit: cover; margin-top: 6px; cursor: zoom-in; }
 
-    .popup-btn-row {
-      display: flex; gap: 6px; margin-top: 10px; width: 100%;
-    }
-    .popup-nav-btn {
-      flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
-      padding: 8px 0; border-radius: 8px;
-      background: #10b981; color: #ffffff; text-decoration: none;
-      font-size: 0.78rem; font-weight: 800; transition: background 0.2s;
-    }
+    .popup-btn-row { display: flex; gap: 6px; margin-top: 10px; width: 100%; }
+    .popup-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 0; border-radius: 8px; background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.78rem; font-weight: 800; }
     .popup-nav-btn:hover { background: #059669; }
-
-    .popup-roadview-btn {
-      flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
-      padding: 8px 0; border-radius: 8px;
-      background: #2563eb; color: #ffffff; text-decoration: none;
-      font-size: 0.78rem; font-weight: 800; transition: background 0.2s;
-    }
+    .popup-roadview-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 0; border-radius: 8px; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 0.78rem; font-weight: 800; }
     .popup-roadview-btn:hover { background: #1d4ed8; }
 
     #loadingModal {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.7); color: #fff; z-index: 2000;
-      display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.05rem;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.7); color: #fff; z-index: 2000; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.05rem;
     }
-
     #routeBadge {
-      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.85); color: #fff; padding: 6px 16px;
-      border-radius: 20px; font-size: 0.78rem; font-weight: bold; z-index: 500;
-      display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 0.78rem; font-weight: bold; z-index: 500; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    #timetableModal {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.78); z-index: 3500;
-      align-items: center; justify-content: center; padding: 12px;
+    /* 시간표, QR, PWA, 사진 확대 모달 공통 */
+    #timetableModal, #qrModal, #pwaModal, #photoZoomModal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.78); z-index: 3500; align-items: center; justify-content: center; padding: 12px;
     }
-    .timetable-card {
-      background: #ffffff; width: 100%; max-width: 900px; height: 90vh;
-      border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.35);
-      display: flex; flex-direction: column; overflow: hidden;
-    }
-    .tt-header {
-      padding: 16px 20px 12px 20px; border-bottom: 1.5px solid #e2e8f0;
-      display: flex; align-items: center; justify-content: space-between;
-      background: #f8fafc; flex-shrink: 0;
-    }
+    .timetable-card { background: #ffffff; width: 100%; max-width: 900px; height: 90vh; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.35); display: flex; flex-direction: column; overflow: hidden; }
+    .tt-header { padding: 16px 20px; border-bottom: 1.5px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; background: #f8fafc; flex-shrink: 0; }
     .tt-header-left h3 { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
     .tt-header-left p { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
-    .tt-close-btn {
-      background: none; border: none; font-size: 24px; color: #64748b;
-      cursor: pointer; padding: 4px; font-weight: bold; line-height: 1;
-    }
-    .tt-close-btn:hover { color: #0f172a; }
-
-    .tt-tabs {
-      display: flex; gap: 8px; padding: 10px 16px; background: #ffffff;
-      border-bottom: 1px solid #e2e8f0; overflow-x: auto; flex-shrink: 0;
-    }
-    .tt-tab-btn {
-      padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700;
-      border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; cursor: pointer; white-space: nowrap;
-    }
-    .tt-tab-btn.active {
-      background: #047857; color: #ffffff; border-color: #047857;
-    }
-
-    .tt-body {
-      flex: 1; overflow: auto; padding: 14px 16px; -webkit-overflow-scrolling: touch;
-    }
-    .tt-table {
-      width: 100%; border-collapse: collapse; font-size: 0.84rem; text-align: center;
-      min-width: 580px;
-    }
-    .tt-table th, .tt-table td {
-      border: 1px solid #cbd5e1; padding: 8px 6px;
-    }
-    .tt-table th {
-      background: #f1f5f9; color: #1e293b; font-weight: 800; position: sticky; top: 0; z-index: 10;
-    }
+    .tt-close-btn { background: none; border: none; font-size: 24px; color: #64748b; cursor: pointer; }
+    .tt-tabs { display: flex; gap: 8px; padding: 10px 16px; background: #ffffff; border-bottom: 1px solid #e2e8f0; overflow-x: auto; flex-shrink: 0; }
+    .tt-tab-btn { padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; cursor: pointer; white-space: nowrap; }
+    .tt-tab-btn.active { background: #047857; color: #ffffff; border-color: #047857; }
+    .tt-body { flex: 1; overflow: auto; padding: 14px 16px; -webkit-overflow-scrolling: touch; }
+    .tt-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; text-align: center; min-width: 580px; }
+    .tt-table th, .tt-table td { border: 1px solid #cbd5e1; padding: 8px 6px; }
+    .tt-table th { background: #f1f5f9; color: #1e293b; font-weight: 800; position: sticky; top: 0; z-index: 10; }
     .tt-table th.th-stop { width: 32%; text-align: left; padding-left: 12px; }
-    .tt-table td.td-stop {
-      text-align: left; padding-left: 12px; font-weight: 700; color: #0f172a;
-    }
+    .tt-table td.td-stop { text-align: left; padding-left: 12px; font-weight: 700; color: #0f172a; }
     .tt-table td.td-bokji { background: #fef2f2; color: #dc2626; font-weight: 800; }
-    .tt-table td.td-active-time {
-      background: #fee2e2; color: #dc2626; font-weight: 800;
-    }
-    .tt-table tr:hover td { background-color: #f8fafc; }
-
-    .tt-footer {
-      padding: 12px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0;
-      display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; flex-shrink: 0;
-    }
-    .tt-action-btn {
-      padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 700;
-      cursor: pointer; border: none; transition: background 0.2s;
-    }
+    .tt-table td.td-active-time { background: #fee2e2; color: #dc2626; font-weight: 800; }
+    .tt-footer { padding: 12px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; flex-shrink: 0; }
+    .tt-action-btn { padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: none; }
     .tt-copy-link-btn { background: #2563eb; color: #fff; }
     .tt-copy-text-btn { background: #047857; color: #fff; }
     .tt-print-btn { background: #1e293b; color: #fff; }
 
-    #qrModal {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.75); z-index: 3000;
-      align-items: center; justify-content: center; padding: 16px;
-    }
-    .qr-card {
-      background: #ffffff; width: 100%; max-width: 340px; border-radius: 16px;
-      padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      display: flex; flex-direction: column; align-items: center; text-align: center;
-    }
-    .qr-card h3 { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
-    .qr-card p { font-size: 0.8rem; color: #64748b; margin-bottom: 14px; }
-    #qrImage {
-      width: 190px; height: 190px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 14px;
-    }
+    .qr-card, .pwa-card { background: #ffffff; width: 100%; max-width: 360px; border-radius: 18px; padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+    .qr-card h3, .pwa-card h3 { font-size: 1.05rem; font-weight: 800; color: #0f172a; }
+    #qrImage { width: 190px; height: 190px; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 6px; }
     .qr-btn-group { display: flex; gap: 8px; width: 100%; }
-    .qr-action-btn {
-      flex: 1; padding: 10px 0; border: none; border-radius: 8px;
-      font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
-    }
+    .qr-action-btn { flex: 1; padding: 10px 0; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
     .copy-url-btn { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-    .copy-url-btn:hover { background: #dbeafe; }
-    .close-qr-btn { background: #1e293b; color: #ffffff; }
+    .close-qr-btn, .pwa-close-btn { background: #1e293b; color: #ffffff; width: 100%; padding: 10px 0; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; }
 
-    #pwaModal {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15, 23, 42, 0.78); z-index: 3600;
-      align-items: center; justify-content: center; padding: 16px;
-    }
-    .pwa-card {
-      background: #ffffff; width: 100%; max-width: 380px; border-radius: 18px;
-      padding: 20px; box-shadow: 0 12px 32px rgba(0,0,0,0.3);
-      display: flex; flex-direction: column; gap: 12px;
-    }
-    .pwa-card h3 { font-size: 1.05rem; font-weight: 800; color: #0f172a; text-align: center; }
-    .pwa-step-box {
-      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;
-      font-size: 0.82rem; line-height: 1.5; color: #334155;
-    }
+    .pwa-step-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; font-size: 0.8rem; line-height: 1.4; color: #334155; text-align: left; width: 100%; }
     .pwa-step-box b { color: #0284c7; }
-    .pwa-close-btn {
-      width: 100%; padding: 10px 0; border: none; border-radius: 8px;
-      background: #1e293b; color: #ffffff; font-weight: 800; font-size: 0.85rem; cursor: pointer;
-    }
 
-    #photoZoomModal {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.88); z-index: 4000;
-      align-items: center; justify-content: center; padding: 16px;
-    }
-    .zoom-content {
-      position: relative; max-width: 92%; max-height: 85%;
-      display: flex; flex-direction: column; align-items: center;
-    }
-    #zoomedImg {
-      max-width: 100%; max-height: 75vh; border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5); object-fit: contain;
-    }
-    .zoom-caption {
-      color: #ffffff; font-size: 1rem; font-weight: bold; margin-top: 12px;
-      text-align: center; line-height: 1.4;
-    }
-    .close-zoom-btn {
-      position: absolute; top: -45px; right: 0; background: #ffffff;
-      border: none; border-radius: 50%; width: 36px; height: 36px;
-      font-size: 20px; font-weight: bold; cursor: pointer; display: flex;
-      align-items: center; justify-content: center; color: #0f172a;
-    }
+    .zoom-content { position: relative; max-width: 92%; max-height: 85%; display: flex; flex-direction: column; align-items: center; }
+    #zoomedImg { max-width: 100%; max-height: 75vh; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); object-fit: contain; }
+    .zoom-caption { color: #ffffff; font-size: 1rem; font-weight: bold; margin-top: 12px; text-align: center; }
+    .close-zoom-btn { position: absolute; top: -45px; right: 0; background: #ffffff; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0f172a; }
 
+    /* ================= 📱 모바일 반응형 (바텀시트 패널 구조) ================= */
     @media (max-width: 850px) {
-      .fold-btn { display: inline-block !important; }
-
-      #header {
-        padding: 6px 10px 6px 10px; gap: 5px;
-      }
-      .header-info h1 { font-size: 0.95rem; }
-      .company-info { font-size: 0.72rem; }
-      .company-info span { display: none; }
-      .company-info::before { content: "㈜여행과 사람"; font-weight: 700; color: #334155; }
-      
-      .stop-search-box input { height: 32px; font-size: 0.8rem; }
-
-      .header-bottom-row { gap: 3px; }
-      .course-select-wrapper select {
-        font-size: 0.78rem; height: 32px; padding: 0 18px 0 6px;
-      }
-      .course-select-wrapper::after { right: 6px; font-size: 8px; }
-
-      .header-actions { gap: 3px; }
-      .action-btn {
-        height: 32px; padding: 0 5px; font-size: 0.7rem; border-radius: 6px;
-      }
-
-      #noticeBanner { padding: 6px 10px; font-size: 0.76rem; }
-      #liveStatusBar { min-height: 36px !important; height: 36px !important; padding: 0 10px; font-size: 0.74rem; }
-      .live-tag { font-size: 0.65rem; padding: 2px 5px; }
-
       #main-container { display: block; position: relative; }
       #map { width: 100%; height: 100%; position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 
       #sidebar {
         position: absolute; bottom: 0; left: 0; right: 0;
-        width: 100%; height: 280px;
-        background: #ffffff; border-radius: 20px 20px 0 0;
-        box-shadow: 0 -5px 25px rgba(0,0,0,0.22);
-        padding: 6px 14px 20px 14px;
-        z-index: 60;
-        display: flex; flex-direction: column;
-        transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-        overflow: hidden;
+        width: 100%; height: 300px; background: #ffffff; border-radius: 22px 22px 0 0;
+        box-shadow: 0 -6px 25px rgba(0,0,0,0.22); padding: 6px 14px 20px 14px;
+        z-index: 60; display: flex; flex-direction: column; transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1); overflow: hidden;
       }
-
-      #sidebar.minimized { height: 54px !important; }
+      #sidebar.minimized { height: 52px !important; }
       #sidebar.minimized #stopList { display: none !important; }
-      #sidebar.expanded { height: 75% !important; }
+      #sidebar.expanded { height: 80% !important; }
 
       .sheet-handle-bar {
-        display: flex; justify-content: center; align-items: center;
-        height: 20px; cursor: pointer; flex-shrink: 0;
+        display: flex; justify-content: center; align-items: center; height: 22px; cursor: pointer; flex-shrink: 0;
       }
-      .sheet-handle-bar::after {
-        content: ''; width: 44px; height: 5px;
-        background: #cbd5e1; border-radius: 3px;
-      }
+      .sheet-handle-bar::after { content: ''; width: 44px; height: 5px; background: #cbd5e1; border-radius: 3px; }
 
-      .sidebar-header { padding-bottom: 8px; font-size: 0.92rem; flex-shrink: 0; cursor: pointer; }
-      #stopList { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+      .sidebar-header { padding-bottom: 8px; font-size: 0.95rem; }
       .stop-card { padding: 10px 12px; }
       .stop-info h4 { font-size: 0.92rem; }
       .stop-photo-box { height: 110px; }
-      .timetable-card { height: 96vh; }
-      .tt-header { padding: 12px 14px; }
-      .tt-table { font-size: 0.78rem; }
-    }
-
-    @media print {
-      body, html { width: 100% !important; height: auto !important; overflow: visible !important; background: #ffffff !important; }
-      #topCollapsibleArea, #topExpandTab, #main-container, #qrModal, #pwaModal, #photoZoomModal, .tt-tabs, .tt-footer, .tt-close-btn {
-        display: none !important;
-      }
-      #timetableModal { display: block !important; position: static !important; background: none !important; padding: 0 !important; width: 100% !important; height: auto !important; }
-      .timetable-card { max-width: 100% !important; height: auto !important; box-shadow: none !important; border-radius: 0 !important; overflow: visible !important; border: none !important; }
-      .tt-header { background: none !important; padding: 0 0 16px 0 !important; border-bottom: 2px solid #0f172a !important; margin-bottom: 12px !important; }
-      .tt-header-left h3 { font-size: 1.4rem !important; color: #000000 !important; }
-      .tt-header-left p { font-size: 0.85rem !important; color: #333333 !important; }
-      .tt-body { padding: 0 !important; overflow: visible !important; }
-      .tt-table { width: 100% !important; min-width: 100% !important; font-size: 0.82rem !important; border: 1.5px solid #000000 !important; }
-      .tt-table th, .tt-table td { border: 1px solid #333333 !important; padding: 6px 4px !important; color: #000000 !important; }
-      .tt-table th { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .tt-table td.td-bokji { font-weight: 800 !important; }
     }
   </style>
 </head>
@@ -817,67 +397,59 @@
   <div id="loadingModal">구글 시트에서 최신 노선 데이터 연동 중...</div>
 
   <div id="app-wrapper">
-    <div id="topExpandTab" onclick="expandTopArea()">
-      <span>🚌 노선 및 운행현황 열기 ▼</span>
-    </div>
-
-    <div id="topCollapsibleArea">
-      <div id="header">
-        <div class="header-top-row">
-          <div class="header-info">
-            <h1>거제시종합사회복지관 셔틀버스</h1>
-          </div>
-          <div class="company-info">
-            <span>2026년 차량운행회사 : ㈜여행과 사람</span>
-            <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
-          </div>
+    <div id="header">
+      <div class="header-top-row">
+        <div class="header-info">
+          <h1>거제시종합사회복지관 셔틀버스</h1>
         </div>
-
-        <div class="header-middle-row">
-          <div class="stop-search-box">
-            <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색 (예: 포로수용소, 아이파크)" oninput="handleStopSearch(this.value)">
-            <button class="search-clear-btn" id="searchClearBtn" onclick="clearStopSearch()">&times;</button>
-          </div>
-          <div id="searchDropdownList"></div>
-        </div>
-
-        <div class="header-bottom-row">
-          <div class="course-select-wrapper">
-            <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
-              <option value="ALL">🌐 전체 노선망</option>
-            </select>
-          </div>
-
-          <div class="header-actions">
-            <button class="action-btn pwa-btn" onclick="openPwaModal()" title="홈 화면에 바로가기 추가">📲홈추가</button>
-            <button class="action-btn font-size-btn" onclick="toggleFontSize()" id="btnFontSize" title="글자 크기 확대">🔍글씨</button>
-            <button class="action-btn nearby-btn" onclick="findNearestStop()" title="내 위치 주변 정류소">📍주변</button>
-            <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="전체 시간표 표">📋표</button>
-            <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유 링크">🔗</button>
-            <button class="action-btn fold-btn" id="btnFoldHeader" onclick="toggleTopArea()">▲접기</button>
-          </div>
+        <div class="company-info">
+          <span>(주)여행과 사람</span>
+          <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
         </div>
       </div>
 
-      <div id="noticeBanner">
-        <div class="notice-content">
-          <span class="notice-badge">공지</span>
-          <span id="noticeText"></span>
+      <div class="header-middle-row">
+        <div class="stop-search-box">
+          <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색 (예: 포로수용소, 아이파크)" oninput="handleStopSearch(this.value)">
+          <button class="search-clear-btn" id="searchClearBtn" onclick="clearStopSearch()">&times;</button>
         </div>
-        <button class="notice-close-btn" onclick="closeNoticeBanner()" title="닫기">&times;</button>
+        <div id="searchDropdownList"></div>
       </div>
 
-      <div id="liveStatusBar">
-        <span class="live-tag" id="liveTag">LIVE 운행</span>
-        <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
+      <div class="header-bottom-row">
+        <div class="course-select-wrapper">
+          <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
+            <option value="ALL">🌐 전체 노선망</option>
+          </select>
+        </div>
+
+        <div class="header-actions">
+          <button class="action-btn pwa-btn" onclick="openPwaModal()" title="홈 화면 바로가기">📲홈</button>
+          <button class="action-btn font-size-btn" onclick="toggleFontSize()" id="btnFontSize" title="글자 확대">🔍글씨</button>
+          <button class="action-btn nearby-btn" onclick="findNearestStop()" title="내 주변 정류소">📍주변</button>
+          <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="시간표">📋표</button>
+          <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유">🔗</button>
+        </div>
       </div>
     </div>
 
+    <!-- 공지사항 띠 배너 -->
+    <div id="noticeBanner">
+      <div class="notice-content">
+        <span class="notice-badge">공지</span>
+        <span id="noticeText"></span>
+      </div>
+      <button class="notice-close-btn" onclick="closeNoticeBanner()">&times;</button>
+    </div>
+
+    <!-- 실시간 운행 현황 배너 -->
+    <div id="liveStatusBar">
+      <span class="live-tag" id="liveTag">LIVE 운행</span>
+      <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
+    </div>
+
+    <!-- ⭐️ 2단 관제 메인 뷰 (좌측 타임라인 + 우측 지도) -->
     <div id="main-container">
-      <div id="map">
-        <div id="routeBadge">실제 도로 경로선 계산 중...</div>
-      </div>
-
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
         <div class="sidebar-header" id="sheetHeader">
@@ -887,52 +459,59 @@
             <span id="totalDistBadge" class="dist-badge">총 0.0 km</span>
           </div>
         </div>
-        <div id="stopList" style="display:flex; flex-direction:column; gap:8px;"></div>
+        <div id="stopList"></div>
+      </div>
+
+      <div id="map">
+        <div id="routeBadge">실제 도로 경로선 계산 중...</div>
       </div>
     </div>
   </div>
 
+  <!-- 전체 시간표 표 모달 -->
   <div id="timetableModal" onclick="closeTimetableModal(event)">
     <div class="timetable-card" onclick="event.stopPropagation()">
       <div class="tt-header">
         <div class="tt-header-left">
           <h3 id="ttModalTitle">2026년 셔틀버스 운행 시간표</h3>
-          <p id="ttModalSubtitle">운행업체: ㈜여행과 사람 | 문의: 055-687-4000</p>
+          <p id="ttModalSubtitle">운행업체: (주)여행과 사람 | 문의: 055-687-4000</p>
         </div>
         <button class="tt-close-btn" onclick="closeTimetableModal()">&times;</button>
       </div>
       <div class="tt-tabs" id="ttTabsContainer"></div>
       <div class="tt-body" id="ttTableContainer"></div>
       <div class="tt-footer">
-        <button class="tt-action-btn tt-copy-link-btn" onclick="copyTimetableShareUrl()">🔗 시간표 링크 복사</button>
-        <button class="tt-action-btn tt-copy-text-btn" onclick="copyTimetableText()">📱 카카오톡 텍스트 복사</button>
-        <button class="tt-action-btn tt-print-btn" onclick="printTimetableTable()">🖨️ 시간표 인쇄</button>
+        <button class="tt-action-btn tt-copy-link-btn" onclick="copyTimetableShareUrl()">🔗 링크 복사</button>
+        <button class="tt-action-btn tt-copy-text-btn" onclick="copyTimetableText()">📱 텍스트 복사</button>
+        <button class="tt-action-btn tt-print-btn" onclick="printTimetableTable()">🖨️️ 인쇄</button>
       </div>
     </div>
   </div>
 
+  <!-- PWA 홈 화면 추가 안내 모달 -->
   <div id="pwaModal" onclick="closePwaModal(event)">
     <div class="pwa-card" onclick="event.stopPropagation()">
-      <h3>📲 스마트폰 홈 화면에 바로가기 추가</h3>
+      <h3>📲 홈 화면에 바로가기 추가</h3>
       <div class="pwa-step-box">
         <b>🤖 안드로이드 (삼성 인터넷 / 크롬)</b><br>
-        1. 우측 상단 또는 하단의 <b>더보기 메뉴 (⋮ 또는 ≡)</b> 터치<br>
-        2. <b>[홈 화면에 추가]</b> 선택 후 추가
+        1. 우측 상단/하단 <b>메뉴 (⋮ 또는 ≡)</b> 터치<br>
+        2. <b>[홈 화면에 추가]</b> 선택
       </div>
       <div class="pwa-step-box">
         <b>🍎 아이폰 (사파리)</b><br>
-        1. 하단 중앙의 <b>공유 버튼 (□에 ↑ 화살표)</b> 터치<br>
-        2. 아래로 내려 <b>[홈 화면에 추가]</b> 선택
+        1. 하단 중앙 <b>공유 버튼 (□에 ↑)</b> 터치<br>
+        2. <b>[홈 화면에 추가]</b> 선택
       </div>
       <button class="pwa-close-btn" onclick="closePwaModal()">확인 완료</button>
     </div>
   </div>
 
+  <!-- QR코드 모달 -->
   <div id="qrModal" onclick="closeQrModal(event)">
     <div class="qr-card" onclick="event.stopPropagation()">
-      <h3 id="qrModalTitle">셔틀버스 QR코드</h3>
-      <p id="qrModalDesc">스마트폰 카메라로 스캔하면 바로 열립니다.</p>
-      <img id="qrImage" src="" alt="노선 QR코드">
+      <h3>셔틀버스 QR코드</h3>
+      <p style="font-size:0.8rem; color:#64748b;">스마트폰으로 스캔하면 바로 연결됩니다.</p>
+      <img id="qrImage" src="" alt="QR코드">
       <div class="qr-btn-group">
         <button class="qr-action-btn copy-url-btn" onclick="copyCurrentRouteUrl()">주소 복사</button>
         <button class="qr-action-btn close-qr-btn" onclick="closeQrModal()">닫기</button>
@@ -940,10 +519,11 @@
     </div>
   </div>
 
+  <!-- 사진 확대 모달 -->
   <div id="photoZoomModal" onclick="closePhotoZoom()">
     <div class="zoom-content" onclick="event.stopPropagation()">
       <button class="close-zoom-btn" onclick="closePhotoZoom()">&times;</button>
-      <img id="zoomedImg" src="" alt="정류소 현장 사진 확대">
+      <img id="zoomedImg" src="" alt="확대 사진">
       <div class="zoom-caption" id="zoomedCaption"></div>
     </div>
   </div>
@@ -959,11 +539,7 @@
     let currentTimetableCourseKey = null;
 
     const routeCache = {};
-
-    const COURSE_COLORS = [
-      "#2563eb", "#16a34a", "#ea580c", "#9333ea",
-      "#0891b2", "#db2777", "#ca8a04", "#4f46e5"
-    ];
+    const COURSE_COLORS = ["#2563eb", "#16a34a", "#ea580c", "#9333ea", "#0891b2", "#db2777", "#ca8a04", "#4f46e5"];
 
     let map = null;
     let geocoder = null;
@@ -991,27 +567,19 @@
     }
 
     function speakStopArrival(stopName, schedules) {
-      if (!window.speechSynthesis) {
-        alert("기기에서 음성 안내를 지원하지 않습니다.");
-        return;
-      }
+      if (!window.speechSynthesis) return;
       window.speechSynthesis.cancel();
-
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
       const eta = getNextArrivalInfo(schedules, currentMinutes, timeWindowMinutes);
 
       let text = `${stopName} 정류소입니다. `;
       if (eta && eta.targetSchedule) {
-        if (eta.isImminent) {
-          text += `현재 ${eta.targetSchedule.round} 셔틀버스가 곧 도착하거나 운행 중입니다.`;
-        } else {
-          text += `다음 셔틀버스는 ${eta.targetSchedule.round}, 약 ${eta.diff}분 뒤 ${eta.targetSchedule.time}에 도착할 예정입니다.`;
-        }
+        if (eta.isImminent) text += `현재 ${eta.targetSchedule.round} 셔틀버스가 곧 도착하거나 운행 중입니다.`;
+        else text += `다음 셔틀버스는 ${eta.targetSchedule.round}, 약 ${eta.diff}분 뒤 도착 예정입니다.`;
       } else {
-        text += `앞으로 2시간 이내에 예정된 버스가 없거나 오늘 운행이 종료되었습니다.`;
+        text += `오늘 운행이 종료되었거나 예정된 버스가 없습니다.`;
       }
-
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ko-KR';
       utterance.rate = 0.9;
@@ -1021,7 +589,6 @@
     function isNonOperatingDay(d) {
       const day = d.getDay();
       if (day === 0 || day === 6) return true;
-
       const m = d.getMonth() + 1;
       const dt = d.getDate();
       const holidays = ['1-1', '3-1', '5-5', '6-6', '8-15', '10-3', '10-9', '12-25'];
@@ -1032,7 +599,6 @@
       keyword = keyword.trim().toLowerCase();
       const clearBtn = document.getElementById('searchClearBtn');
       const dropdown = document.getElementById('searchDropdownList');
-
       if (clearBtn) clearBtn.style.display = keyword ? 'block' : 'none';
 
       if (!keyword) {
@@ -1046,19 +612,12 @@
         stops.forEach((s, idx) => {
           if (s.isWaypoint) return;
           if (s.name.toLowerCase().includes(keyword) || (s.stopNo && s.stopNo.includes(keyword))) {
-            matches.push({
-              courseName: cName,
-              stopName: s.name,
-              stopNo: s.stopNo,
-              schedules: s.schedules || [],
-              stopIndex: idx
-            });
+            matches.push({ courseName: cName, stopName: s.name, stopNo: s.stopNo, schedules: s.schedules || [], stopIndex: idx });
           }
         });
       });
 
       if (!dropdown) return;
-
       if (matches.length === 0) {
         dropdown.innerHTML = `<div style="padding:12px; color:#64748b; font-size:0.8rem; text-align:center;">일치하는 정류소가 없습니다.</div>`;
         dropdown.style.display = 'block';
@@ -1066,26 +625,15 @@
         dropdown.innerHTML = matches.map(m => {
           const sorted = [...m.schedules].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
           const activeTimes = sorted.filter(sc => sc.time && !sc.time.includes('미운행'));
-          
-          let timesHtml = '';
-          if (activeTimes.length > 0) {
-            timesHtml = activeTimes.map(sc => `<span class="search-time-chip"><b>${sc.round}</b> ${sc.time}</span>`).join('');
-          } else {
-            timesHtml = `<span style="font-size:0.72rem; color:#94a3b8;">운행 시간 없음</span>`;
-          }
+          const timesHtml = activeTimes.length > 0 ? activeTimes.map(sc => `<span class="search-time-chip"><b>${sc.round}</b> ${sc.time}</span>`).join('') : `<span style="font-size:0.7rem; color:#94a3b8;">운행 시간 없음</span>`;
 
           return `
             <div class="search-result-item" onclick="selectSearchResult('${m.courseName}', ${m.stopIndex})">
               <div class="search-item-top">
-                <div>
-                  <span class="item-main">${m.stopName}</span>
-                  ${m.stopNo ? `<span class="item-no">(No.${m.stopNo})</span>` : ''}
-                </div>
+                <div><span class="item-main">${m.stopName}</span> ${m.stopNo ? `<span class="item-no">(No.${m.stopNo})</span>` : ''}</div>
                 <span class="item-course">${m.courseName}</span>
               </div>
-              <div class="search-item-times">
-                ${timesHtml}
-              </div>
+              <div class="search-item-times">${timesHtml}</div>
             </div>
           `;
         }).join('');
@@ -1100,24 +648,19 @@
     }
 
     function clearStopSearch() {
-      const input = document.getElementById('stopSearchInput');
-      const dropdown = document.getElementById('searchDropdownList');
-      if (input) input.value = '';
-      if (dropdown) dropdown.style.display = 'none';
+      document.getElementById('stopSearchInput').value = '';
+      document.getElementById('searchDropdownList').style.display = 'none';
       handleStopSearch('');
     }
 
     document.addEventListener('click', (e) => {
       const dropdown = document.getElementById('searchDropdownList');
       const input = document.getElementById('stopSearchInput');
-      if (dropdown && e.target !== dropdown && e.target !== input) {
-        dropdown.style.display = 'none';
-      }
+      if (dropdown && e.target !== dropdown && e.target !== input) dropdown.style.display = 'none';
     });
 
     function closeNoticeBanner() {
-      const banner = document.getElementById('noticeBanner');
-      if (banner) banner.style.display = 'none';
+      document.getElementById('noticeBanner').style.display = 'none';
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
@@ -1129,7 +672,6 @@
 
     function getNextArrivalInfo(schedules, currentMinutes, windowMins) {
       if (!schedules || schedules.length === 0) return null;
-
       let bestDiff = Infinity;
       let nextSchedule = null;
 
@@ -1138,49 +680,32 @@
         const parts = s.time.split(':');
         const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
         const diff = targetMin - currentMinutes;
-
-        if (diff >= -windowMins && diff <= 120) {
-          if (diff < bestDiff) {
-            bestDiff = diff;
-            nextSchedule = s;
-          }
+        if (diff >= -windowMins && diff <= 120 && diff < bestDiff) {
+          bestDiff = diff;
+          nextSchedule = s;
         }
       });
 
       if (!nextSchedule) return null;
-
       if (Math.abs(bestDiff) <= windowMins) {
-        return {
-          isImminent: true,
-          diff: bestDiff,
-          targetSchedule: nextSchedule,
-          html: `<div class="eta-alert-badge imminent">🚌 <b>[${nextSchedule.round}]</b> 곧 도착 또는 운행 중! (${nextSchedule.time})</div>`
-        };
+        return { isImminent: true, diff: bestDiff, targetSchedule: nextSchedule, html: `<div class="eta-alert-badge imminent">🚌 <b>[${nextSchedule.round}]</b> 곧 도착 또는 운행 중! (${nextSchedule.time})</div>` };
       } else if (bestDiff > 0) {
-        return {
-          isImminent: false,
-          diff: bestDiff,
-          targetSchedule: nextSchedule,
-          html: `<div class="eta-alert-badge">⏳ <b>[${nextSchedule.round}]</b> 약 ${bestDiff}분 뒤 도착 예정 (${nextSchedule.time})</div>`
-        };
+        return { isImminent: false, diff: bestDiff, targetSchedule: nextSchedule, html: `<div class="eta-alert-badge">⏳ <b>[${nextSchedule.round}]</b> 약 ${bestDiff}분 뒤 도착 예정 (${nextSchedule.time})</div>` };
       }
       return null;
     }
 
     function handleCourseSelectChange(val) {
-      if (val === 'ALL') {
-        selectAllCourses();
-      } else {
+      if (val === 'ALL') selectAllCourses();
+      else {
         const courses = Object.keys(routeData);
-        const idx = courses.indexOf(val);
-        selectCourse(val, idx >= 0 ? idx : 0);
+        selectCourse(val, courses.indexOf(val) >= 0 ? courses.indexOf(val) : 0);
       }
     }
 
     function initCourseDropdown() {
       const select = document.getElementById('courseSelect');
       select.innerHTML = '<option value="ALL">🌐 전체 노선망</option>';
-
       const courses = Object.keys(routeData);
       courses.forEach(cName => {
         const opt = document.createElement('option');
@@ -1191,28 +716,16 @@
 
       const urlParams = new URLSearchParams(window.location.search);
       const queryCourse = urlParams.get('course');
-
-      if (queryCourse === 'ALL') {
-        select.value = 'ALL';
-        selectAllCourses();
-      } else if (queryCourse && courses.includes(queryCourse)) {
-        select.value = queryCourse;
-        selectCourse(queryCourse, courses.indexOf(queryCourse));
-      } else if (courses.length > 0) {
-        select.value = courses[0];
-        selectCourse(courses[0], 0);
-      }
+      if (queryCourse === 'ALL') { select.value = 'ALL'; selectAllCourses(); }
+      else if (queryCourse && courses.includes(queryCourse)) { select.value = queryCourse; selectCourse(queryCourse, courses.indexOf(queryCourse)); }
+      else if (courses.length > 0) { select.value = courses[0]; selectCourse(courses[0], 0); }
     }
 
     function findNearestStop() {
-      if (!navigator.geolocation) {
-        alert("기기에서 위치 정보(GPS)를 지원하지 않습니다.");
-        return;
-      }
-
+      if (!navigator.geolocation) { alert("위치 정보를 지원하지 않습니다."); return; }
       const badge = document.getElementById('routeBadge');
       badge.style.display = 'block';
-      badge.innerText = '현재 내 위치를 확인하고 있습니다...';
+      badge.innerText = '현재 내 위치 확인 중...';
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -1224,48 +737,25 @@
           if (myLocationOverlay) myLocationOverlay.setMap(null);
           const pinDiv = document.createElement('div');
           pinDiv.className = 'my-loc-pin';
-          pinDiv.title = '현재 내 위치';
-
-          myLocationOverlay = new kakao.maps.CustomOverlay({
-            position: myLatLng,
-            content: pinDiv,
-            yAnchor: 0.5,
-            xAnchor: 0.5,
-            zIndex: 150
-          });
+          myLocationOverlay = new kakao.maps.CustomOverlay({ position: myLatLng, content: pinDiv, yAnchor: 0.5, xAnchor: 0.5, zIndex: 150 });
           myLocationOverlay.setMap(map);
 
-          let nearestStop = null;
-          let nearestCourse = null;
-          let nearestDist = Infinity;
-          let nearestIndex = 0;
-
+          let nearestStop = null, nearestCourse = null, nearestDist = Infinity, nearestIndex = 0;
           Object.keys(routeData).forEach(cName => {
-            const stops = routeData[cName] || [];
-            stops.forEach((s, idx) => {
+            (routeData[cName] || []).forEach((s, idx) => {
               if (s.isWaypoint || !s.coords) return;
               const d = calcHaversineMeters(myLat, myLng, s.coords.getLat(), s.coords.getLng());
-              if (d < nearestDist) {
-                nearestDist = d;
-                nearestStop = s;
-                nearestCourse = cName;
-                nearestIndex = idx;
-              }
+              if (d < nearestDist) { nearestDist = d; nearestStop = s; nearestCourse = cName; nearestIndex = idx; }
             });
           });
 
           if (nearestStop) {
             const distStr = nearestDist < 1000 ? `${Math.round(nearestDist)}m` : `${(nearestDist / 1000).toFixed(1)}km`;
-            alert(`📍 가장 가까운 정류소:\n[${nearestCourse}] "${nearestStop.name}" (약 ${distStr})\n해당 정류소로 화면을 이동합니다.`);
+            alert(`📍 가장 가까운 정류소:\n[${nearestCourse}] "${nearestStop.name}" (약 ${distStr})`);
             switchToCourseAndStop(nearestCourse, nearestIndex);
-          } else {
-            alert("정류소 좌표를 확인할 수 없습니다.");
           }
         },
-        (err) => {
-          badge.style.display = 'none';
-          alert("위치(GPS) 권한을 허용해 주셔야 주변 정류소를 찾을 수 있습니다.");
-        },
+        () => { badge.style.display = 'none'; alert("위치(GPS) 권한을 허용해 주세요."); },
         { enableHighAccuracy: true, timeout: 8000 }
       );
     }
@@ -1273,36 +763,22 @@
     function openTimetableModal(targetCourse) {
       const courses = Object.keys(routeData);
       if (courses.length === 0) return;
-
       currentTimetableCourseKey = targetCourse || currentSelectedCourseKey;
-      if (!currentTimetableCourseKey || currentTimetableCourseKey === 'ALL') {
-        currentTimetableCourseKey = courses[0];
-      }
-
+      if (!currentTimetableCourseKey || currentTimetableCourseKey === 'ALL') currentTimetableCourseKey = courses[0];
       renderTimetableTabs();
       renderTimetableTable(currentTimetableCourseKey);
       document.getElementById('timetableModal').style.display = 'flex';
     }
-
-    function closeTimetableModal(e) {
-      document.getElementById('timetableModal').style.display = 'none';
-    }
+    function closeTimetableModal() { document.getElementById('timetableModal').style.display = 'none'; }
 
     function renderTimetableTabs() {
       const container = document.getElementById('ttTabsContainer');
       container.innerHTML = '';
-      const courses = Object.keys(routeData);
-
-      courses.forEach(cName => {
+      Object.keys(routeData).forEach(cName => {
         const btn = document.createElement('button');
         btn.className = `tt-tab-btn ${cName === currentTimetableCourseKey ? 'active' : ''}`;
         btn.innerText = cName;
-        btn.onclick = () => {
-          currentTimetableCourseKey = cName;
-          document.querySelectorAll('.tt-tab-btn').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          renderTimetableTable(cName);
-        };
+        btn.onclick = () => { currentTimetableCourseKey = cName; document.querySelectorAll('.tt-tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderTimetableTable(cName); };
         container.appendChild(btn);
       });
     }
@@ -1310,141 +786,48 @@
     function renderTimetableTable(courseName) {
       const container = document.getElementById('ttTableContainer');
       const stops = (routeData[courseName] || []).filter(s => !s.isWaypoint);
-
       document.getElementById('ttModalTitle').innerText = `2026년 셔틀버스 운행 시간표 [${courseName}]`;
-
-      if (stops.length === 0) {
-        container.innerHTML = '<p style="padding:20px; text-align:center; color:#64748b;">등록된 정류소 정보가 없습니다.</p>';
-        return;
-      }
+      if (stops.length === 0) { container.innerHTML = '<p style="padding:20px; text-align:center;">정류소 정보가 없습니다.</p>'; return; }
 
       const roundSet = new Set();
-      stops.forEach(s => {
-        (s.schedules || []).forEach(sc => {
-          if (sc.round) roundSet.add(sc.round);
-        });
-      });
-
+      stops.forEach(s => (s.schedules || []).forEach(sc => { if (sc.round) roundSet.add(sc.round); }));
       const roundCols = Array.from(roundSet).sort((a, b) => parseRoundNumber(a) - parseRoundNumber(b));
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-      let tableHtml = `
-        <table class="tt-table">
-          <thead>
-            <tr>
-              <th style="width:40px;">No</th>
-              <th class="th-stop">정류장명</th>
-              ${roundCols.map(r => `<th>${r}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-      `;
-
+      let tableHtml = `<table class="tt-table"><thead><tr><th style="width:40px;">No</th><th class="th-stop">정류장명</th>${roundCols.map(r => `<th>${r}</th>`).join('')}</tr></thead><tbody>`;
       stops.forEach((s, idx) => {
         const isBokji = s.name.includes('복지관');
-        tableHtml += `
-          <tr>
-            <td>${idx + 1}</td>
-            <td class="td-stop ${isBokji ? 'td-bokji' : ''}">
-              ${s.name}
-              ${s.stopNo ? `<span style="font-size:0.7rem; color:#64748b; font-weight:normal;"> (${s.stopNo})</span>` : ''}
-            </td>
-        `;
-
+        tableHtml += `<tr><td>${idx + 1}</td><td class="td-stop ${isBokji ? 'td-bokji' : ''}">${s.name}${s.stopNo ? ` (${s.stopNo})` : ''}</td>`;
         roundCols.forEach(rCol => {
           const matched = (s.schedules || []).find(sc => sc.round === rCol);
           const timeText = matched ? matched.time : '-';
-
           let isNowActive = false;
           if (timeText && timeText.includes(':')) {
-            const parts = timeText.split(':');
-            const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-            if (Math.abs(currentMinutes - targetMin) <= timeWindowMinutes) {
-              isNowActive = true;
-            }
+            const p = timeText.split(':');
+            if (Math.abs(currentMinutes - (parseInt(p[0]) * 60 + parseInt(p[1]))) <= timeWindowMinutes) isNowActive = true;
           }
-
-          tableHtml += `
-            <td class="${isNowActive ? 'td-active-time' : ''}">
-              ${timeText === '미운행' ? '<span style="color:#94a3b8;">미운행</span>' : timeText}
-            </td>
-          `;
+          tableHtml += `<td class="${isNowActive ? 'td-active-time' : ''}">${timeText === '미운행' ? '<span style="color:#94a3b8;">미운행</span>' : timeText}</td>`;
         });
-
         tableHtml += `</tr>`;
       });
-
       tableHtml += `</tbody></table>`;
       container.innerHTML = tableHtml;
     }
 
-    function printTimetableTable() {
-      window.print();
-    }
-
+    function printTimetableTable() { window.print(); }
     function copyTimetableShareUrl() {
-      const baseUrl = window.location.origin + window.location.pathname;
-      const shareUrl = `${baseUrl}?view=timetable&course=${encodeURIComponent(currentTimetableCourseKey)}`;
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          alert(`[${currentTimetableCourseKey}] 시간표 열람 링크가 복사되었습니다!`);
-        });
-      }
+      const shareUrl = `${window.location.origin + window.location.pathname}?view=timetable&course=${encodeURIComponent(currentTimetableCourseKey)}`;
+      navigator.clipboard?.writeText(shareUrl).then(() => alert("시간표 링크 복사 완료!"));
     }
-
     function copyTimetableText() {
       const stops = (routeData[currentTimetableCourseKey] || []).filter(s => !s.isWaypoint);
-      if (stops.length === 0) return;
-
-      let msg = `🚌 [거제시종합사회복지관 셔틀버스 시간표]\n`;
-      msg += `📍 노선: ${currentTimetableCourseKey}\n`;
-      msg += `📞 문의: ㈜여행과 사람 (055-687-4000)\n`;
-      msg += `--------------------------------\n`;
-
+      let msg = `🚌 [거제시종합사회복지관 시간표]\n📍 노선: ${currentTimetableCourseKey}\n--------------------------------\n`;
       stops.forEach((s, idx) => {
-        const sortedSchedules = [...(s.schedules || [])].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
-        const times = sortedSchedules
-          .filter(sc => sc.time && !sc.time.includes('미운행'))
-          .map(sc => `${sc.round} ${sc.time}`)
-          .join(' / ');
+        const times = (s.schedules || []).filter(sc => sc.time && !sc.time.includes('미운행')).map(sc => `${sc.round} ${sc.time}`).join(' / ');
         msg += `${idx + 1}. ${s.name}: ${times || '미운행'}\n`;
       });
-
-      msg += `--------------------------------\n`;
-      msg += `실시간 위치: ${window.location.origin + window.location.pathname}`;
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(msg).then(() => {
-          alert("시간표 텍스트가 복사되었습니다!");
-        });
-      }
-    }
-
-    function collapseTopArea() {
-      const area = document.getElementById('topCollapsibleArea');
-      const expandTab = document.getElementById('topExpandTab');
-      if (area) area.classList.add('collapsed');
-      if (expandTab) expandTab.style.display = 'flex';
-      setTimeout(() => { if (map) map.relayout(); }, 320);
-    }
-
-    function expandTopArea() {
-      const area = document.getElementById('topCollapsibleArea');
-      const expandTab = document.getElementById('topExpandTab');
-      if (area) area.classList.remove('collapsed');
-      if (expandTab) expandTab.style.display = 'none';
-      setTimeout(() => { if (map) map.relayout(); }, 320);
-    }
-
-    function toggleTopArea() {
-      const area = document.getElementById('topCollapsibleArea');
-      if (area.classList.contains('collapsed')) {
-        expandTopArea();
-      } else {
-        collapseTopArea();
-      }
+      navigator.clipboard?.writeText(msg).then(() => alert("텍스트 복사 완료!"));
     }
 
     function formatImageUrl(url) {
@@ -1452,9 +835,7 @@
       url = url.trim();
       if (url.includes('drive.google.com')) {
         const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-        if (idMatch && idMatch[1]) {
-          return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
-        }
+        if (idMatch && idMatch[1]) return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
       }
       return url;
     }
@@ -1464,499 +845,238 @@
       document.getElementById('zoomedCaption').innerText = titleText;
       document.getElementById('photoZoomModal').style.display = 'flex';
     }
-
-    function closePhotoZoom() {
-      document.getElementById('photoZoomModal').style.display = 'none';
-    }
+    function closePhotoZoom() { document.getElementById('photoZoomModal').style.display = 'none'; }
 
     function formatDistance(meters) {
-      if (meters === undefined || meters === null || isNaN(meters)) return '확인 불가';
-      if (meters < 1000) return `${Math.round(meters)} m`;
-      return `${(meters / 1000).toFixed(1)} km`;
+      if (isNaN(meters)) return '확인 불가';
+      return meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
     }
 
     function buildScheduleHtml(schedules, currentMinutes, windowMins) {
       if (!schedules || schedules.length === 0) return '';
-      const sorted = [...schedules].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
-
-      return sorted.map(s => {
-        if (!s.time || s.time.includes('미운행')) {
-          return `<span class="round-pill none"><b>${s.round}</b> 미운행</span>`;
-        }
-        const parts = s.time.split(':');
-        const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-        const isActive = Math.abs(currentMinutes - targetMin) <= windowMins;
-
+      return [...schedules].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round)).map(s => {
+        if (!s.time || s.time.includes('미운행')) return `<span class="round-pill none"><b>${s.round}</b> 미운행</span>`;
+        const p = s.time.split(':');
+        const isActive = Math.abs(currentMinutes - (parseInt(p[0]) * 60 + parseInt(p[1]))) <= windowMins;
         return `<span class="round-pill ${isActive ? 'active' : ''}"><b>${s.round}</b> ${s.time}</span>`;
       }).join('');
     }
 
     function calcHaversineMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371e3;
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
-      const Δφ = (lat2 - lat1) * Math.PI / 180;
-      const Δλ = (lon2 - lon1) * Math.PI / 180;
-
-      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c * 1.25;
+      const R = 6371e3, φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180, Δφ = (lat2 - lat1) * Math.PI / 180, Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 1.25;
     }
 
-    function calculateBearing(startLat, startLng, destLat, destLng) {
-      const startLatRad = startLat * Math.PI / 180;
-      const startLngRad = startLng * Math.PI / 180;
-      const destLatRad = destLat * Math.PI / 180;
-      const destLngRad = destLng * Math.PI / 180;
-
-      const y = Math.sin(destLngRad - startLngRad) * Math.cos(destLatRad);
-      const x = Math.cos(startLatRad) * Math.sin(destLatRad) -
-                Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(destLngRad - startLngRad);
-      let brng = Math.atan2(y, x) * 180 / Math.PI;
-      return (brng + 360) % 360;
+    function calculateBearing(lat1, lon1, lat2, lon2) {
+      const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
+      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
     }
 
     function getShareUrl() {
-      const baseUrl = window.location.origin + window.location.pathname;
-      if (currentSelectedCourseKey) {
-        return `${baseUrl}?course=${encodeURIComponent(currentSelectedCourseKey)}`;
-      }
-      return baseUrl;
+      return currentSelectedCourseKey ? `${window.location.origin + window.location.pathname}?course=${encodeURIComponent(currentSelectedCourseKey)}` : window.location.origin + window.location.pathname;
     }
 
     function openQrModal() {
       const shareUrl = getShareUrl();
-      const displayName = currentSelectedCourseKey === 'ALL' ? '전체 노선망' : (currentSelectedCourseKey || '전체 노선');
-      
-      document.getElementById('qrModalTitle').innerText = `[${displayName}] QR코드`;
-      document.getElementById('qrModalDesc').innerText = `스캔 시 [${displayName}] 노선으로 즉시 이동합니다.`;
-      
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
-      document.getElementById('qrImage').src = qrApiUrl;
-
+      const name = currentSelectedCourseKey === 'ALL' ? '전체 노선망' : (currentSelectedCourseKey || '전체 노선');
       document.getElementById('qrModal').style.display = 'flex';
+      document.getElementById('qrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(shareUrl)}`;
     }
-
-    function closeQrModal() {
-      document.getElementById('qrModal').style.display = 'none';
-    }
-
+    function closeQrModal() { document.getElementById('qrModal').style.display = 'none'; }
     function copyCurrentRouteUrl() {
-      const shareUrl = getShareUrl();
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-          alert("노선 링크 주소가 복사되었습니다!");
-        });
-      } else {
-        const tempInput = document.createElement("input");
-        tempInput.value = shareUrl;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand("copy");
-        document.body.removeChild(tempInput);
-        alert("노선 링크 주소가 복사되었습니다!");
-      }
+      navigator.clipboard?.writeText(getShareUrl()).then(() => alert("주소 복사 완료!"));
     }
 
     function loadSettings() {
-      const encoded = encodeURIComponent("설정");
-      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encoded}&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
-      const script = document.createElement('script');
-      script.src = url;
-      script.onerror = function() { loadStationList(); };
-      document.body.appendChild(script);
-
-      setTimeout(() => {
-        if (!routeData || Object.keys(routeData).length === 0) {
-          loadStationList();
-        }
-      }, 3000);
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent("설정")}&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
+      const s = document.createElement('script');
+      s.src = url;
+      s.onerror = () => loadStationList();
+      document.body.appendChild(s);
+      setTimeout(() => { if (!routeData || Object.keys(routeData).length === 0) loadStationList(); }, 3000);
     }
 
     window.handleSettings = function(json) {
       try {
-        const cols = (json && json.table && json.table.cols) || [];
-        const rows = (json && json.table && json.table.rows) || [];
-
-        if (cols.length >= 2) {
-          const k = String(cols[0].label || '').trim();
-          const v = String(cols[1].label || '').trim();
-          if (k.includes('차량간격') || k.includes('간격')) {
-            const num = parseFloat(v);
-            if (!isNaN(num) && num > 0) timeWindowMinutes = num;
-          }
-          if (k.includes('공지') && v) {
-            applyNotice(v);
-          }
-        }
-
-        rows.forEach(r => {
-          if (!r || !r.c || !Array.isArray(r.c)) return;
-
-          let cellValues = [];
-          for (let i = 0; i < r.c.length; i++) {
-            const cell = r.c[i];
-            let txt = '';
-            if (cell) {
-              if (cell.f !== undefined && cell.f !== null) txt = String(cell.f).trim();
-              else if (cell.v !== undefined && cell.v !== null) txt = String(cell.v).trim();
-            }
-            cellValues.push(txt);
-          }
-
-          const key = cellValues[0] || '';
-          const valStr = cellValues[1] || '';
-
-          if (key.includes('차량간격') || key.includes('간격')) {
-            const num = parseFloat(valStr);
-            if (!isNaN(num) && num > 0) timeWindowMinutes = num;
-          }
-
-          if (key.includes('공지') && valStr) {
-            applyNotice(valStr);
-          } else if (cellValues.some(v => v.includes('공지'))) {
-            const idx = cellValues.findIndex(v => v.includes('공지'));
-            if (idx >= 0 && cellValues[idx + 1]) {
-              applyNotice(cellValues[idx + 1]);
-            }
-          }
+        (json?.table?.rows || []).forEach(r => {
+          const vals = (r?.c || []).map(c => c?.f || c?.v || '');
+          if (vals[0]?.includes('간격')) { const n = parseFloat(vals[1]); if (!isNaN(n)) timeWindowMinutes = n; }
+          if (vals[0]?.includes('공지') && vals[1]) applyNotice(vals[1]);
         });
-      } catch (e) {
-        console.warn("'설정' 시트 파싱 예외 처리:", e);
-      } finally {
-        loadStationList();
-      }
+      } catch (e) {} finally { loadStationList(); }
     };
 
     function applyNotice(text) {
       const banner = document.getElementById('noticeBanner');
-      const noticeText = document.getElementById('noticeText');
-      if (banner && noticeText && text) {
-        noticeText.innerText = text;
-        banner.style.display = 'flex';
-      }
+      if (banner && text) { document.getElementById('noticeText').innerText = text; banner.style.display = 'flex'; }
     }
 
     function loadStationList() {
-      const encodedMaster = encodeURIComponent("정류소목록");
-      const masterUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedMaster}&tqx=responseHandler:handleStationList&_t=${Date.now()}`;
-      const s1 = document.createElement('script');
-      s1.src = masterUrl;
-      s1.onerror = function() { loadRouteData(); };
-      document.body.appendChild(s1);
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent("정류소목록")}&tqx=responseHandler:handleStationList&_t=${Date.now()}`;
+      const s = document.createElement('script');
+      s.src = url;
+      s.onerror = () => loadRouteData();
+      document.body.appendChild(s);
     }
 
     window.handleStationList = function(json) {
       try {
-        const rows = (json && json.table && json.table.rows) || [];
-        rows.forEach(r => {
-          if (!r || !r.c || !Array.isArray(r.c)) return;
-          const c = r.c;
-          const name   = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
-          const latVal = c[1] ? parseFloat(c[1].v || c[1].f) : null;
-          const lngVal = c[2] ? parseFloat(c[2].v || c[2].f) : null;
-          const stopNo = c[3] ? String(c[3].f || c[3].v || '').replace(/,/g, '').trim() : '';
-
-          if (!name || name === "정류장명" || isNaN(latVal) || isNaN(lngVal)) return;
-
-          const coordData = { name: name, lat: latVal, lng: lngVal, stopNo: stopNo };
-          if (stopNo) masterStopMapByNo[stopNo] = coordData;
-          if (name) masterStopMapByName[name] = coordData;
+        (json?.table?.rows || []).forEach(r => {
+          const c = r?.c || [];
+          const name = String(c[0]?.f || c[0]?.v || '').trim();
+          const lat = parseFloat(c[1]?.v || c[1]?.f);
+          const lng = parseFloat(c[2]?.v || c[2]?.f);
+          const stopNo = String(c[3]?.f || c[3]?.v || '').replace(/,/g, '').trim();
+          if (name && !isNaN(lat) && !isNaN(lng)) {
+            const data = { name, lat, lng, stopNo };
+            if (stopNo) masterStopMapByNo[stopNo] = data;
+            masterStopMapByName[name] = data;
+          }
         });
-      } catch (e) {
-        console.warn("'정류소목록' 파싱 예외:", e);
-      } finally {
-        loadRouteData();
-      }
+      } catch (e) {} finally { loadRouteData(); }
     };
 
     function loadRouteData() {
-      const encodedRoute = encodeURIComponent("노선데이터");
-      const routeUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedRoute}&tqx=responseHandler:handleRouteData&_t=${Date.now()}`;
-      const s2 = document.createElement('script');
-      s2.src = routeUrl;
-      s2.onerror = function() {
-        const modal = document.getElementById('loadingModal');
-        if (modal) modal.style.display = 'none';
-        alert("구글 시트 연동에 실패했습니다. 공유 설정을 확인해주세요.");
-      };
-      document.body.appendChild(s2);
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent("노선데이터")}&tqx=responseHandler:handleRouteData&_t=${Date.now()}`;
+      const s = document.createElement('script');
+      s.src = url;
+      s.onerror = () => { document.getElementById('loadingModal').style.display = 'none'; alert("시트 연동 실패"); };
+      document.body.appendChild(s);
     }
 
     window.handleRouteData = function(json) {
       try {
-        const cols = (json && json.table && json.table.cols) || [];
-        const rows = (json && json.table && json.table.rows) || [];
+        const cols = json?.table?.cols || [];
+        const rows = json?.table?.rows || [];
         const result = {};
-
-        let colIndexMap = {
-          course: 0,
-          name: 1,
-          addr: 2,
-          desc: -1,
-          stopNo: -1,
-          photo: -1
-        };
+        let colMap = { course: 0, name: 1, addr: 2, desc: -1, stopNo: -1, photo: -1 };
         const roundCols = [];
 
         cols.forEach((col, idx) => {
-          const label = String(col.label || '').trim();
-          if (label.includes('코스')) colIndexMap.course = idx;
-          else if (label.includes('정류장명')) colIndexMap.name = idx;
-          else if (label.includes('주소')) colIndexMap.addr = idx;
-          else if (label.includes('설명')) colIndexMap.desc = idx;
-          else if (label.includes('번호')) colIndexMap.stopNo = idx;
-          else if (label.includes('사진') || label.includes('이미지')) colIndexMap.photo = idx;
-          else if (label.includes('회차') || label.includes('회')) {
-            roundCols.push({ index: idx, label: label });
-          }
+          const l = String(col.label || '').trim();
+          if (l.includes('코스')) colMap.course = idx;
+          else if (l.includes('정류장명')) colMap.name = idx;
+          else if (l.includes('주소')) colMap.addr = idx;
+          else if (l.includes('설명')) colMap.desc = idx;
+          else if (l.includes('번호')) colMap.stopNo = idx;
+          else if (l.includes('사진') || l.includes('이미지')) colMap.photo = idx;
+          else if (l.includes('회차') || l.includes('회')) roundCols.push({ index: idx, label: l });
         });
 
         roundCols.sort((a, b) => parseRoundNumber(a.label) - parseRoundNumber(b.label));
-
-        if (colIndexMap.desc === -1) colIndexMap.desc = roundCols.length > 0 ? roundCols[roundCols.length - 1].index + 1 : 5;
-        if (colIndexMap.stopNo === -1) colIndexMap.stopNo = colIndexMap.desc + 1;
-        if (colIndexMap.photo === -1) colIndexMap.photo = colIndexMap.stopNo + 1;
+        if (colMap.desc === -1) colMap.desc = roundCols.length > 0 ? roundCols[roundCols.length - 1].index + 1 : 5;
+        if (colMap.stopNo === -1) colMap.stopNo = colMap.desc + 1;
+        if (colMap.photo === -1) colMap.photo = colMap.stopNo + 1;
 
         rows.forEach((r, idx) => {
-          const c = r.c;
-          if (!c) return;
-
+          const c = r?.c || [];
           const getVal = (i) => (i >= 0 && c[i]) ? String(c[i].f || c[i].v || '').trim() : '';
+          const course = getVal(colMap.course);
+          const name = getVal(colMap.name);
+          const addr = getVal(colMap.addr);
+          const desc = getVal(colMap.desc);
+          const stopNo = getVal(colMap.stopNo).replace(/,/g, '');
+          const photoUrl = formatImageUrl(getVal(colMap.photo));
 
-          const course = getVal(colIndexMap.course);
-          const name   = getVal(colIndexMap.name);
-          const addr   = getVal(colIndexMap.addr);
-          const desc   = getVal(colIndexMap.desc);
-          const stopNo = getVal(colIndexMap.stopNo).replace(/,/g, '');
-          const photoUrl = formatImageUrl(getVal(colIndexMap.photo));
-
-          if (!course || !name || course === "코스구분" || course === "코스명") return;
-
-          const isWaypoint = desc.includes('경유') || name.includes('[경유]') || name.includes('(경유)');
+          if (!course || !name || course.includes('코스구분')) return;
+          const isWaypoint = desc.includes('경유') || name.includes('[경유]');
 
           const schedules = [];
           const allRawTimes = [];
-
-          if (roundCols.length > 0) {
-            roundCols.forEach(rc => {
-              const tVal = getVal(rc.index);
-              const m = tVal.match(/\b\d{1,2}:\d{2}\b/);
-              if (m) {
-                schedules.push({ round: rc.label, time: m[0] });
-                allRawTimes.push(m[0]);
-              } else if (tVal.includes('미운행')) {
-                schedules.push({ round: rc.label, time: '미운행' });
-              }
-            });
-          } else {
-            const sTime = getVal(3);
-            const aTime = getVal(4);
-            const matches = `${sTime} ${aTime}`.match(/\b\d{1,2}:\d{2}\b/g) || [];
-            matches.forEach((t, tIdx) => {
-              schedules.push({ round: `${tIdx + 1}회차`, time: t });
-              allRawTimes.push(t);
-            });
-          }
+          roundCols.forEach(rc => {
+            const tVal = getVal(rc.index);
+            const m = tVal.match(/\b\d{1,2}:\d{2}\b/);
+            if (m) { schedules.push({ round: rc.label, time: m[0] }); allRawTimes.push(m[0]); }
+            else if (tVal.includes('미운행')) schedules.push({ round: rc.label, time: '미운행' });
+          });
 
           if (!result[course]) result[course] = [];
-          result[course].push({
-            rowIdx: idx,
-            courseName: course,
-            name: name,
-            addr: addr || name,
-            schedules: schedules,
-            rawTimes: allRawTimes,
-            desc: desc,
-            stopNo: stopNo,
-            photoUrl: photoUrl,
-            isWaypoint: isWaypoint,
-            distanceText: '계산 중...'
-          });
+          result[course].push({ rowIdx: idx, courseName: course, name, addr: addr || name, schedules, rawTimes: allRawTimes, desc, stopNo, photoUrl, isWaypoint, distanceText: '계산 중...' });
         });
 
         routeData = result;
         initCourseDropdown();
         startRealtimeCheck();
-
-        // ⭐️ 파이어베이스 실시간 관제 리스너 구동 시작
-        if (window.initRealtimeBusTracking) {
-          window.initRealtimeBusTracking();
-        }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('view') === 'timetable') {
-          openTimetableModal(urlParams.get('course'));
-        }
+        if (window.initRealtimeBusTracking) window.initRealtimeBusTracking();
       } catch (err) {
-        alert("노선데이터 변환 오류: " + err.message);
+        alert("데이터 변환 오류: " + err.message);
       } finally {
-        const modal = document.getElementById('loadingModal');
-        if (modal) modal.style.display = 'none';
+        document.getElementById('loadingModal').style.display = 'none';
       }
     };
 
     window.onload = function() {
-      const mapContainer = document.getElementById('map');
-      map = new kakao.maps.Map(mapContainer, {
-        center: new kakao.maps.LatLng(34.8872, 128.625),
-        level: 6
-      });
-
+      map = new kakao.maps.Map(document.getElementById('map'), { center: new kakao.maps.LatLng(34.8872, 128.625), level: 6 });
       map.addControl(new kakao.maps.MapTypeControl(), kakao.maps.ControlPosition.TOPRIGHT);
       map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
 
-      map.setMinLevel(1);
-      map.setMaxLevel(10);
-
-      kakao.maps.event.addListener(map, 'zoom_changed', function() {
-        setTimeout(() => { if (map) map.relayout(); }, 100);
-      });
-      window.addEventListener('resize', () => {
-        if (map) map.relayout();
-      });
+      kakao.maps.event.addListener(map, 'zoom_changed', () => setTimeout(() => map?.relayout(), 100));
+      window.addEventListener('resize', () => map?.relayout());
 
       initBottomSheetGestures();
-      initTopAreaGestures();
-
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
-
       loadSettings();
     };
 
-    function initTopAreaGestures() {
-      const topArea = document.getElementById('topCollapsibleArea');
-      if (!topArea) return;
-
-      let startY = 0;
-      topArea.addEventListener('touchstart', (e) => {
-        if (window.innerWidth > 850) return;
-        startY = e.touches[0].clientY;
-      }, { passive: true });
-
-      topArea.addEventListener('touchend', (e) => {
-        if (window.innerWidth > 850) return;
-        const endY = e.changedTouches[0].clientY;
-        const diffY = endY - startY;
-
-        if (diffY < -30) {
-          collapseTopArea();
-        }
-      }, { passive: true });
-    }
-
     function initBottomSheetGestures() {
-      const sidebar = document.getElementById('sidebar');
-      const handle = document.getElementById('sheetHandle');
-      const header = document.getElementById('sheetHeader');
+      const sidebar = document.getElementById('sidebar'), handle = document.getElementById('sheetHandle'), header = document.getElementById('sheetHeader');
       if (!sidebar || !handle) return;
-
       let startY = 0;
-
-      const onTouchStart = (e) => {
-        if (window.innerWidth > 850) return;
-        startY = e.touches ? e.touches[0].clientY : e.clientY;
-      };
-
-      const onTouchEnd = (e) => {
-        if (window.innerWidth > 850) return;
-        const endY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-        const diffY = endY - startY;
-
-        if (diffY > 30) {
-          if (sidebar.classList.contains('expanded')) {
-            sidebar.classList.remove('expanded');
-          } else {
-            sidebar.classList.add('minimized');
-          }
-        } else if (diffY < -30) {
-          if (sidebar.classList.contains('minimized')) {
-            sidebar.classList.remove('minimized');
-          } else {
-            sidebar.classList.add('expanded');
-          }
-        }
-      };
-
       [handle, header].forEach(elem => {
-        if (elem) {
-          elem.addEventListener('touchstart', onTouchStart, { passive: true });
-          elem.addEventListener('touchend', onTouchEnd, { passive: true });
-          elem.addEventListener('click', () => {
-            if (window.innerWidth > 850) return;
-            if (sidebar.classList.contains('minimized')) {
-              sidebar.classList.remove('minimized');
-            } else if (!sidebar.classList.contains('expanded')) {
-              sidebar.classList.add('expanded');
-            } else {
-              sidebar.classList.remove('expanded');
-              sidebar.classList.add('minimized');
-            }
-          });
-        }
+        elem?.addEventListener('touchstart', (e) => { if (window.innerWidth > 850) return; startY = e.touches[0].clientY; }, { passive: true });
+        elem?.addEventListener('touchend', (e) => {
+          if (window.innerWidth > 850) return;
+          const diff = e.changedTouches[0].clientY - startY;
+          if (diff > 30) { if (sidebar.classList.contains('expanded')) sidebar.classList.remove('expanded'); else sidebar.classList.add('minimized'); }
+          else if (diff < -30) { if (sidebar.classList.contains('minimized')) sidebar.classList.remove('minimized'); else sidebar.classList.add('expanded'); }
+        }, { passive: true });
+        elem?.addEventListener('click', () => {
+          if (window.innerWidth > 850) return;
+          if (sidebar.classList.contains('minimized')) sidebar.classList.remove('minimized');
+          else if (!sidebar.classList.contains('expanded')) sidebar.classList.add('expanded');
+          else { sidebar.classList.remove('expanded'); sidebar.classList.add('minimized'); }
+        });
       });
     }
 
     function clearMapLayers() {
-      markerOverlays.forEach(o => o.setMap(null));
-      markerOverlays = [];
-      liveBusOverlays.forEach(o => o.setMap(null));
-      liveBusOverlays = [];
-      arrowOverlays.forEach(o => o.setMap(null));
-      arrowOverlays = [];
-      if (currentBubbleOverlay) {
-        currentBubbleOverlay.setMap(null);
-        currentBubbleOverlay = null;
-      }
-      polylines.forEach(p => p.setMap(null));
-      polylines = [];
+      markerOverlays.forEach(o => o.setMap(null)); markerOverlays = [];
+      liveBusOverlays.forEach(o => o.setMap(null)); liveBusOverlays = [];
+      arrowOverlays.forEach(o => o.setMap(null)); arrowOverlays = [];
+      if (currentBubbleOverlay) { currentBubbleOverlay.setMap(null); currentBubbleOverlay = null; }
+      polylines.forEach(p => p.setMap(null)); polylines = [];
     }
 
     async function selectCourse(courseName, colorIdx) {
       currentSelectedCourseKey = courseName;
-      const select = document.getElementById('courseSelect');
-      if (select && select.value !== courseName) {
-        select.value = courseName;
-      }
-
+      document.getElementById('courseSelect').value = courseName;
       clearMapLayers();
 
-      const rawStops = routeData[courseName] || [];
-      const stops = [...rawStops].sort((a, b) => a.rowIdx - b.rowIdx);
-
+      const stops = [...(routeData[courseName] || [])].sort((a, b) => a.rowIdx - b.rowIdx);
       const color = COURSE_COLORS[colorIdx % COURSE_COLORS.length];
       const bounds = new kakao.maps.LatLngBounds();
       const validStopsForRouting = [];
 
       document.getElementById('courseTitle').innerText = courseName;
       document.getElementById('totalDistBadge').innerText = '계산 중...';
-
       const list = document.getElementById('stopList');
       list.innerHTML = '';
 
       const coordOccurrences = {};
-      const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
+      const now = new Date(), currentMinutes = now.getHours() * 60 + now.getMinutes();
       let displayCounter = 0;
 
       for (let i = 0; i < stops.length; i++) {
         const stop = stops[i];
-        const isBokji = stop.name.indexOf('복지관') > -1;
+        const isBokji = stop.name.includes('복지관');
+        let displayNum = null, card = null, isNowActive = false;
 
-        let displayNum = null;
-        let card = null;
-
-        let isNowActive = false;
-        stop.rawTimes.forEach(tStr => {
-          const parts = tStr.split(':');
-          const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-          if (Math.abs(currentMinutes - targetMinutes) <= timeWindowMinutes) {
-            isNowActive = true;
-          }
+        stop.rawTimes.forEach(t => {
+          const p = t.split(':');
+          if (Math.abs(currentMinutes - (parseInt(p[0]) * 60 + parseInt(p[1]))) <= timeWindowMinutes) isNowActive = true;
         });
 
         if (!stop.isWaypoint) {
@@ -1966,7 +1086,6 @@
           if (displayNum === 1) stop.distanceText = '출발점';
 
           const scheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
-
           const nextArrival = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
           const etaHtml = nextArrival ? nextArrival.html : '';
 
@@ -1976,10 +1095,9 @@
 
           const photoHtml = stop.photoUrl ? `
             <div class="stop-photo-box" onclick="event.stopPropagation(); openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');">
-              <img src="${stop.photoUrl}" alt="${stop.name} 전경 사진" loading="lazy">
-              <span class="photo-badge">📷 정류소 전경 (터치시 확대)</span>
-            </div>
-          ` : '';
+              <img src="${stop.photoUrl}" alt="전경사진" loading="lazy">
+              <span class="photo-badge">📷 전경사진 (확대)</span>
+            </div>` : '';
 
           card.innerHTML = `
             <div class="card-top">
@@ -1987,25 +1105,21 @@
               <div class="stop-info">
                 <div class="stop-info-header">
                   <h4>${stop.name}</h4>
-                  ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
+                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
                   ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                  <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성안내</button>
+                  <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성</button>
                 </div>
                 ${etaHtml}
                 ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
-                <div class="meta-tags">
-                  <span class="dist-tag" id="dist-card-${i}">${stop.distanceText}</span>
-                </div>
+                <div class="meta-tags"><span class="dist-tag" id="dist-card-${i}">${stop.distanceText}</span></div>
                 <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
               </div>
             </div>
-            ${photoHtml}
-          `;
+            ${photoHtml}`;
           list.appendChild(card);
         }
 
         let coords = await resolveStopCoordinates(stop);
-
         if (coords) {
           stop.coords = coords;
           stop.arrayIndex = i;
@@ -2014,20 +1128,12 @@
 
           if (!stop.isWaypoint && displayNum !== null) {
             const coordKey = `${coords.getLat().toFixed(5)},${coords.getLng().toFixed(5)}`;
-            if (!coordOccurrences[coordKey]) coordOccurrences[coordKey] = 0;
-            coordOccurrences[coordKey]++;
-            const count = coordOccurrences[coordKey];
-
+            coordOccurrences[coordKey] = (coordOccurrences[coordKey] || 0) + 1;
             let adjustedCoords = coords;
-            if (count > 1) {
-              const offsets = [
-                { lat: 0.00008, lng: 0 },
-                { lat: 0, lng: 0.00012 },
-                { lat: -0.00008, lng: 0 },
-                { lat: 0, lng: -0.00012 }
-              ];
-              const offset = offsets[(count - 2) % offsets.length];
-              adjustedCoords = new kakao.maps.LatLng(coords.getLat() + offset.lat, coords.getLng() + offset.lng);
+            if (coordOccurrences[coordKey] > 1) {
+              const offsets = [{lat:0.00008, lng:0}, {lat:0, lng:0.00012}, {lat:-0.00008, lng:0}, {lat:0, lng:-0.00012}];
+              const off = offsets[(coordOccurrences[coordKey] - 2) % offsets.length];
+              adjustedCoords = new kakao.maps.LatLng(coords.getLat() + off.lat, coords.getLng() + off.lng);
             }
 
             const badge = document.createElement('div');
@@ -2035,97 +1141,59 @@
             badge.style.backgroundColor = isNowActive ? '#ef4444' : (isBokji ? '#dc2626' : color);
             badge.innerText = displayNum;
 
-            const markerOverlay = new kakao.maps.CustomOverlay({
-              position: adjustedCoords,
-              content: badge,
-              yAnchor: 0.5,
-              xAnchor: 0.5,
-              zIndex: isNowActive ? 50 : (isBokji ? 10 + count : 3 + count)
-            });
+            const markerOverlay = new kakao.maps.CustomOverlay({ position: adjustedCoords, content: badge, yAnchor: 0.5, xAnchor: 0.5, zIndex: isNowActive ? 50 : (isBokji ? 10 : 3) });
             markerOverlay.setMap(map);
             markerOverlays.push(markerOverlay);
 
             if (isNowActive) {
               const busBadgeElem = document.createElement('div');
               busBadgeElem.className = 'live-bus-badge';
-              busBadgeElem.innerHTML = `🚌 <span style="font-size:11px;">운행중</span>`;
-
-              const busOverlay = new kakao.maps.CustomOverlay({
-                position: adjustedCoords,
-                content: busBadgeElem,
-                yAnchor: 1.0,
-                xAnchor: 0.5,
-                zIndex: 120
-              });
+              busBadgeElem.innerHTML = `🚌 운행중`;
+              const busOverlay = new kakao.maps.CustomOverlay({ position: adjustedCoords, content: busBadgeElem, yAnchor: 1.0, xAnchor: 0.5, zIndex: 120 });
               busOverlay.setMap(map);
               liveBusOverlays.push(busOverlay);
             }
 
             const openDetailPopup = () => {
               if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
-
               const bubbleDiv = document.createElement('div');
               bubbleDiv.className = 'bubble-popup';
-              const popupScheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
-
-              const nextArrivalPopup = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
-              const popupEtaHtml = nextArrivalPopup ? nextArrivalPopup.html : '';
-
-              const popupImgHtml = stop.photoUrl ? `
-                <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');" title="터치시 크게 보기">
-              ` : '';
-
-              const kakaoNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
-              const kakaoRoadviewUrl = `https://map.kakao.com/link/roadview/${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
+              const popupSched = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
+              const nextArr = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
+              const popupImg = stop.photoUrl ? `<img src="${stop.photoUrl}" class="popup-photo" onclick="openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');" title="크게 보기">` : '';
+              const navUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
+              const rvUrl = `https://map.kakao.com/link/roadview/${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
 
               bubbleDiv.innerHTML = `
                 <div class="popup-header">
                   <div class="popup-title-area">
                     <div class="popup-title">${displayNum}. ${stop.name}</div>
                     <div class="popup-tags-row">
-                      ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
+                      ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
                       ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                      <button class="tts-speak-btn" onclick="speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성안내</button>
+                      <button class="tts-speak-btn" onclick="speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성</button>
                     </div>
                   </div>
-                  <button class="close-btn" title="닫기">&times;</button>
+                  <button class="close-btn">&times;</button>
                 </div>
-                ${popupEtaHtml}
-                ${popupImgHtml}
-                ${popupScheduleHtml ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupScheduleHtml}</div>` : ''}
-                <div class="meta-tags">
-                  <span class="dist-tag">${stop.distanceText}</span>
-                </div>
+                ${nextArr ? nextArr.html : ''}
+                ${popupImg}
+                ${popupSched ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupSched}</div>` : ''}
+                <div class="meta-tags"><span class="dist-tag">${stop.distanceText}</span></div>
                 <div class="popup-addr">📍 ${stop.addr}</div>
                 ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
                 <div class="popup-btn-row">
-                  <a href="${kakaoNaviUrl}" target="_blank" class="popup-nav-btn">🚶 길찾기</a>
-                  <a href="${kakaoRoadviewUrl}" target="_blank" class="popup-roadview-btn">👀 360° 로드뷰</a>
-                </div>
-              `;
+                  <a href="${navUrl}" target="_blank" class="popup-nav-btn">🚶 길찾기</a>
+                  <a href="${rvUrl}" target="_blank" class="popup-roadview-btn">👀 360° 로드뷰</a>
+                </div>`;
 
-              const bubbleOverlay = new kakao.maps.CustomOverlay({
-                position: adjustedCoords,
-                content: bubbleDiv,
-                yAnchor: 1.0,
-                xAnchor: 0.5,
-                zIndex: 100
-              });
-
-              bubbleDiv.querySelector('.close-btn').onclick = function(e) {
-                e.stopPropagation();
-                bubbleOverlay.setMap(null);
-                currentBubbleOverlay = null;
-              };
-
+              const bubbleOverlay = new kakao.maps.CustomOverlay({ position: adjustedCoords, content: bubbleDiv, yAnchor: 1.0, xAnchor: 0.5, zIndex: 100 });
+              bubbleDiv.querySelector('.close-btn').onclick = (e) => { e.stopPropagation(); bubbleOverlay.setMap(null); currentBubbleOverlay = null; };
               bubbleOverlay.setMap(map);
               currentBubbleOverlay = bubbleOverlay;
 
-              if (window.innerWidth <= 850) {
-                map.panTo(new kakao.maps.LatLng(adjustedCoords.getLat() - 0.003, adjustedCoords.getLng()));
-              } else {
-                map.panTo(adjustedCoords);
-              }
+              if (window.innerWidth <= 850) map.panTo(new kakao.maps.LatLng(adjustedCoords.getLat() - 0.003, adjustedCoords.getLng()));
+              else map.panTo(adjustedCoords);
 
               if (card) {
                 document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
@@ -2141,112 +1209,78 @@
       }
 
       document.getElementById('stopCount').innerText = `${displayCounter}개소`;
-
       if (validStopsForRouting.length > 1) {
         map.setBounds(bounds);
         const b = document.getElementById('routeBadge');
-        b.style.display = 'block';
-        b.innerText = '경로선 계산 중...';
-        
-        const routeResult = await drawSingleRoadLine(courseName, validStopsForRouting, color);
+        b.style.display = 'block'; b.innerText = '경로선 계산 중...';
+        const res = await drawSingleRoadLine(courseName, validStopsForRouting, color);
         b.style.display = 'none';
-
-        if (routeResult) {
-          const totalKm = (routeResult.totalDistance / 1000).toFixed(1);
-          document.getElementById('totalDistBadge').innerText = `총 ${totalKm} km`;
-
-          if (routeResult.legs && routeResult.legs.length > 0) {
-            let legIdx = 0;
-            for (let k = 1; k < validStopsForRouting.length; k++) {
-              const currentLegDist = routeResult.legs[legIdx] || 0;
-              const curStop = validStopsForRouting[k];
-              const distText = `구간 ${formatDistance(currentLegDist)}`;
-
-              curStop.distanceText = distText;
-              const cardTag = document.getElementById(`dist-card-${curStop.arrayIndex}`);
-              if (cardTag) cardTag.innerText = distText;
-              legIdx++;
+        if (res) {
+          document.getElementById('totalDistBadge').innerText = `총 ${(res.totalDistance / 1000).toFixed(1)} km`;
+          (res.legs || []).forEach((legDist, legIdx) => {
+            const curStop = validStopsForRouting[legIdx + 1];
+            if (curStop) {
+              curStop.distanceText = `구간 ${formatDistance(legDist)}`;
+              const tag = document.getElementById(`dist-card-${curStop.arrayIndex}`);
+              if (tag) tag.innerText = curStop.distanceText;
             }
-          }
+          });
         }
       } else if (validStopsForRouting.length === 1) {
         map.setCenter(validStopsForRouting[0].coords);
         document.getElementById('totalDistBadge').innerText = '단일 지점';
       }
-
-      setTimeout(() => { if (map) map.relayout(); }, 200);
+      setTimeout(() => map?.relayout(), 200);
     }
 
     async function selectAllCourses() {
       currentSelectedCourseKey = 'ALL';
-      const select = document.getElementById('courseSelect');
-      if (select && select.value !== 'ALL') {
-        select.value = 'ALL';
-      }
-
+      document.getElementById('courseSelect').value = 'ALL';
       clearMapLayers();
 
       const courses = Object.keys(routeData);
       const totalBounds = new kakao.maps.LatLngBounds();
       const list = document.getElementById('stopList');
       list.innerHTML = '';
-
-      let totalStopsCount = 0;
-      let totalNetworkDistance = 0;
+      let totalStopsCount = 0, totalDist = 0;
 
       document.getElementById('courseTitle').innerText = "전체 셔틀 노선망";
       document.getElementById('totalDistBadge').innerText = '계산 중...';
-
       const badge = document.getElementById('routeBadge');
-      badge.style.display = 'block';
-      badge.innerText = "전체 노선망 계산 중...";
+      badge.style.display = 'block'; badge.innerText = "전체 노선망 계산 중...";
 
-      const coordOccurrences = {};
-      const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const now = new Date(), currentMinutes = now.getHours() * 60 + now.getMinutes();
 
       for (let cIdx = 0; cIdx < courses.length; cIdx++) {
         const cName = courses[cIdx];
-        const rawStops = routeData[cName] || [];
-        const stops = [...rawStops].sort((a, b) => a.rowIdx - b.rowIdx);
+        const stops = [...(routeData[cName] || [])].sort((a, b) => a.rowIdx - b.rowIdx);
         const color = COURSE_COLORS[cIdx % COURSE_COLORS.length];
-        const courseValidStopsForRouting = [];
+        const courseValid = [];
 
-        const sectionHeader = document.createElement('div');
-        sectionHeader.className = 'course-section-title';
-        sectionHeader.style.backgroundColor = `${color}18`;
-        sectionHeader.style.color = color;
-        sectionHeader.id = `section-header-${cIdx}`;
-        sectionHeader.innerHTML = `<span>🚌 <b>${cName}</b></span><span id="course-dist-${cIdx}" style="font-size:0.75rem;">계산 중...</span>`;
-        list.appendChild(sectionHeader);
+        const secHeader = document.createElement('div');
+        secHeader.className = 'course-section-title';
+        secHeader.style.cssText = `background:${color}18; color:${color};`;
+        secHeader.innerHTML = `<span>🚌 <b>${cName}</b></span><span id="course-dist-${cIdx}" style="font-size:0.75rem;">계산 중...</span>`;
+        list.appendChild(secHeader);
 
-        let courseDisplayCounter = 0;
-
+        let cCount = 0;
         for (let i = 0; i < stops.length; i++) {
           const stop = stops[i];
-          const isBokji = stop.name.indexOf('복지관') > -1;
+          const isBokji = stop.name.includes('복지관');
+          let displayNum = null, card = null, isNowActive = false;
 
-          let displayNum = null;
-          let card = null;
-
-          let isNowActive = false;
-          stop.rawTimes.forEach(tStr => {
-            const parts = tStr.split(':');
-            const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-            if (Math.abs(currentMinutes - targetMinutes) <= timeWindowMinutes) {
-              isNowActive = true;
-            }
+          stop.rawTimes.forEach(t => {
+            const p = t.split(':');
+            if (Math.abs(currentMinutes - (parseInt(p[0]) * 60 + parseInt(p[1]))) <= timeWindowMinutes) isNowActive = true;
           });
 
           if (!stop.isWaypoint) {
-            courseDisplayCounter++;
-            totalStopsCount++;
-            displayNum = courseDisplayCounter;
+            cCount++; totalStopsCount++;
+            displayNum = cCount;
             stop.displayNum = displayNum;
             if (displayNum === 1) stop.distanceText = '출발점';
 
             const scheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
-
             const nextArrival = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
             const etaHtml = nextArrival ? nextArrival.html : '';
 
@@ -2256,10 +1290,9 @@
 
             const photoHtml = stop.photoUrl ? `
               <div class="stop-photo-box" onclick="event.stopPropagation(); openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');">
-                <img src="${stop.photoUrl}" alt="${stop.name} 전경 사진" loading="lazy">
-                <span class="photo-badge">📷 정류소 전경 (터치시 확대)</span>
-              </div>
-            ` : '';
+                <img src="${stop.photoUrl}" alt="전경사진" loading="lazy">
+                <span class="photo-badge">📷 전경사진 (확대)</span>
+              </div>` : '';
 
             card.innerHTML = `
               <div class="card-top">
@@ -2267,145 +1300,86 @@
                 <div class="stop-info">
                   <div class="stop-info-header">
                     <h4>${stop.name}</h4>
-                    ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
+                    ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
                     ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성안내</button>
+                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성</button>
                   </div>
                   ${etaHtml}
                   ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
-                  <div class="meta-tags">
-                    <span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${stop.distanceText}</span>
-                  </div>
+                  <div class="meta-tags"><span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${stop.distanceText}</span></div>
                   <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
                 </div>
               </div>
-              ${photoHtml}
-            `;
+              ${photoHtml}`;
             list.appendChild(card);
           }
 
           let coords = await resolveStopCoordinates(stop);
-
           if (coords) {
             stop.coords = coords;
             stop.arrayIndex = i;
-            courseValidStopsForRouting.push(stop);
+            courseValid.push(stop);
             totalBounds.extend(coords);
 
             if (!stop.isWaypoint && displayNum !== null) {
-              const coordKey = `${coords.getLat().toFixed(5)},${coords.getLng().toFixed(5)}`;
-              if (!coordOccurrences[coordKey]) coordOccurrences[coordKey] = 0;
-              coordOccurrences[coordKey]++;
-              const count = coordOccurrences[coordKey];
-
-              let adjustedCoords = coords;
-              if (count > 1) {
-                const offsets = [
-                  { lat: 0.00008, lng: 0 },
-                  { lat: 0, lng: 0.00012 },
-                  { lat: -0.00008, lng: 0 },
-                  { lat: 0, lng: -0.00012 }
-                ];
-                const offset = offsets[(count - 2) % offsets.length];
-                adjustedCoords = new kakao.maps.LatLng(coords.getLat() + offset.lat, coords.getLng() + offset.lng);
-              }
-
               const badgeElem = document.createElement('div');
               badgeElem.className = `bus-marker-badge ${isBokji ? '복지관' : ''} ${isNowActive ? 'now-active' : ''}`;
               badgeElem.style.backgroundColor = isNowActive ? '#ef4444' : (isBokji ? '#dc2626' : color);
               badgeElem.innerText = displayNum;
 
-              const markerOverlay = new kakao.maps.CustomOverlay({
-                position: adjustedCoords,
-                content: badgeElem,
-                yAnchor: 0.5,
-                xAnchor: 0.5,
-                zIndex: isNowActive ? 50 : (isBokji ? 15 : 5)
-              });
+              const markerOverlay = new kakao.maps.CustomOverlay({ position: coords, content: badgeElem, yAnchor: 0.5, xAnchor: 0.5, zIndex: isNowActive ? 50 : (isBokji ? 15 : 5) });
               markerOverlay.setMap(map);
               markerOverlays.push(markerOverlay);
 
               if (isNowActive) {
                 const busBadgeElem = document.createElement('div');
                 busBadgeElem.className = 'live-bus-badge';
-                busBadgeElem.innerHTML = `🚌 <span style="font-size:11px;">운행중</span>`;
-
-                const busOverlay = new kakao.maps.CustomOverlay({
-                  position: adjustedCoords,
-                  content: busBadgeElem,
-                  yAnchor: 1.0,
-                  xAnchor: 0.5,
-                  zIndex: 120
-                });
+                busBadgeElem.innerHTML = `🚌 운행중`;
+                const busOverlay = new kakao.maps.CustomOverlay({ position: coords, content: busBadgeElem, yAnchor: 1.0, xAnchor: 0.5, zIndex: 120 });
                 busOverlay.setMap(map);
                 liveBusOverlays.push(busOverlay);
               }
 
-              const openAllDetailPopup = () => {
+              badgeElem.onclick = () => {
                 if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
-
                 const bubbleDiv = document.createElement('div');
                 bubbleDiv.className = 'bubble-popup';
-                const popupScheduleHtml = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
-
-                const nextArrivalPopup = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
-                const popupEtaHtml = nextArrivalPopup ? nextArrivalPopup.html : '';
-
-                const popupImgHtml = stop.photoUrl ? `
-                  <img src="${stop.photoUrl}" class="popup-photo" alt="${stop.name} 사진" onclick="openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');" title="터치시 크게 보기">
-                ` : '';
-
-                const kakaoNaviUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
-                const kakaoRoadviewUrl = `https://map.kakao.com/link/roadview/${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
+                const popupSched = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
+                const nextArr = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
+                const popupImg = stop.photoUrl ? `<img src="${stop.photoUrl}" class="popup-photo" onclick="openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');">` : '';
+                const navUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${coords.getLat()},${coords.getLng()}`;
+                const rvUrl = `https://map.kakao.com/link/roadview/${coords.getLat()},${coords.getLng()}`;
 
                 bubbleDiv.innerHTML = `
                   <div class="popup-header">
                     <div class="popup-title-area">
                       <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
                       <div class="popup-tags-row">
-                        ${stop.stopNo ? `<span class="stop-id-tag">정류소 번호: ${stop.stopNo}</span>` : ''}
+                        ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
                         ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                        <button class="tts-speak-btn" onclick="speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성안내</button>
+                        <button class="tts-speak-btn" onclick="speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성</button>
                       </div>
                     </div>
-                    <button class="close-btn" title="닫기">&times;</button>
+                    <button class="close-btn">&times;</button>
                   </div>
-                  ${popupEtaHtml}
-                  ${popupImgHtml}
-                  ${popupScheduleHtml ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupScheduleHtml}</div>` : ''}
-                  <div class="meta-tags">
-                    <span class="dist-tag">${stop.distanceText}</span>
-                  </div>
+                  ${nextArr ? nextArr.html : ''}
+                  ${popupImg}
+                  ${popupSched ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupSched}</div>` : ''}
+                  <div class="meta-tags"><span class="dist-tag">${stop.distanceText}</span></div>
                   <div class="popup-addr">📍 ${stop.addr}</div>
                   ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
                   <div class="popup-btn-row">
-                    <a href="${kakaoNaviUrl}" target="_blank" class="popup-nav-btn">🚶 길찾기</a>
-                    <a href="${kakaoRoadviewUrl}" target="_blank" class="popup-roadview-btn">👀 360° 로드뷰</a>
-                  </div>
-                `;
+                    <a href="${navUrl}" target="_blank" class="popup-nav-btn">🚶 길찾기</a>
+                    <a href="${rvUrl}" target="_blank" class="popup-roadview-btn">👀 360° 로드뷰</a>
+                  </div>`;
 
-                const bubbleOverlay = new kakao.maps.CustomOverlay({
-                  position: adjustedCoords,
-                  content: bubbleDiv,
-                  yAnchor: 1.0,
-                  xAnchor: 0.5,
-                  zIndex: 100
-                });
-
-                bubbleDiv.querySelector('.close-btn').onclick = function(e) {
-                  e.stopPropagation();
-                  bubbleOverlay.setMap(null);
-                  currentBubbleOverlay = null;
-                };
-
+                const bubbleOverlay = new kakao.maps.CustomOverlay({ position: coords, content: bubbleDiv, yAnchor: 1.0, xAnchor: 0.5, zIndex: 100 });
+                bubbleDiv.querySelector('.close-btn').onclick = (e) => { e.stopPropagation(); bubbleOverlay.setMap(null); currentBubbleOverlay = null; };
                 bubbleOverlay.setMap(map);
                 currentBubbleOverlay = bubbleOverlay;
 
-                if (window.innerWidth <= 850) {
-                  map.panTo(new kakao.maps.LatLng(adjustedCoords.getLat() - 0.003, adjustedCoords.getLng()));
-                } else {
-                  map.panTo(adjustedCoords);
-                }
+                if (window.innerWidth <= 850) map.panTo(new kakao.maps.LatLng(coords.getLat() - 0.003, coords.getLng()));
+                else map.panTo(coords);
 
                 if (card) {
                   document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
@@ -2413,185 +1387,94 @@
                   card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
               };
-
-              badgeElem.onclick = openAllDetailPopup;
-              if (card) card.onclick = openAllDetailPopup;
             }
           }
         }
 
-        if (courseValidStopsForRouting.length > 1) {
-          const courseRes = await drawSingleRoadLine(cName, courseValidStopsForRouting, color);
-          if (courseRes) {
-            totalNetworkDistance += courseRes.totalDistance;
-            const cDistSpan = document.getElementById(`course-dist-${cIdx}`);
-            if (cDistSpan) {
-              cDistSpan.innerText = `총 ${(courseRes.totalDistance / 1000).toFixed(1)} km`;
-            }
-
-            if (courseRes.legs && courseRes.legs.length > 0) {
-              let legIdx = 0;
-              for (let k = 1; k < courseValidStopsForRouting.length; k++) {
-                const currentLegDist = courseRes.legs[legIdx] || 0;
-                const curStop = courseValidStopsForRouting[k];
-                const distText = `구간 ${formatDistance(currentLegDist)}`;
-
-                curStop.distanceText = distText;
-                const cardTag = document.getElementById(`dist-all-card-${cIdx}-${curStop.arrayIndex}`);
-                if (cardTag) cardTag.innerText = distText;
-                legIdx++;
+        if (courseValid.length > 1) {
+          const res = await drawSingleRoadLine(cName, courseValid, color);
+          if (res) {
+            totalDist += res.totalDistance;
+            document.getElementById(`course-dist-${cIdx}`).innerText = `총 ${(res.totalDistance / 1000).toFixed(1)} km`;
+            (res.legs || []).forEach((legDist, legIdx) => {
+              const curStop = courseValid[legIdx + 1];
+              if (curStop) {
+                curStop.distanceText = `구간 ${formatDistance(legDist)}`;
+                const tag = document.getElementById(`dist-all-card-${cIdx}-${curStop.arrayIndex}`);
+                if (tag) tag.innerText = curStop.distanceText;
               }
-            }
+            });
           }
         }
       }
 
       document.getElementById('stopCount').innerText = `총 ${totalStopsCount}개소`;
-      document.getElementById('totalDistBadge').innerText = `전체 ${(totalNetworkDistance / 1000).toFixed(1)} km`;
+      document.getElementById('totalDistBadge').innerText = `전체 ${(totalDist / 1000).toFixed(1)} km`;
       badge.style.display = 'none';
-
-      if (!totalBounds.isEmpty()) {
-        map.setBounds(totalBounds);
-      }
-      setTimeout(() => { if (map) map.relayout(); }, 200);
+      if (!totalBounds.isEmpty()) map.setBounds(totalBounds);
+      setTimeout(() => map?.relayout(), 200);
     }
 
     async function drawSingleRoadLine(courseKey, stops, color) {
       if (routeCache[courseKey]) {
         const cached = routeCache[courseKey];
-        const line = new kakao.maps.Polyline({
-          path: cached.path,
-          strokeWeight: 6,
-          strokeColor: color,
-          strokeOpacity: 0.85,
-          endArrow: true
-        });
-        line.setMap(map);
-        polylines.push(line);
-
+        const line = new kakao.maps.Polyline({ path: cached.path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85, endArrow: true });
+        line.setMap(map); polylines.push(line);
         createRouteDirectionArrows(cached.path);
-
-        return {
-          totalDistance: cached.totalDistance,
-          legs: cached.legs
-        };
+        return { totalDistance: cached.totalDistance, legs: cached.legs };
       }
 
       try {
         const coordString = stops.map(s => `${s.coords.getLng()},${s.coords.getLat()}`).join(';');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-        const res = await fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordString}?overview=full&geometries=geojson`, {
-          signal: controller.signal
-        });
+        const res = await fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${coordString}?overview=full&geometries=geojson`, { signal: controller.signal });
         clearTimeout(timeoutId);
-
-        if (!res.ok) throw new Error(`OSRM Status: ${res.status}`);
+        if (!res.ok) throw new Error();
         const data = await res.json();
 
-        if (data.code === 'Ok' && data.routes && data.routes[0]) {
+        if (data.code === 'Ok' && data.routes?.[0]) {
           const route = data.routes[0];
           const path = route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
-          const line = new kakao.maps.Polyline({
-            path: path,
-            strokeWeight: 6,
-            strokeColor: color,
-            strokeOpacity: 0.85,
-            endArrow: true
-          });
-          line.setMap(map);
-          polylines.push(line);
-
+          const line = new kakao.maps.Polyline({ path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85, endArrow: true });
+          line.setMap(map); polylines.push(line);
           createRouteDirectionArrows(path);
 
-          const legDistances = (route.legs || []).map(leg => leg.distance);
-
-          routeCache[courseKey] = {
-            path: path,
-            totalDistance: route.distance,
-            legs: legDistances
-          };
-
-          return {
-            totalDistance: route.distance,
-            legs: legDistances
-          };
-        } else {
-          return fallbackHaversineLine(stops, color);
+          const legs = (route.legs || []).map(l => l.distance);
+          routeCache[courseKey] = { path, totalDistance: route.distance, legs };
+          return { totalDistance: route.distance, legs };
         }
-      } catch (e) {
-        console.warn("도로선 라우팅 실패, 직선 보간선으로 전환:", e);
-        return fallbackHaversineLine(stops, color);
-      }
+      } catch (e) {}
+      return fallbackHaversineLine(stops, color);
     }
 
     function createRouteDirectionArrows(pathCoords) {
       if (!pathCoords || pathCoords.length < 5) return;
-      
       const step = Math.max(12, Math.floor(pathCoords.length / 15));
-
       for (let i = step; i < pathCoords.length - 2; i += step) {
-        const p1 = pathCoords[i - 1];
-        const p2 = pathCoords[i];
-
+        const p1 = pathCoords[i - 1], p2 = pathCoords[i];
         const bearing = calculateBearing(p1.getLat(), p1.getLng(), p2.getLat(), p2.getLng());
-
         const arrowDiv = document.createElement('div');
         arrowDiv.className = 'route-dir-arrow';
         arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing - 90}deg)`;
-        
-        arrowDiv.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        `;
-
-        const arrowOverlay = new kakao.maps.CustomOverlay({
-          position: p2,
-          content: arrowDiv,
-          yAnchor: 0.5,
-          xAnchor: 0.5,
-          zIndex: 8
-        });
-        arrowOverlay.setMap(map);
-        arrowOverlays.push(arrowOverlay);
+        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
+        const overlay = new kakao.maps.CustomOverlay({ position: p2, content: arrowDiv, yAnchor: 0.5, xAnchor: 0.5, zIndex: 8 });
+        overlay.setMap(map); arrowOverlays.push(overlay);
       }
     }
 
     function fallbackHaversineLine(stops, color) {
       const path = stops.map(s => s.coords);
-      const line = new kakao.maps.Polyline({
-        path: path,
-        strokeWeight: 5,
-        strokeColor: color,
-        strokeOpacity: 0.8,
-        endArrow: true
-      });
-      line.setMap(map);
-      polylines.push(line);
-
+      const line = new kakao.maps.Polyline({ path, strokeWeight: 5, strokeColor: color, strokeOpacity: 0.8, endArrow: true });
+      line.setMap(map); polylines.push(line);
       createRouteDirectionArrows(path);
 
-      let totalMeters = 0;
-      const legs = [];
-
+      let total = 0; const legs = [];
       for (let i = 1; i < stops.length; i++) {
-        const d = calcHaversineMeters(
-          stops[i - 1].coords.getLat(),
-          stops[i - 1].coords.getLng(),
-          stops[i].coords.getLat(),
-          stops[i].coords.getLng()
-        );
-        legs.push(d);
-        totalMeters += d;
+        const d = calcHaversineMeters(stops[i-1].coords.getLat(), stops[i-1].coords.getLng(), stops[i].coords.getLat(), stops[i].coords.getLng());
+        legs.push(d); total += d;
       }
-
-      return {
-        totalDistance: totalMeters,
-        legs: legs
-      };
+      return { totalDistance: total, legs };
     }
 
     function startRealtimeCheck() {
@@ -2600,105 +1483,64 @@
     }
 
     function checkActiveBuses() {
-      const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const barText = document.getElementById('liveStatusText');
-      const liveTag = document.getElementById('liveTag');
+      const now = new Date(), currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const barText = document.getElementById('liveStatusText'), liveTag = document.getElementById('liveTag');
 
       if (isNonOperatingDay(now)) {
-        if (liveTag) {
-          liveTag.innerText = '미운행일';
-          liveTag.classList.add('holiday');
-        }
-        if (barText) {
-          barText.innerHTML = `오늘은 셔틀버스 미운행일(주말/공휴일)입니다. 평일 운행시간표를 참조해 주세요.`;
-        }
+        liveTag.innerText = '미운행일'; liveTag.classList.add('holiday');
+        barText.innerHTML = `오늘은 셔틀버스 미운행일(주말/공휴일)입니다.`;
         return;
       }
 
-      let latestMinuteToday = 0;
-      Object.keys(routeData).forEach(courseName => {
-        const stops = routeData[courseName];
-        stops.forEach(s => {
-          (s.schedules || []).forEach(sc => {
-            if (sc.time && !sc.time.includes('미운행')) {
-              const parts = sc.time.split(':');
-              const m = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-              if (m > latestMinuteToday) latestMinuteToday = m;
-            }
-          });
-        });
-      });
+      let latest = 0;
+      Object.keys(routeData).forEach(c => (routeData[c] || []).forEach(s => (s.schedules || []).forEach(sc => {
+        if (sc.time && !sc.time.includes('미운행')) {
+          const p = sc.time.split(':'), m = parseInt(p[0]) * 60 + parseInt(p[1]);
+          if (m > latest) latest = m;
+        }
+      })));
 
-      if (latestMinuteToday > 0 && currentMinutes > latestMinuteToday + 10) {
-        if (liveTag) {
-          liveTag.innerText = '운행 마감';
-          liveTag.classList.add('ended');
-        }
-        if (barText) {
-          barText.innerHTML = `오늘의 셔틀버스 운행이 모두 종료되었습니다. 내일 평일 운행 시간표를 확인해 주세요.`;
-        }
+      if (latest > 0 && currentMinutes > latest + 10) {
+        liveTag.innerText = '운행 마감'; liveTag.classList.add('ended');
+        barText.innerHTML = `오늘의 셔틀버스 운행이 모두 종료되었습니다.`;
         return;
       }
 
-      if (liveTag) {
-        liveTag.innerText = 'LIVE 운행';
-        liveTag.classList.remove('holiday', 'ended');
-      }
-
+      liveTag.innerText = 'LIVE 운행'; liveTag.classList.remove('holiday', 'ended');
       const activeList = [];
-      Object.keys(routeData).forEach(courseName => {
-        const stops = routeData[courseName];
-        stops.forEach((stop, sIdx) => {
+      Object.keys(routeData).forEach(cName => {
+        (routeData[cName] || []).forEach((stop, sIdx) => {
           if (stop.isWaypoint) return;
-          stop.rawTimes.forEach(tStr => {
-            const parts = tStr.split(':');
-            const targetMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-            const diff = Math.abs(currentMinutes - targetMinutes);
-
-            if (diff <= timeWindowMinutes) {
-              activeList.push({
-                courseName: courseName,
-                stopName: stop.name,
-                stopIndex: sIdx,
-                time: tStr,
-                diff: diff
-              });
-            }
+          stop.rawTimes.forEach(t => {
+            const p = t.split(':'), diff = Math.abs(currentMinutes - (parseInt(p[0]) * 60 + parseInt(p[1])));
+            if (diff <= timeWindowMinutes) activeList.push({ courseName: cName, stopName: stop.name, stopIndex: sIdx, time: t });
           });
         });
       });
 
       if (activeList.length === 0) {
-        barText.innerHTML = `현재 운행 예정 범위(기준 ±${timeWindowMinutes}분)에 있는 차량이 없습니다. (현재 시각 ${now.toTimeString().substring(0,5)})`;
+        barText.innerHTML = `현재 운행 중인 차량이 없습니다. (현재 시각 ${now.toTimeString().substring(0,5)})`;
       } else {
         barText.innerHTML = '';
         activeList.forEach(item => {
           const span = document.createElement('span');
           span.className = 'live-item';
-          span.innerHTML = `🚌 <b>[${item.courseName}]</b> ${item.stopName} 방면 (${item.time} 운행중)`;
-          span.onclick = () => {
-            switchToCourseAndStop(item.courseName, item.stopIndex);
-          };
+          span.innerHTML = `🚌 <b>[${item.courseName}]</b> ${item.stopName} (${item.time} 운행중)`;
+          span.onclick = () => switchToCourseAndStop(item.courseName, item.stopIndex);
           barText.appendChild(span);
         });
       }
     }
 
     function switchToCourseAndStop(targetCourse, targetStopIdx) {
-      const select = document.getElementById('courseSelect');
-      if (select) select.value = targetCourse;
-
+      document.getElementById('courseSelect').value = targetCourse;
       const courses = Object.keys(routeData);
-      const idx = courses.indexOf(targetCourse);
-      selectCourse(targetCourse, idx >= 0 ? idx : 0);
+      selectCourse(targetCourse, courses.indexOf(targetCourse) >= 0 ? courses.indexOf(targetCourse) : 0);
 
       setTimeout(() => {
         const card = document.getElementById(`card-${targetStopIdx}`);
         if (card) {
-          const sidebar = document.getElementById('sidebar');
-          if (sidebar) sidebar.classList.remove('minimized');
-
+          document.getElementById('sidebar').classList.remove('minimized');
           card.click();
           card.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
@@ -2708,48 +1550,29 @@
     function resolveStopCoordinates(stop) {
       return new Promise((resolve) => {
         const stopNo = (stop.stopNo || '').trim();
-        const name   = (stop.name || '').trim();
-        const addr   = (stop.addr || '').trim();
+        const name = (stop.name || '').trim();
+        const addr = (stop.addr || '').trim();
 
-        if (stopNo && masterStopMapByNo[stopNo]) {
-          const matched = masterStopMapByNo[stopNo];
-          return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
-        }
-
-        if (name && masterStopMapByName[name]) {
-          const matched = masterStopMapByName[name];
-          return resolve(new kakao.maps.LatLng(matched.lat, matched.lng));
-        }
+        if (stopNo && masterStopMapByNo[stopNo]) return resolve(new kakao.maps.LatLng(masterStopMapByNo[stopNo].lat, masterStopMapByNo[stopNo].lng));
+        if (name && masterStopMapByName[name]) return resolve(new kakao.maps.LatLng(masterStopMapByName[name].lat, masterStopMapByName[name].lng));
 
         if (addr && addr !== name) {
-          const cleanAddr = addr.includes('거제') ? addr : `거제시 ${addr}`;
-          geocoder.addressSearch(cleanAddr, (result, status) => {
-            if (status === kakao.maps.services.Status.OK) {
-              return resolve(new kakao.maps.LatLng(result[0].y, result[0].x));
-            }
+          geocoder.addressSearch(addr.includes('거제') ? addr : `거제시 ${addr}`, (result, status) => {
+            if (status === kakao.maps.services.Status.OK) return resolve(new kakao.maps.LatLng(result[0].y, result[0].x));
             searchByNameFallback(name, resolve);
           });
-        } else {
-          searchByNameFallback(name, resolve);
-        }
+        } else { searchByNameFallback(name, resolve); }
       });
     }
 
     function searchByNameFallback(nameText, resolve) {
-      const q = nameText.includes('거제') ? nameText : `거제 ${nameText}`;
-      const geojeOptions = {
-        bounds: GEOJE_BOUNDS,
-        location: new kakao.maps.LatLng(34.8872, 128.625),
-        radius: 20000
-      };
-
-      places.keywordSearch(q, (data, status) => {
+      places.keywordSearch(nameText.includes('거제') ? nameText : `거제 ${nameText}`, (data, status) => {
         if (status === kakao.maps.services.Status.OK && data.length > 0) {
-          const match = data.find(item => item.address_name && (item.address_name.includes('거제') || item.address_name.includes('경남'))) || data[0];
+          const match = data.find(item => item.address_name?.includes('거제')) || data[0];
           return resolve(new kakao.maps.LatLng(match.y, match.x));
         }
         resolve(new kakao.maps.LatLng(34.8872, 128.625));
-      }, geojeOptions);
+      }, { bounds: GEOJE_BOUNDS, location: new kakao.maps.LatLng(34.8872, 128.625), radius: 20000 });
     }
   </script>
 </body>
