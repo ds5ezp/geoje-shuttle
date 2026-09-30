@@ -415,7 +415,7 @@
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    /* ================= 전체 시간표 표(Table) 팝업 모달 ================= */
+    /* 전체 시간표 표(Table) 팝업 모달 */
     #timetableModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.78); z-index: 3500;
@@ -1180,32 +1180,47 @@
       }
     }
 
-    // ⭐️ 1. 설정 시트 호출 시 headers=0 옵션 추가 (첫 행 누락 방지)
+    // ⭐️️ [설정] 시트 안전 로드 및 파싱 (헤더/데이터 양방향 탐색)
     function loadSettings() {
       const encoded = encodeURIComponent("설정");
-      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encoded}&headers=0&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encoded}&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
       const script = document.createElement('script');
       script.src = url;
       script.onerror = function() { loadStationList(); };
       document.body.appendChild(script);
+
+      // 통신 지연 대비 타임아웃 안전장치 (3초 내 미응답 시 강제 진행)
+      setTimeout(() => {
+        if (!routeData || Object.keys(routeData).length === 0) {
+          loadStationList();
+        }
+      }, 3000);
     }
 
-    // ⭐️ 2. [설정] 시트 파싱 (차량간격 및 공지사항 B열 추출 안전성 강화)
     window.handleSettings = function(json) {
       try {
-        const rows = json.table.rows || [];
+        const cols = (json.table && json.table.cols) || [];
+        const rows = (json.table && json.table.rows) || [];
+
+        // 1. 헤더(cols)로 들어온 경우 검사
+        if (cols.length >= 2) {
+          const c0Label = String(cols[0].label || '').trim();
+          const c1Label = String(cols[1].label || '').trim();
+          if (c0Label.includes('차량간격') || c0Label.includes('간격')) {
+            const num = parseFloat(c1Label);
+            if (!isNaN(num) && num > 0) timeWindowMinutes = num;
+          }
+          if (c0Label.includes('공지') && c1Label) {
+            applyNotice(c1Label);
+          }
+        }
+
+        // 2. 일반 행(rows)으로 들어온 경우 검사
         rows.forEach(r => {
           if (!r || !r.c) return;
           const c = r.c;
-
-          // A열 (키)
           const key = c[0] ? String(c[0].f !== undefined && c[0].f !== null ? c[0].f : (c[0].v !== undefined && c[0].v !== null ? c[0].v : '')).trim() : '';
-          
-          // B열 (값)
-          let valStr = '';
-          if (c[1]) {
-            valStr = String(c[1].f !== undefined && c[1].f !== null ? c[1].f : (c[1].v !== undefined && c[1].v !== null ? c[1].v : '')).trim();
-          }
+          const valStr = c[1] ? String(c[1].f !== undefined && c[1].f !== null ? c[1].f : (c[1].v !== undefined && c[1].v !== null ? c[1].v : '')).trim() : '';
           const valNum = c[1] ? parseFloat(c[1].v || c[1].f) : null;
 
           if (key.includes('차량간격') || key.includes('간격')) {
@@ -1213,23 +1228,27 @@
           }
 
           if (key.includes('공지') && valStr) {
-            const banner = document.getElementById('noticeBanner');
-            const noticeText = document.getElementById('noticeText');
-            if (banner && noticeText) {
-              noticeText.innerText = valStr;
-              banner.style.display = 'flex';
-            }
+            applyNotice(valStr);
           }
         });
       } catch (e) {
-        console.warn("'설정' 시트 파싱 실패:", e);
+        console.warn("'설정' 시트 파싱 예외 처리:", e);
       }
       loadStationList();
     };
 
+    function applyNotice(text) {
+      const banner = document.getElementById('noticeBanner');
+      const noticeText = document.getElementById('noticeText');
+      if (banner && noticeText && text) {
+        noticeText.innerText = text;
+        banner.style.display = 'flex';
+      }
+    }
+
     window.handleStationList = function(json) {
       try {
-        const rows = json.table.rows || [];
+        const rows = (json.table && json.table.rows) || [];
         rows.forEach(r => {
           const c = r.c;
           if (!c) return;
@@ -1251,11 +1270,13 @@
     };
 
     window.handleRouteData = function(json) {
-      document.getElementById('loadingModal').style.display = 'none';
+      // ⭐️ 정상 로드 시 로딩 모달 즉시 해제
+      const modal = document.getElementById('loadingModal');
+      if (modal) modal.style.display = 'none';
 
       try {
-        const cols = json.table.cols || [];
-        const rows = json.table.rows || [];
+        const cols = (json.table && json.table.cols) || [];
+        const rows = (json.table && json.table.rows) || [];
         const result = {};
 
         let colIndexMap = {
