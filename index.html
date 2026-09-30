@@ -140,7 +140,7 @@
       background: #64748b; color: #fff; display: none;
     }
 
-    /* ================= 공지사항 배너 스타일 ================= */
+    /* ================= 공지사항 배너 ================= */
     #noticeBanner {
       display: none;
       width: 100%;
@@ -884,6 +884,7 @@
       }
     }
 
+    // ================= 시간표 표(Table) 팝업 로직 =================
     function openTimetableModal(targetCourse) {
       const courses = Object.keys(routeData);
       if (courses.length === 0) return;
@@ -1180,7 +1181,7 @@
       }
     }
 
-    // ⭐️️ [설정] 시트 안전 로드 및 파싱 (헤더/데이터 양방향 탐색)
+    // ⭐️ 직렬 체인 로딩 함수 (설정 -> 정류소목록 -> 노선데이터)
     function loadSettings() {
       const encoded = encodeURIComponent("설정");
       const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encoded}&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
@@ -1189,7 +1190,7 @@
       script.onerror = function() { loadStationList(); };
       document.body.appendChild(script);
 
-      // 통신 지연 대비 타임아웃 안전장치 (3초 내 미응답 시 강제 진행)
+      // 통신 멈춤 방지 3초 안전 타이머
       setTimeout(() => {
         if (!routeData || Object.keys(routeData).length === 0) {
           loadStationList();
@@ -1197,31 +1198,42 @@
       }, 3000);
     }
 
+    // ⭐️️ [설정] 시트 파싱 (오류 발생 시에도 다음 체인 100% 호출)
     window.handleSettings = function(json) {
       try {
-        const cols = (json.table && json.table.cols) || [];
-        const rows = (json.table && json.table.rows) || [];
+        const cols = (json && json.table && json.table.cols) || [];
+        const rows = (json && json.table && json.table.rows) || [];
 
         // 1. 헤더(cols)로 들어온 경우 검사
         if (cols.length >= 2) {
-          const c0Label = String(cols[0].label || '').trim();
-          const c1Label = String(cols[1].label || '').trim();
-          if (c0Label.includes('차량간격') || c0Label.includes('간격')) {
-            const num = parseFloat(c1Label);
+          const k = String(cols[0].label || '').trim();
+          const v = String(cols[1].label || '').trim();
+          if (k.includes('차량간격') || k.includes('간격')) {
+            const num = parseFloat(v);
             if (!isNaN(num) && num > 0) timeWindowMinutes = num;
           }
-          if (c0Label.includes('공지') && c1Label) {
-            applyNotice(c1Label);
+          if (k.includes('공지') && v) {
+            applyNotice(v);
           }
         }
 
-        // 2. 일반 행(rows)으로 들어온 경우 검사
+        // 2. 일반 행(rows)으로 들어온 경우 안전 검사
         rows.forEach(r => {
-          if (!r || !r.c) return;
-          const c = r.c;
-          const key = c[0] ? String(c[0].f !== undefined && c[0].f !== null ? c[0].f : (c[0].v !== undefined && c[0].v !== null ? c[0].v : '')).trim() : '';
-          const valStr = c[1] ? String(c[1].f !== undefined && c[1].f !== null ? c[1].f : (c[1].v !== undefined && c[1].v !== null ? c[1].v : '')).trim() : '';
-          const valNum = c[1] ? parseFloat(c[1].v || c[1].f) : null;
+          if (!r || !r.c || !Array.isArray(r.c)) return;
+          const c0 = r.c[0];
+          const c1 = r.c[1];
+
+          let key = '';
+          if (c0) {
+            key = String(c0.f !== undefined && c0.f !== null ? c0.f : (c0.v !== undefined && c0.v !== null ? c0.v : '')).trim();
+          }
+
+          let valStr = '';
+          let valNum = null;
+          if (c1) {
+            valStr = String(c1.f !== undefined && c1.f !== null ? c1.f : (c1.v !== undefined && c1.v !== null ? c1.v : '')).trim();
+            valNum = parseFloat(c1.v !== undefined && c1.v !== null ? c1.v : c1.f);
+          }
 
           if (key.includes('차량간격') || key.includes('간격')) {
             if (!isNaN(valNum) && valNum > 0) timeWindowMinutes = valNum;
@@ -1232,9 +1244,11 @@
           }
         });
       } catch (e) {
-        console.warn("'설정' 시트 파싱 예외 처리:", e);
+        console.warn("'설정' 시트 파싱 예외 발생 (무시하고 계속 진행):", e);
+      } finally {
+        // ⭐ 설정 파싱 중 어떤 오류가 생겨도 무조건 정류소목록 로드 진행
+        loadStationList();
       }
-      loadStationList();
     };
 
     function applyNotice(text) {
@@ -1246,12 +1260,21 @@
       }
     }
 
+    function loadStationList() {
+      const encodedMaster = encodeURIComponent("정류소목록");
+      const masterUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedMaster}&tqx=responseHandler:handleStationList&_t=${Date.now()}`;
+      const s1 = document.createElement('script');
+      s1.src = masterUrl;
+      s1.onerror = function() { loadRouteData(); };
+      document.body.appendChild(s1);
+    }
+
     window.handleStationList = function(json) {
       try {
-        const rows = (json.table && json.table.rows) || [];
+        const rows = (json && json.table && json.table.rows) || [];
         rows.forEach(r => {
+          if (!r || !r.c || !Array.isArray(r.c)) return;
           const c = r.c;
-          if (!c) return;
           const name   = c[0] ? String(c[0].f || c[0].v || '').trim() : '';
           const latVal = c[1] ? parseFloat(c[1].v || c[1].f) : null;
           const lngVal = c[2] ? parseFloat(c[2].v || c[2].f) : null;
@@ -1264,19 +1287,29 @@
           if (name) masterStopMapByName[name] = coordData;
         });
       } catch (e) {
-        console.warn("'정류소목록' 파싱 오류:", e);
+        console.warn("'정류소목록' 파싱 예외:", e);
+      } finally {
+        loadRouteData();
       }
-      loadRouteData();
     };
 
-    window.handleRouteData = function(json) {
-      // ⭐️ 정상 로드 시 로딩 모달 즉시 해제
-      const modal = document.getElementById('loadingModal');
-      if (modal) modal.style.display = 'none';
+    function loadRouteData() {
+      const encodedRoute = encodeURIComponent("노선데이터");
+      const routeUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodedRoute}&tqx=responseHandler:handleRouteData&_t=${Date.now()}`;
+      const s2 = document.createElement('script');
+      s2.src = routeUrl;
+      s2.onerror = function() {
+        const modal = document.getElementById('loadingModal');
+        if (modal) modal.style.display = 'none';
+        alert("구글 시트 연동에 실패했습니다. 공유 권한을 확인해주세요.");
+      };
+      document.body.appendChild(s2);
+    }
 
+    window.handleRouteData = function(json) {
       try {
-        const cols = (json.table && json.table.cols) || [];
-        const rows = (json.table && json.table.rows) || [];
+        const cols = (json && json.table && json.table.cols) || [];
+        const rows = (json && json.table && json.table.rows) || [];
         const result = {};
 
         let colIndexMap = {
@@ -1375,6 +1408,10 @@
         }
       } catch (err) {
         alert("노선데이터 변환 오류: " + err.message);
+      } finally {
+        // ⭐️ 로딩 모달 해제
+        const modal = document.getElementById('loadingModal');
+        if (modal) modal.style.display = 'none';
       }
     };
 
@@ -1724,7 +1761,7 @@
               const currentLegDist = routeResult.legs[legIdx] || 0;
               const curStop = validStopsForRouting[k];
               const distText = `구간 ${formatDistance(currentLegDist)}`;
-              
+
               curStop.distanceText = distText;
               const cardTag = document.getElementById(`dist-card-${curStop.arrayIndex}`);
               if (cardTag) cardTag.innerText = distText;
