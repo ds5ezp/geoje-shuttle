@@ -20,7 +20,6 @@
       position: relative;
     }
 
-    /* ================= 상단 종합 영역 ================= */
     #topCollapsibleArea {
       flex-shrink: 0;
       width: 100%;
@@ -58,7 +57,6 @@
       gap: 4px;
     }
 
-    /* ================= 상단 헤더 ================= */
     #header {
       padding: 10px 16px 8px 16px;
       display: flex;
@@ -140,7 +138,7 @@
       background: #64748b; color: #fff; display: none;
     }
 
-    /* ================= 공지사항 배너 ================= */
+    /* 공지사항 배너 스타일 */
     #noticeBanner {
       display: none;
       width: 100%;
@@ -169,7 +167,7 @@
       cursor: pointer; padding: 2px 6px; font-weight: bold; line-height: 1;
     }
 
-    /* ================= 실시간 운행 현황 알림 배너 ================= */
+    /* 실시간 운행 현황 알림 배너 */
     #liveStatusBar {
       width: 100%; min-height: 42px; height: 42px;
       background: #0f172a; color: #ffffff; display: flex; align-items: center;
@@ -211,7 +209,7 @@
       border-color: #60a5fa;
     }
 
-    /* ================= 메인 컨테이너 ================= */
+    /* 메인 컨테이너 */
     #main-container {
       flex: 1;
       display: flex;
@@ -415,7 +413,7 @@
       display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    /* 전체 시간표 표(Table) 팝업 모달 */
+    /* 전체 시간표 표 모달 */
     #timetableModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.78); z-index: 3500;
@@ -486,7 +484,7 @@
     .tt-copy-text-btn { background: #047857; color: #fff; }
     .tt-print-btn { background: #1e293b; color: #fff; }
 
-    /* QR코드 모달 팝업 */
+    /* QR코드 모달 */
     #qrModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15, 23, 42, 0.75); z-index: 3000;
@@ -511,7 +509,7 @@
     .copy-url-btn:hover { background: #dbeafe; }
     .close-qr-btn { background: #1e293b; color: #ffffff; }
 
-    /* 정류소 사진 전체화면 확대 모달 */
+    /* 사진 확대 모달 */
     #photoZoomModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.88); z-index: 4000;
@@ -536,7 +534,7 @@
       align-items: center; justify-content: center; color: #0f172a;
     }
 
-    /* ================= 📱 모바일 전용 UI ================= */
+    /* 모바일 반응형 */
     @media (max-width: 850px) {
       .fold-btn { display: inline-block !important; }
 
@@ -620,7 +618,7 @@
       .tt-table { font-size: 0.78rem; }
     }
 
-    /* ================= 🖨️ 인쇄 전용 CSS ================= */
+    /* 인쇄 전용 CSS */
     @media print {
       body, html {
         width: 100% !important;
@@ -693,14 +691,11 @@
   <div id="loadingModal">구글 시트에서 최신 노선 데이터 연동 중...</div>
 
   <div id="app-wrapper">
-    <!-- 접혔을 때 화면 상단에 떠서 다시 누르면 내려오게 하는 탭 -->
     <div id="topExpandTab" onclick="expandTopArea()">
       <span>🚌 노선 및 운행현황 열기 ▼</span>
     </div>
 
-    <!-- 접고 펼쳐지는 상단 종합 영역 -->
     <div id="topCollapsibleArea">
-      <!-- 상단 헤더 -->
       <div id="header">
         <div class="header-top-row">
           <div class="header-info">
@@ -726,7 +721,7 @@
         </div>
       </div>
 
-      <!-- 공지사항 배너 -->
+      <!-- 공지사항 띠 배너 -->
       <div id="noticeBanner">
         <div class="notice-content">
           <span class="notice-badge">공지</span>
@@ -762,7 +757,7 @@
     </div>
   </div>
 
-  <!-- 전체 셔틀버스 시간표 표(Table) 모달 팝업 -->
+  <!-- 전체 셔틀버스 시간표 표 모달 팝업 -->
   <div id="timetableModal" onclick="closeTimetableModal(event)">
     <div class="timetable-card" onclick="event.stopPropagation()">
       <div class="tt-header">
@@ -782,7 +777,7 @@
     </div>
   </div>
 
-  <!-- QR코드 및 공유 링크 모달 창 -->
+  <!-- QR코드 모달 -->
   <div id="qrModal" onclick="closeQrModal(event)">
     <div class="qr-card" onclick="event.stopPropagation()">
       <h3 id="qrModalTitle">셔틀버스 QR코드</h3>
@@ -795,7 +790,7 @@
     </div>
   </div>
 
-  <!-- 정류소 사진 큰 화면 확대 팝업 -->
+  <!-- 사진 확대 모달 -->
   <div id="photoZoomModal" onclick="closePhotoZoom()">
     <div class="zoom-content" onclick="event.stopPropagation()">
       <button class="close-zoom-btn" onclick="closePhotoZoom()">&times;</button>
@@ -884,7 +879,6 @@
       }
     }
 
-    // ================= 시간표 표(Table) 팝업 로직 =================
     function openTimetableModal(targetCourse) {
       const courses = Object.keys(routeData);
       if (courses.length === 0) return;
@@ -1181,7 +1175,6 @@
       }
     }
 
-    // ⭐️ 직렬 체인 로딩 함수 (설정 -> 정류소목록 -> 노선데이터)
     function loadSettings() {
       const encoded = encodeURIComponent("설정");
       const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encoded}&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
@@ -1190,7 +1183,6 @@
       script.onerror = function() { loadStationList(); };
       document.body.appendChild(script);
 
-      // 통신 멈춤 방지 3초 안전 타이머
       setTimeout(() => {
         if (!routeData || Object.keys(routeData).length === 0) {
           loadStationList();
@@ -1198,13 +1190,13 @@
       }, 3000);
     }
 
-    // ⭐️️ [설정] 시트 파싱 (오류 발생 시에도 다음 체인 100% 호출)
+    // ⭐️ 오류 방지 및 공지사항 B2 파싱 로직
     window.handleSettings = function(json) {
       try {
         const cols = (json && json.table && json.table.cols) || [];
         const rows = (json && json.table && json.table.rows) || [];
 
-        // 1. 헤더(cols)로 들어온 경우 검사
+        // 1. 헤더(cols) 검사
         if (cols.length >= 2) {
           const k = String(cols[0].label || '').trim();
           const v = String(cols[1].label || '').trim();
@@ -1217,36 +1209,43 @@
           }
         }
 
-        // 2. 일반 행(rows)으로 들어온 경우 안전 검사
+        // 2. 전체 행(rows) 검사
         rows.forEach(r => {
           if (!r || !r.c || !Array.isArray(r.c)) return;
-          const c0 = r.c[0];
-          const c1 = r.c[1];
 
-          let key = '';
-          if (c0) {
-            key = String(c0.f !== undefined && c0.f !== null ? c0.f : (c0.v !== undefined && c0.v !== null ? c0.v : '')).trim();
+          let cellValues = [];
+          for (let i = 0; i < r.c.length; i++) {
+            const cell = r.c[i];
+            let txt = '';
+            if (cell) {
+              if (cell.f !== undefined && cell.f !== null) txt = String(cell.f).trim();
+              else if (cell.v !== undefined && cell.v !== null) txt = String(cell.v).trim();
+            }
+            cellValues.push(txt);
           }
 
-          let valStr = '';
-          let valNum = null;
-          if (c1) {
-            valStr = String(c1.f !== undefined && c1.f !== null ? c1.f : (c1.v !== undefined && c1.v !== null ? c1.v : '')).trim();
-            valNum = parseFloat(c1.v !== undefined && c1.v !== null ? c1.v : c1.f);
-          }
+          const key = cellValues[0] || '';
+          const valStr = cellValues[1] || '';
 
           if (key.includes('차량간격') || key.includes('간격')) {
-            if (!isNaN(valNum) && valNum > 0) timeWindowMinutes = valNum;
+            const num = parseFloat(valStr);
+            if (!isNaN(num) && num > 0) timeWindowMinutes = num;
           }
 
+          // A열이 '공지'이고 B열에 텍스트가 있는 경우 표출
           if (key.includes('공지') && valStr) {
             applyNotice(valStr);
+          } else if (cellValues.some(v => v.includes('공지'))) {
+            // 위치가 틀어져 있더라도 공지 키워드 바로 다음 셀 값을 추출
+            const idx = cellValues.findIndex(v => v.includes('공지'));
+            if (idx >= 0 && cellValues[idx + 1]) {
+              applyNotice(cellValues[idx + 1]);
+            }
           }
         });
       } catch (e) {
-        console.warn("'설정' 시트 파싱 예외 발생 (무시하고 계속 진행):", e);
+        console.warn("'설정' 시트 파싱 예외 처리:", e);
       } finally {
-        // ⭐ 설정 파싱 중 어떤 오류가 생겨도 무조건 정류소목록 로드 진행
         loadStationList();
       }
     };
@@ -1301,7 +1300,7 @@
       s2.onerror = function() {
         const modal = document.getElementById('loadingModal');
         if (modal) modal.style.display = 'none';
-        alert("구글 시트 연동에 실패했습니다. 공유 권한을 확인해주세요.");
+        alert("구글 시트 연동에 실패했습니다. 공유 설정을 확인해주세요.");
       };
       document.body.appendChild(s2);
     }
@@ -1409,7 +1408,6 @@
       } catch (err) {
         alert("노선데이터 변환 오류: " + err.message);
       } finally {
-        // ⭐️ 로딩 모달 해제
         const modal = document.getElementById('loadingModal');
         if (modal) modal.style.display = 'none';
       }
