@@ -150,7 +150,7 @@
     }
     .live-item:hover { background: rgba(59, 130, 246, 0.6); }
 
-    /* ================= ⭐️ 서초구 스타일 컴팩트 타임라인 리스트 ================= */
+    /* ================= ⭐️ 굵고 중앙에 배치된 세로 타임라인 관제 레이아웃 ================= */
     #main-container { flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden; }
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
@@ -167,19 +167,18 @@
     .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
     #stopList {
-      flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0; position: relative; padding-left: 20px; margin-top: 6px;
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0; position: relative; padding-left: 28px; margin-top: 6px;
     }
 
-    /* 세로 연결 타임라인 선 */
+    /* ⭐️ 굵고 선명한 세로 타임라인 선 (왼쪽 패딩 내 중앙 정렬) */
     #stopList::before {
-      content: ''; position: absolute; top: 20px; bottom: 20px; left: 34px; width: 3.5px; background: #38bdf8; z-index: 1;
+      content: ''; position: absolute; top: 20px; bottom: 20px; left: 42px; width: 4.5px; background: #0284c7; z-index: 1; border-radius: 2px;
     }
 
     .course-section-title {
       font-size: 0.88rem; font-weight: 800; padding: 6px 10px; border-radius: 6px; margin-top: 10px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; z-index: 2;
     }
 
-    /* 컴팩트 정류소 아이템 박스 */
     .stop-item-box {
       position: relative; margin-bottom: 12px; z-index: 2; cursor: pointer;
     }
@@ -193,16 +192,16 @@
       border-color: #ef4444; background: #fef2f2;
     }
 
-    /* 타임라인 포인트 아이콘 (원 또는 버스) */
+    /* ⭐️ 타임라인 노드 아이콘 (굵은 선 중앙에 정확히 걸치도록 조정) */
     .timeline-node {
-      position: absolute; left: -14px; top: 12px; width: 26px; height: 26px; border-radius: 50%;
-      background: #ffffff; border: 2.5px solid #0284c7; color: #0284c7; font-size: 11px;
-      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.15); z-index: 3;
+      position: absolute; left: -18px; top: 12px; width: 28px; height: 28px; border-radius: 50%;
+      background: #ffffff; border: 3px solid #0284c7; color: #0284c7; font-size: 11px;
+      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 3;
     }
     .timeline-node.bokji { border-color: #dc2626; color: #dc2626; }
     .timeline-node.bus-active {
       background: #ef4444; border-color: #ffffff; color: #fff; font-size: 13px;
-      box-shadow: 0 0 10px rgba(239,68,68,0.9); animation: pulse 1.5s infinite;
+      box-shadow: 0 0 12px rgba(239,68,68,0.9); animation: pulse 1.5s infinite;
     }
 
     .stop-item-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
@@ -215,7 +214,6 @@
     .badge-tag.running { background: #ef4444; color: #fff; }
     .badge-tag.no-info { color: #64748b; font-weight: 700; }
 
-    /* 클릭 시 펼쳐지는 상세 확장 패널 */
     .stop-expand-panel {
       display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; flex-direction: column; gap: 8px;
     }
@@ -239,6 +237,10 @@
     .round-pill.active { background: #ef4444 !important; color: #ffffff !important; border-color: #ef4444 !important; font-weight: 800; }
     .round-pill.none { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; }
 
+    .meta-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+    .dist-tag { background: #ecfdf5; color: #065f46; font-size: 0.74rem; font-weight: 700; padding: 3px 7px; border-radius: 4px; border: 1px solid #a7f3d0; }
+    .stop-info .desc { font-size: 0.8rem; color: #475569; margin-top: 4px; line-height: 1.4; word-break: break-all; }
+
     .stop-photo-box { width: 100%; height: 120px; border-radius: 8px; overflow: hidden; margin-top: 4px; position: relative; background: #e2e8f0; cursor: zoom-in; }
     .stop-photo-box img { width: 100%; height: 100%; object-fit: cover; }
     .photo-badge { position: absolute; bottom: 6px; right: 6px; background: rgba(15,23,42,0.75); color: #fff; font-size: 0.68rem; font-weight: bold; padding: 2px 8px; border-radius: 12px; }
@@ -247,7 +249,6 @@
     .popup-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 0; border-radius: 8px; background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.76rem; font-weight: 800; }
     .popup-roadview-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 0; border-radius: 8px; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 0.76rem; font-weight: 800; }
 
-    /* 지도 마커 및 팝업 스타일 */
     .bus-marker-badge {
       width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #ffffff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; border: 2px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.35); cursor: pointer; transform: translate(-50%, -50%); transition: transform 0.15s ease;
     }
@@ -286,7 +287,6 @@
       position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 0.78rem; font-weight: bold; z-index: 500; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    /* 모달 공통 */
     #timetableModal, #qrModal, #pwaModal, #photoZoomModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.78); z-index: 3500; align-items: center; justify-content: center; padding: 12px;
     }
@@ -327,7 +327,6 @@
     .zoom-caption { color: #ffffff; font-size: 1rem; font-weight: bold; margin-top: 12px; text-align: center; }
     .close-zoom-btn { position: absolute; top: -45px; right: 0; background: #ffffff; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0f172a; }
 
-    /* 모바일 반응형 */
     @media (max-width: 850px) {
       #main-container { display: block; position: relative; }
       #map { width: 100%; height: 100%; position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
@@ -343,9 +342,9 @@
       .sheet-handle-bar::after { content: ''; width: 44px; height: 5px; background: #cbd5e1; border-radius: 3px; }
 
       .sidebar-header { padding-bottom: 8px; font-size: 0.95rem; }
-      #stopList { padding-left: 16px; }
-      #stopList::before { left: 28px; }
-      .timeline-node { width: 22px; height: 22px; left: -11px; font-size: 10px; }
+      #stopList { padding-left: 22px; }
+      #stopList::before { left: 33px; }
+      .timeline-node { width: 24px; height: 24px; left: -14px; font-size: 10px; }
       .stop-item-inner { padding: 8px 10px 8px 18px; }
     }
   </style>
@@ -1065,7 +1064,6 @@
           if (isNowActive) badgeHtml += `<span class="badge-tag running">운행중</span>`;
           if (!badgeHtml) badgeHtml = `<span class="badge-tag no-info">정보 없음</span>`;
 
-          // 타임라인 노드 아이콘 (현재 운행 중이면 버스 아이콘, 아니면 숫자)
           const nodeContent = isNowActive ? '🚌' : displayNum;
           const nodeClass = isNowActive ? 'timeline-node bus-active' : (isBokji ? 'timeline-node bokji' : 'timeline-node');
 
@@ -1172,7 +1170,6 @@
       setTimeout(() => map?.relayout(), 200);
     }
 
-    // ⭐️ 카드 클릭 시 토글 확장 함수
     function toggleStopCard(innerElem) {
       const box = innerElem.closest('.stop-item-box');
       const isActive = box.classList.contains('active');
