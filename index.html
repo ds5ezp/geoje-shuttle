@@ -75,69 +75,40 @@
     html, body { width: 100%; height: 100%; overflow: hidden; background: #f1f5f9; }
 
     #app-wrapper {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      height: 100%;
-      position: relative;
+      display: flex; flex-direction: column; width: 100%; height: 100%; position: relative;
     }
 
-    /* 큰 글씨 모드 */
     body.large-font .header-info h1 { font-size: 1.25rem !important; }
-    body.large-font .stop-info h4 { font-size: 1.15rem !important; font-weight: 900 !important; }
-    body.large-font .round-pill { font-size: 0.92rem !important; }
-    body.large-font .bubble-popup .popup-title { font-size: 1.2rem !important; }
+    body.large-font .stop-item-title { font-size: 1.15rem !important; font-weight: 900 !important; }
     body.large-font .tt-table { font-size: 1.05rem !important; }
-    body.large-font #courseSelect { font-size: 1.05rem !important; }
 
-    /* 상단 헤더 영역 */
     #header {
-      flex-shrink: 0;
-      background: #ffffff;
-      padding: 10px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      z-index: 100;
+      flex-shrink: 0; background: #ffffff; padding: 10px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); z-index: 100;
     }
-    .header-top-row {
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    }
+    .header-top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .header-info h1 { font-size: 1.1rem; font-weight: 800; color: #0f172a; }
     .company-info { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #475569; }
     .call-btn {
-      background: #10b981; color: #ffffff; text-decoration: none;
-      font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 12px;
-      display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(16,185,129,0.3);
+      background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(16,185,129,0.3);
     }
     .call-btn:hover { background: #059669; }
 
     .header-middle-row { display: flex; align-items: center; gap: 8px; }
     .stop-search-box { position: relative; display: flex; align-items: center; width: 100%; }
     .stop-search-box input {
-      width: 100%; height: 36px; padding: 0 32px 0 10px;
-      border: 1.5px solid #cbd5e1; border-radius: 8px;
-      font-size: 0.85rem; font-weight: 700; color: #0f172a; outline: none; background: #f8fafc;
+      width: 100%; height: 36px; padding: 0 32px 0 10px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; font-weight: 700; color: #0f172a; outline: none; background: #f8fafc;
     }
     .stop-search-box input:focus { border-color: #2563eb; background: #fff; }
-    .search-clear-btn {
-      position: absolute; right: 8px; background: none; border: none; font-size: 16px; color: #94a3b8; cursor: pointer; display: none;
-    }
+    .search-clear-btn { position: absolute; right: 8px; background: none; border: none; font-size: 16px; color: #94a3b8; cursor: pointer; display: none; }
 
     #searchDropdownList {
-      display: none; position: absolute; top: 40px; left: 0; right: 0;
-      background: #ffffff; border: 1.5px solid #2563eb; border-radius: 8px;
-      max-height: 260px; overflow-y: auto; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      display: none; position: absolute; top: 40px; left: 0; right: 0; background: #ffffff; border: 1.5px solid #2563eb; border-radius: 8px; max-height: 260px; overflow-y: auto; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
-    .search-result-item {
-      padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem;
-    }
+    .search-result-item { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; }
     .search-result-item:hover { background: #eff6ff; }
     .search-item-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
     .search-result-item .item-main { font-weight: 800; color: #0f172a; }
     .search-result-item .item-course { background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
-    .search-result-item .item-no { color: #64748b; font-size: 0.72rem; margin-left: 6px; }
     .search-item-times { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
     .search-time-chip { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; font-size: 0.7rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
     .search-time-chip b { color: #2563eb; }
@@ -145,17 +116,14 @@
     .header-bottom-row { display: flex; align-items: center; gap: 6px; }
     .course-select-wrapper { flex: 1; position: relative; display: flex; align-items: center; }
     .course-select-wrapper select {
-      width: 100%; height: 36px; padding: 0 28px 0 10px; background: #f1f5f9; color: #0f172a;
-      border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; font-weight: 800; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none;
+      width: 100%; height: 36px; padding: 0 28px 0 10px; background: #f1f5f9; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; font-weight: 800; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none;
     }
     .course-select-wrapper select:focus { border-color: #2563eb; background: #ffffff; }
     .course-select-wrapper::after { content: '▼'; font-size: 9px; color: #64748b; position: absolute; right: 10px; pointer-events: none; }
 
     .header-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
     .action-btn {
-      height: 36px; padding: 0 9px; border: none; border-radius: 8px; cursor: pointer;
-      font-weight: 700; font-size: 0.76rem; white-space: nowrap; transition: all 0.2s;
-      display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+      height: 36px; padding: 0 9px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.76rem; white-space: nowrap; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 3px;
     }
     .pwa-btn { background: #0284c7; color: #ffffff; }
     .font-size-btn { background: #ea580c; color: #ffffff; }
@@ -163,139 +131,132 @@
     .table-view-btn { background: #047857; color: #ffffff; }
     .qr-share-btn { background: #475569; color: #ffffff; }
 
-    /* 공지사항 띠 배너 */
     #noticeBanner {
-      display: none; width: 100%; background: #fffbeb; color: #b45309;
-      border-top: 1px solid #fef3c7; border-bottom: 1px solid #fde68a;
-      padding: 7px 16px; font-size: 0.8rem; font-weight: 700; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box;
+      display: none; width: 100%; background: #fffbeb; color: #b45309; border-top: 1px solid #fef3c7; border-bottom: 1px solid #fde68a; padding: 7px 16px; font-size: 0.8rem; font-weight: 700; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box;
     }
     .notice-content { display: flex; align-items: center; gap: 6px; flex: 1; word-break: break-all; }
     .notice-badge { background: #f59e0b; color: #ffffff; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
     .notice-close-btn { background: none; border: none; font-size: 16px; color: #92400e; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 
-    /* 실시간 운행 현황 배너 */
     #liveStatusBar {
-      width: 100%; height: 38px; background: #0f172a; color: #ffffff; display: flex; align-items: center;
-      padding: 0 16px; font-size: 0.78rem; gap: 8px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; box-sizing: border-box;
+      width: 100%; height: 38px; background: #0f172a; color: #ffffff; display: flex; align-items: center; padding: 0 16px; font-size: 0.78rem; gap: 8px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; box-sizing: border-box;
     }
-    .live-tag {
-      background: #ef4444; color: #fff; padding: 2px 7px; border-radius: 12px; font-weight: 800; font-size: 0.7rem; animation: pulse 1.5s infinite; flex-shrink: 0;
-    }
+    .live-tag { background: #ef4444; color: #fff; padding: 2px 7px; border-radius: 12px; font-weight: 800; font-size: 0.7rem; animation: pulse 1.5s infinite; flex-shrink: 0; }
     .live-tag.holiday, .live-tag.ended { background: #475569 !important; animation: none !important; }
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     #liveStatusText { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .live-item {
-      background: rgba(255, 255, 255, 0.1); padding: 3px 8px; border-radius: 20px; cursor: pointer;
-      display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 0.74rem; flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.1); padding: 3px 8px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 0.74rem; flex-shrink: 0;
     }
     .live-item:hover { background: rgba(59, 130, 246, 0.6); }
 
-    /* ================= ⭐️ 세로 타임라인 관제 레이아웃 ================= */
-    #main-container {
-      flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden;
-    }
-
+    /* ================= ⭐️ 서초구 스타일 컴팩트 타임라인 리스트 ================= */
+    #main-container { flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden; }
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
     #sidebar {
-      width: 440px; height: 100%; background: #ffffff;
-      box-shadow: 2px 0 12px rgba(0,0,0,0.08); overflow-y: auto;
-      padding: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 50; flex-shrink: 0;
+      width: 440px; height: 100%; background: #ffffff; box-shadow: 2px 0 12px rgba(0,0,0,0.08); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 50; flex-shrink: 0;
     }
     .sheet-handle-bar { display: none; }
 
     .sidebar-header {
-      font-size: 1.02rem; font-weight: 800; color: #0f172a;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0;
+      font-size: 1.02rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0;
     }
     .header-badges { display: flex; gap: 6px; align-items: center; }
     .header-badges span { font-size: 0.78rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
     .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
     #stopList {
-      flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0;
-      position: relative; padding-left: 12px; margin-top: 6px;
+      flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0; position: relative; padding-left: 20px; margin-top: 6px;
     }
 
     /* 세로 연결 타임라인 선 */
     #stopList::before {
-      content: ''; position: absolute; top: 16px; bottom: 16px; left: 26px;
-      width: 3px; background: #cbd5e1; z-index: 1;
+      content: ''; position: absolute; top: 20px; bottom: 20px; left: 34px; width: 3.5px; background: #38bdf8; z-index: 1;
     }
 
     .course-section-title {
-      font-size: 0.88rem; font-weight: 800; padding: 6px 10px; border-radius: 6px;
-      margin-top: 10px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; z-index: 2;
+      font-size: 0.88rem; font-weight: 800; padding: 6px 10px; border-radius: 6px; margin-top: 10px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; z-index: 2;
     }
 
-    .stop-card {
-      background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px;
-      padding: 12px 14px 12px 28px; cursor: pointer; transition: all 0.2s;
-      display: flex; flex-direction: column; gap: 8px; position: relative; margin-bottom: 10px; z-index: 2;
+    /* 컴팩트 정류소 아이템 박스 */
+    .stop-item-box {
+      position: relative; margin-bottom: 12px; z-index: 2; cursor: pointer;
     }
-    .stop-card:hover, .stop-card.active { background: #eff6ff; border-color: #2563eb; transform: translateY(-1px); }
-    .stop-card.now-running { border-color: #ef4444; background: #fef2f2; }
+    .stop-item-inner {
+      background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 12px 10px 24px; transition: all 0.2s;
+    }
+    .stop-item-box:hover .stop-item-inner, .stop-item-box.active .stop-item-inner {
+      background: #eff6ff; border-color: #2563eb;
+    }
+    .stop-item-box.now-running .stop-item-inner {
+      border-color: #ef4444; background: #fef2f2;
+    }
 
-    .card-top { display: flex; gap: 12px; align-items: flex-start; }
-    
-    /* 타임라인 상에 걸치는 정류소 번호 원 (아이콘) */
-    .stop-num {
-      position: absolute; left: -14px; top: 16px;
-      width: 28px; height: 28px; border-radius: 50%; background: #2563eb;
-      color: #fff; font-weight: 800; font-size: 0.82rem; display: flex; align-items: center; justify-content: center;
-      border: 3px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 3;
+    /* 타임라인 포인트 아이콘 (원 또는 버스) */
+    .timeline-node {
+      position: absolute; left: -14px; top: 12px; width: 26px; height: 26px; border-radius: 50%;
+      background: #ffffff; border: 2.5px solid #0284c7; color: #0284c7; font-size: 11px;
+      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.15); z-index: 3;
     }
-    .stop-num.bokji { background: #dc2626 !important; }
+    .timeline-node.bokji { border-color: #dc2626; color: #dc2626; }
+    .timeline-node.bus-active {
+      background: #ef4444; border-color: #ffffff; color: #fff; font-size: 13px;
+      box-shadow: 0 0 10px rgba(239,68,68,0.9); animation: pulse 1.5s infinite;
+    }
+
+    .stop-item-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
+    .stop-item-title { font-size: 0.95rem; font-weight: 800; color: #0f172a; word-break: break-all; }
     
-    .stop-info { flex: 1; min-width: 0; }
-    .stop-info-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
-    .stop-info h4 { font-size: 0.98rem; font-weight: 800; color: #0f172a; word-break: break-all; }
-    .stop-id-tag { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-size: 0.72rem; font-weight: 700; padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
-    .live-active-tag { background: #ef4444; color: #fff; font-size: 0.68rem; font-weight: bold; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
+    .stop-badges-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
+    .badge-tag { font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 4px; }
+    .badge-tag.gijum { background: #2563eb; color: #fff; }
+    .badge-tag.jongjum { background: #dc2626; color: #fff; }
+    .badge-tag.running { background: #ef4444; color: #fff; }
+    .badge-tag.no-info { color: #64748b; font-weight: 700; }
+
+    /* 클릭 시 펼쳐지는 상세 확장 패널 */
+    .stop-expand-panel {
+      display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; flex-direction: column; gap: 8px;
+    }
+    .stop-item-box.active .stop-expand-panel { display: flex; }
 
     .tts-speak-btn {
-      background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd;
-      border-radius: 6px; padding: 2px 7px; font-size: 0.74rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
+      background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; padding: 2px 7px; font-size: 0.72rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
     }
     .tts-speak-btn:hover { background: #bae6fd; }
 
     .eta-alert-badge {
-      display: inline-flex; align-items: center; gap: 5px; background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5;
-      padding: 4px 10px; border-radius: 8px; font-size: 0.78rem; font-weight: 800; margin-top: 4px; box-shadow: 0 1px 3px rgba(194,65,12,0.1);
+      display: inline-flex; align-items: center; gap: 5px; background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; padding: 4px 10px; border-radius: 8px; font-size: 0.76rem; font-weight: 800; box-shadow: 0 1px 3px rgba(194,65,12,0.1);
     }
     .eta-alert-badge.imminent { background: #fef2f2; color: #dc2626; border-color: #fee2e2; animation: pulse 1.5s infinite; }
 
-    .schedule-rounds-box { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .schedule-rounds-box { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
     .round-pill {
-      font-size: 0.76rem; padding: 3px 8px; border-radius: 6px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;
+      font-size: 0.72rem; padding: 2px 6px; border-radius: 6px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 3px; font-weight: 600;
     }
     .round-pill b { font-weight: 800; color: #1d4ed8; }
-    .round-pill.active { background: #ef4444 !important; color: #ffffff !important; border-color: #ef4444 !important; font-weight: 800; box-shadow: 0 1px 4px rgba(239,68,68,0.4); }
-    .round-pill.active b { color: #ffffff !important; }
+    .round-pill.active { background: #ef4444 !important; color: #ffffff !important; border-color: #ef4444 !important; font-weight: 800; }
     .round-pill.none { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; }
 
-    .meta-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
-    .dist-tag { background: #ecfdf5; color: #065f46; font-size: 0.74rem; font-weight: 700; padding: 3px 7px; border-radius: 4px; border: 1px solid #a7f3d0; }
-    .stop-info .desc { font-size: 0.8rem; color: #475569; margin-top: 4px; line-height: 1.4; word-break: break-all; }
+    .stop-photo-box { width: 100%; height: 120px; border-radius: 8px; overflow: hidden; margin-top: 4px; position: relative; background: #e2e8f0; cursor: zoom-in; }
+    .stop-photo-box img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-badge { position: absolute; bottom: 6px; right: 6px; background: rgba(15,23,42,0.75); color: #fff; font-size: 0.68rem; font-weight: bold; padding: 2px 8px; border-radius: 12px; }
 
-    .stop-photo-box { width: 100%; height: 130px; border-radius: 8px; overflow: hidden; margin-top: 4px; position: relative; background: #e2e8f0; cursor: zoom-in; }
-    .stop-photo-box img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
-    .stop-photo-box:hover img { transform: scale(1.03); }
-    .photo-badge { position: absolute; bottom: 6px; right: 6px; background: rgba(15,23,42,0.75); color: #fff; font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 12px; pointer-events: none; }
+    .popup-btn-row { display: flex; gap: 6px; margin-top: 6px; width: 100%; }
+    .popup-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 0; border-radius: 8px; background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.76rem; font-weight: 800; }
+    .popup-roadview-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 0; border-radius: 8px; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 0.76rem; font-weight: 800; }
 
     /* 지도 마커 및 팝업 스타일 */
     .bus-marker-badge {
-      width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #ffffff; font-weight: 800; font-size: 14px;
-      display: flex; align-items: center; justify-content: center; border: 2px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.35); cursor: pointer; transform: translate(-50%, -50%); transition: transform 0.15s ease;
+      width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #ffffff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; border: 2px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.35); cursor: pointer; transform: translate(-50%, -50%); transition: transform 0.15s ease;
     }
     .bus-marker-badge:hover { transform: translate(-50%, -50%) scale(1.15); }
     .bus-marker-badge.복지관 { background: #dc2626 !important; width: 36px; height: 36px; font-size: 15px; }
     .bus-marker-badge.now-active { background: #ef4444 !important; border: 3px solid #fef08a !important; box-shadow: 0 0 12px rgba(239,68,68,0.9); transform: translate(-50%, -50%) scale(1.25); }
 
     .my-loc-pin {
-      width: 22px; height: 22px; border-radius: 50%; background: #0284c7; border: 3px solid #ffffff;
-      box-shadow: 0 0 0 8px rgba(2,132,199,0.25); animation: myLocPulse 2s infinite ease-in-out; transform: translate(-50%, -50%);
+      width: 22px; height: 22px; border-radius: 50%; background: #0284c7; border: 3px solid #ffffff; box-shadow: 0 0 0 8px rgba(2,132,199,0.25); animation: myLocPulse 2s infinite ease-in-out; transform: translate(-50%, -50%);
     }
     @keyframes myLocPulse { 0% { box-shadow: 0 0 0 2px rgba(2,132,199,0.4); } 70% { box-shadow: 0 0 0 14px rgba(2,132,199,0); } 100% { box-shadow: 0 0 0 2px rgba(2,132,199,0); } }
 
@@ -303,32 +264,20 @@
     .route-dir-arrow svg { width: 100%; height: 100%; overflow: visible; }
 
     .live-bus-badge {
-      position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); background: #ffffff;
-      border: 2px solid #ef4444; border-radius: 20px; padding: 2px 7px; font-size: 13px; font-weight: 800; color: #ef4444; box-shadow: 0 3px 10px rgba(239,68,68,0.5); display: flex; align-items: center; gap: 3px; white-space: nowrap; animation: bounceBus 1.2s infinite ease-in-out; pointer-events: none; z-index: 200;
+      position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); background: #ffffff; border: 2px solid #ef4444; border-radius: 20px; padding: 2px 7px; font-size: 13px; font-weight: 800; color: #ef4444; box-shadow: 0 3px 10px rgba(239,68,68,0.5); display: flex; align-items: center; gap: 3px; white-space: nowrap; animation: bounceBus 1.2s infinite ease-in-out; pointer-events: none; z-index: 200;
     }
     .live-bus-badge::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-width: 6px 5px 0 5px; border-style: solid; border-color: #ef4444 transparent transparent transparent; }
     @keyframes bounceBus { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
 
     .bubble-popup {
-      position: relative; background: #ffffff; border-radius: 14px; padding: 14px 16px;
-      box-shadow: 0 6px 22px rgba(0,0,0,0.28); border: 1px solid #cbd5e1; width: 310px; bottom: 22px;
+      position: relative; background: #ffffff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 6px 22px rgba(0,0,0,0.28); border: 1px solid #cbd5e1; width: 310px; bottom: 22px;
     }
     .bubble-popup::after { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); border-width: 8px 8px 0 8px; border-style: solid; border-color: #ffffff transparent transparent transparent; }
     .bubble-popup .popup-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
     .bubble-popup .popup-title-area { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     .bubble-popup .popup-title { font-size: 1.02rem; font-weight: 800; color: #0f172a; word-break: break-all; line-height: 1.35; }
-    .bubble-popup .popup-tags-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
-    .bubble-popup .close-btn { background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 0 2px; font-weight: bold; line-height: 1; flex-shrink: 0; }
-    .bubble-popup .close-btn:hover { color: #0f172a; }
-    .bubble-popup .popup-addr { font-size: 0.8rem; color: #64748b; line-height: 1.35; margin-top: 6px; word-break: break-all; }
-    .bubble-popup .popup-desc { font-size: 0.78rem; color: #334155; margin-top: 6px; line-height: 1.35; background: #f8fafc; padding: 6px 8px; border-radius: 6px; word-break: break-all; }
+    .bubble-popup .close-btn { background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 0 2px; font-weight: bold; }
     .popup-photo { width: 100%; height: 140px; border-radius: 8px; object-fit: cover; margin-top: 6px; cursor: zoom-in; }
-
-    .popup-btn-row { display: flex; gap: 6px; margin-top: 10px; width: 100%; }
-    .popup-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 0; border-radius: 8px; background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.78rem; font-weight: 800; }
-    .popup-nav-btn:hover { background: #059669; }
-    .popup-roadview-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 8px 0; border-radius: 8px; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 0.78rem; font-weight: 800; }
-    .popup-roadview-btn:hover { background: #1d4ed8; }
 
     #loadingModal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.7); color: #fff; z-index: 2000; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.05rem;
@@ -344,7 +293,6 @@
     .timetable-card { background: #ffffff; width: 100%; max-width: 900px; height: 90vh; border-radius: 16px; box-shadow: 0 12px 36px rgba(0,0,0,0.35); display: flex; flex-direction: column; overflow: hidden; }
     .tt-header { padding: 16px 20px; border-bottom: 1.5px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; background: #f8fafc; flex-shrink: 0; }
     .tt-header-left h3 { font-size: 1.15rem; font-weight: 800; color: #0f172a; }
-    .tt-header-left p { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
     .tt-close-btn { background: none; border: none; font-size: 24px; color: #64748b; cursor: pointer; }
     .tt-tabs { display: flex; gap: 8px; padding: 10px 16px; background: #ffffff; border-bottom: 1px solid #e2e8f0; overflow-x: auto; flex-shrink: 0; }
     .tt-tab-btn { padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 700; border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; cursor: pointer; white-space: nowrap; }
@@ -379,32 +327,26 @@
     .zoom-caption { color: #ffffff; font-size: 1rem; font-weight: bold; margin-top: 12px; text-align: center; }
     .close-zoom-btn { position: absolute; top: -45px; right: 0; background: #ffffff; border: none; border-radius: 50%; width: 36px; height: 36px; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0f172a; }
 
-    /* ================= 📱 모바일 반응형 (바텀시트 패널 구조) ================= */
+    /* 모바일 반응형 */
     @media (max-width: 850px) {
       #main-container { display: block; position: relative; }
       #map { width: 100%; height: 100%; position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 
       #sidebar {
-        position: absolute; bottom: 0; left: 0; right: 0;
-        width: 100%; height: 300px; background: #ffffff; border-radius: 22px 22px 0 0;
-        box-shadow: 0 -6px 25px rgba(0,0,0,0.22); padding: 6px 14px 20px 14px;
-        z-index: 60; display: flex; flex-direction: column; transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1); overflow: hidden;
+        position: absolute; bottom: 0; left: 0; right: 0; width: 100%; height: 300px; background: #ffffff; border-radius: 22px 22px 0 0; box-shadow: 0 -6px 25px rgba(0,0,0,0.22); padding: 6px 14px 20px 14px; z-index: 60; display: flex; flex-direction: column; transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1); overflow: hidden;
       }
       #sidebar.minimized { height: 52px !important; }
       #sidebar.minimized #stopList { display: none !important; }
       #sidebar.expanded { height: 80% !important; }
 
-      .sheet-handle-bar {
-        display: flex; justify-content: center; align-items: center; height: 22px; cursor: pointer; flex-shrink: 0;
-      }
+      .sheet-handle-bar { display: flex; justify-content: center; align-items: center; height: 22px; cursor: pointer; flex-shrink: 0; }
       .sheet-handle-bar::after { content: ''; width: 44px; height: 5px; background: #cbd5e1; border-radius: 3px; }
 
       .sidebar-header { padding-bottom: 8px; font-size: 0.95rem; }
-      .stop-card { padding: 10px 12px 10px 24px; }
-      .stop-num { width: 24px; height: 24px; left: -12px; font-size: 0.75rem; }
-      #stopList::before { left: 24px; }
-      .stop-info h4 { font-size: 0.92rem; }
-      .stop-photo-box { height: 110px; }
+      #stopList { padding-left: 16px; }
+      #stopList::before { left: 28px; }
+      .timeline-node { width: 22px; height: 22px; left: -11px; font-size: 10px; }
+      .stop-item-inner { padding: 8px 10px 8px 18px; }
     }
   </style>
 </head>
@@ -464,7 +406,7 @@
       <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
     </div>
 
-    <!-- 2단 관제 메인 뷰 (좌측 타임라인 + 우측 지도) -->
+    <!-- 2단 관제 메인 뷰 (좌측 타임라인 리스트 + 우측 지도) -->
     <div id="main-container">
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
@@ -1087,7 +1029,7 @@
       for (let i = 0; i < stops.length; i++) {
         const stop = stops[i];
         const isBokji = stop.name.includes('복지관');
-        let displayNum = null, card = null, isNowActive = false;
+        let displayNum = null, itemBox = null, isNowActive = false;
 
         stop.rawTimes.forEach(t => {
           const p = t.split(':');
@@ -1104,9 +1046,9 @@
           const nextArrival = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
           const etaHtml = nextArrival ? nextArrival.html : '';
 
-          card = document.createElement('div');
-          card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
-          card.id = `card-${i}`;
+          itemBox = document.createElement('div');
+          itemBox.className = `stop-item-box ${isNowActive ? 'now-running' : ''}`;
+          itemBox.id = `card-${i}`;
 
           const photoHtml = stop.photoUrl ? `
             <div class="stop-photo-box" onclick="event.stopPropagation(); openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');">
@@ -1114,24 +1056,46 @@
               <span class="photo-badge">📷 전경사진 (확대)</span>
             </div>` : '';
 
-          card.innerHTML = `
-            <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
-            <div class="card-top">
-              <div class="stop-info">
-                <div class="stop-info-header">
-                  <h4>${stop.name}</h4>
-                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                  ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                  <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성</button>
-                </div>
+          const isGijum = (displayNum === 1);
+          const isJongjum = (i === stops.length - 1 || isBokji);
+
+          let badgeHtml = '';
+          if (isGijum) badgeHtml += `<span class="badge-tag gijum">기점</span>`;
+          if (isJongjum) badgeHtml += `<span class="badge-tag jongjum">종점</span>`;
+          if (isNowActive) badgeHtml += `<span class="badge-tag running">운행중</span>`;
+          if (!badgeHtml) badgeHtml = `<span class="badge-tag no-info">정보 없음</span>`;
+
+          // 타임라인 노드 아이콘 (현재 운행 중이면 버스 아이콘, 아니면 숫자)
+          const nodeContent = isNowActive ? '🚌' : displayNum;
+          const nodeClass = isNowActive ? 'timeline-node bus-active' : (isBokji ? 'timeline-node bokji' : 'timeline-node');
+
+          itemBox.innerHTML = `
+            <div class="${nodeClass}">${nodeContent}</div>
+            <div class="stop-item-inner" onclick="toggleStopCard(this)">
+              <div class="stop-item-header">
+                <span class="stop-item-title">${displayNum}. ${stop.name}</span>
+                ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+              </div>
+              <div class="stop-badges-row">
+                ${badgeHtml}
+              </div>
+              <div class="stop-expand-panel">
                 ${etaHtml}
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:0.75rem; font-weight:700; color:#475569;">회차별 시간표</span>
+                  <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
+                </div>
                 ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
                 <div class="meta-tags"><span class="dist-tag" id="dist-card-${i}">${stop.distanceText}</span></div>
                 <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
+                ${photoHtml}
+                <div class="popup-btn-row">
+                  <a href="https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${stop.coords?.getLat() || 34.8},${stop.coords?.getLng() || 128.6}" target="_blank" class="popup-nav-btn" onclick="event.stopPropagation()">🚶 길찾기</a>
+                  <a href="https://map.kakao.com/link/roadview/${stop.coords?.getLat() || 34.8},${stop.coords?.getLng() || 128.6}" target="_blank" class="popup-roadview-btn" onclick="event.stopPropagation()">👀 360° 로드뷰</a>
+                </div>
               </div>
-            </div>
-            ${photoHtml}`;
-          list.appendChild(card);
+            </div>`;
+          list.appendChild(itemBox);
         }
 
         let coords = await resolveStopCoordinates(stop);
@@ -1169,56 +1133,16 @@
               liveBusOverlays.push(busOverlay);
             }
 
-            const openDetailPopup = () => {
-              if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
-              const bubbleDiv = document.createElement('div');
-              bubbleDiv.className = 'bubble-popup';
-              const popupSched = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
-              const nextArr = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
-              const popupImg = stop.photoUrl ? `<img src="${stop.photoUrl}" class="popup-photo" onclick="openPhotoZoom('${stop.photoUrl}', '${displayNum}. ${stop.name}');" title="크게 보기">` : '';
-              const navUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
-              const rvUrl = `https://map.kakao.com/link/roadview/${adjustedCoords.getLat()},${adjustedCoords.getLng()}`;
-
-              bubbleDiv.innerHTML = `
-                <div class="popup-header">
-                  <div class="popup-title-area">
-                    <div class="popup-title">${displayNum}. ${stop.name}</div>
-                    <div class="popup-tags-row">
-                      ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                      ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                      <button class="tts-speak-btn" onclick="speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성</button>
-                    </div>
-                  </div>
-                  <button class="close-btn">&times;</button>
-                </div>
-                ${nextArr ? nextArr.html : ''}
-                ${popupImg}
-                ${popupSched ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupSched}</div>` : ''}
-                <div class="meta-tags"><span class="dist-tag">${stop.distanceText}</span></div>
-                <div class="popup-addr">📍 ${stop.addr}</div>
-                ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
-                <div class="popup-btn-row">
-                  <a href="${navUrl}" target="_blank" class="popup-nav-btn">🚶 길찾기</a>
-                  <a href="${rvUrl}" target="_blank" class="popup-roadview-btn">👀 360° 로드뷰</a>
-                </div>`;
-
-              const bubbleOverlay = new kakao.maps.CustomOverlay({ position: adjustedCoords, content: bubbleDiv, yAnchor: 1.0, xAnchor: 0.5, zIndex: 100 });
-              bubbleDiv.querySelector('.close-btn').onclick = (e) => { e.stopPropagation(); bubbleOverlay.setMap(null); currentBubbleOverlay = null; };
-              bubbleOverlay.setMap(map);
-              currentBubbleOverlay = bubbleOverlay;
-
+            badge.onclick = () => {
+              const box = document.getElementById(`card-${i}`);
+              if (box) {
+                document.querySelectorAll('.stop-item-box').forEach(b => b.classList.remove('active'));
+                box.classList.add('active');
+                box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
               if (window.innerWidth <= 850) map.panTo(new kakao.maps.LatLng(adjustedCoords.getLat() - 0.003, adjustedCoords.getLng()));
               else map.panTo(adjustedCoords);
-
-              if (card) {
-                document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
-                card.classList.add('active');
-                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              }
             };
-
-            badge.onclick = openDetailPopup;
-            if (card) card.onclick = openDetailPopup;
           }
         }
       }
@@ -1246,6 +1170,17 @@
         document.getElementById('totalDistBadge').innerText = '단일 지점';
       }
       setTimeout(() => map?.relayout(), 200);
+    }
+
+    // ⭐️ 카드 클릭 시 토글 확장 함수
+    function toggleStopCard(innerElem) {
+      const box = innerElem.closest('.stop-item-box');
+      const isActive = box.classList.contains('active');
+      document.querySelectorAll('.stop-item-box').forEach(b => b.classList.remove('active'));
+      if (!isActive) {
+        box.classList.add('active');
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
     }
 
     async function selectAllCourses() {
@@ -1282,7 +1217,7 @@
         for (let i = 0; i < stops.length; i++) {
           const stop = stops[i];
           const isBokji = stop.name.includes('복지관');
-          let displayNum = null, card = null, isNowActive = false;
+          let displayNum = null, itemBox = null, isNowActive = false;
 
           stop.rawTimes.forEach(t => {
             const p = t.split(':');
@@ -1299,9 +1234,9 @@
             const nextArrival = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
             const etaHtml = nextArrival ? nextArrival.html : '';
 
-            card = document.createElement('div');
-            card.className = `stop-card ${isNowActive ? 'now-running' : ''}`;
-            card.id = `all-card-${cIdx}-${i}`;
+            itemBox = document.createElement('div');
+            itemBox.className = `stop-item-box ${isNowActive ? 'now-running' : ''}`;
+            itemBox.id = `all-card-${cIdx}-${i}`;
 
             const photoHtml = stop.photoUrl ? `
               <div class="stop-photo-box" onclick="event.stopPropagation(); openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');">
@@ -1309,24 +1244,42 @@
                 <span class="photo-badge">📷 전경사진 (확대)</span>
               </div>` : '';
 
-            card.innerHTML = `
-              <div class="stop-num ${isBokji ? 'bokji' : ''}" style="${!isBokji ? `background:${color}` : ''}">${displayNum}</div>
-              <div class="card-top">
-                <div class="stop-info">
-                  <div class="stop-info-header">
-                    <h4>${stop.name}</h4>
-                    ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                    ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성</button>
-                  </div>
+            const isGijum = (displayNum === 1);
+            const isJongjum = (i === stops.length - 1 || isBokji);
+            let badgeHtml = '';
+            if (isGijum) badgeHtml += `<span class="badge-tag gijum">기점</span>`;
+            if (isJongjum) badgeHtml += `<span class="badge-tag jongjum">종점</span>`;
+            if (isNowActive) badgeHtml += `<span class="badge-tag running">운행중</span>`;
+            if (!badgeHtml) badgeHtml = `<span class="badge-tag no-info">정보 없음</span>`;
+
+            const nodeContent = isNowActive ? '🚌' : displayNum;
+            const nodeClass = isNowActive ? 'timeline-node bus-active' : (isBokji ? 'timeline-node bokji' : 'timeline-node');
+
+            itemBox.innerHTML = `
+              <div class="${nodeClass}">${nodeContent}</div>
+              <div class="stop-item-inner" onclick="toggleStopCard(this)">
+                <div class="stop-item-header">
+                  <span class="stop-item-title">${displayNum}. ${stop.name}</span>
+                  ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
+                </div>
+                <div class="stop-badges-row">${badgeHtml}</div>
+                <div class="stop-expand-panel">
                   ${etaHtml}
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-size:0.75rem; font-weight:700; color:#475569;">회차별 시간표</span>
+                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성듣기</button>
+                  </div>
                   ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
                   <div class="meta-tags"><span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${stop.distanceText}</span></div>
                   <div class="desc">${stop.addr ? `📍 ${stop.addr}` : ''} ${stop.desc ? `<br>💡 ${stop.desc}` : ''}</div>
+                  ${photoHtml}
+                  <div class="popup-btn-row">
+                    <a href="https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${stop.coords?.getLat() || 34.8},${stop.coords?.getLng() || 128.6}" target="_blank" class="popup-nav-btn" onclick="event.stopPropagation()">🚶 길찾기</a>
+                    <a href="https://map.kakao.com/link/roadview/${stop.coords?.getLat() || 34.8},${stop.coords?.getLng() || 128.6}" target="_blank" class="popup-roadview-btn" onclick="event.stopPropagation()">👀 360° 로드뷰</a>
+                  </div>
                 </div>
-              </div>
-              ${photoHtml}`;
-            list.appendChild(card);
+              </div>`;
+            list.appendChild(itemBox);
           }
 
           let coords = await resolveStopCoordinates(stop);
@@ -1356,51 +1309,14 @@
               }
 
               badgeElem.onclick = () => {
-                if (currentBubbleOverlay) currentBubbleOverlay.setMap(null);
-                const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = 'bubble-popup';
-                const popupSched = buildScheduleHtml(stop.schedules, currentMinutes, timeWindowMinutes);
-                const nextArr = getNextArrivalInfo(stop.schedules, currentMinutes, timeWindowMinutes);
-                const popupImg = stop.photoUrl ? `<img src="${stop.photoUrl}" class="popup-photo" onclick="openPhotoZoom('${stop.photoUrl}', '[${cName}] ${displayNum}. ${stop.name}');">` : '';
-                const navUrl = `https://map.kakao.com/link/to/${encodeURIComponent(stop.name)},${coords.getLat()},${coords.getLng()}`;
-                const rvUrl = `https://map.kakao.com/link/roadview/${coords.getLat()},${coords.getLng()}`;
-
-                bubbleDiv.innerHTML = `
-                  <div class="popup-header">
-                    <div class="popup-title-area">
-                      <div class="popup-title">[${cName}] ${displayNum}. ${stop.name}</div>
-                      <div class="popup-tags-row">
-                        ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
-                        ${isNowActive ? `<span class="live-active-tag">운행중</span>` : ''}
-                        <button class="tts-speak-btn" onclick="speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성</button>
-                      </div>
-                    </div>
-                    <button class="close-btn">&times;</button>
-                  </div>
-                  ${nextArr ? nextArr.html : ''}
-                  ${popupImg}
-                  ${popupSched ? `<div class="schedule-rounds-box" style="margin-top:6px;">${popupSched}</div>` : ''}
-                  <div class="meta-tags"><span class="dist-tag">${stop.distanceText}</span></div>
-                  <div class="popup-addr">📍 ${stop.addr}</div>
-                  ${stop.desc ? `<div class="popup-desc">💡 ${stop.desc}</div>` : ''}
-                  <div class="popup-btn-row">
-                    <a href="${navUrl}" target="_blank" class="popup-nav-btn">🚶 길찾기</a>
-                    <a href="${rvUrl}" target="_blank" class="popup-roadview-btn">👀 360° 로드뷰</a>
-                  </div>`;
-
-                const bubbleOverlay = new kakao.maps.CustomOverlay({ position: coords, content: bubbleDiv, yAnchor: 1.0, xAnchor: 0.5, zIndex: 100 });
-                bubbleDiv.querySelector('.close-btn').onclick = (e) => { e.stopPropagation(); bubbleOverlay.setMap(null); currentBubbleOverlay = null; };
-                bubbleOverlay.setMap(map);
-                currentBubbleOverlay = bubbleOverlay;
-
+                const box = document.getElementById(`all-card-${cIdx}-${i}`);
+                if (box) {
+                  document.querySelectorAll('.stop-item-box').forEach(b => b.classList.remove('active'));
+                  box.classList.add('active');
+                  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
                 if (window.innerWidth <= 850) map.panTo(new kakao.maps.LatLng(coords.getLat() - 0.003, coords.getLng()));
                 else map.panTo(coords);
-
-                if (card) {
-                  document.querySelectorAll('.stop-card').forEach(c => c.classList.remove('active'));
-                  card.classList.add('active');
-                  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
               };
             }
           }
@@ -1553,11 +1469,12 @@
       selectCourse(targetCourse, courses.indexOf(targetCourse) >= 0 ? courses.indexOf(targetCourse) : 0);
 
       setTimeout(() => {
-        const card = document.getElementById(`card-${targetStopIdx}`);
-        if (card) {
+        const box = document.getElementById(`card-${targetStopIdx}`);
+        if (box) {
           document.getElementById('sidebar').classList.remove('minimized');
-          card.click();
-          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          document.querySelectorAll('.stop-item-box').forEach(b => b.classList.remove('active'));
+          box.classList.add('active');
+          box.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }, 400);
     }
