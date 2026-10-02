@@ -114,11 +114,11 @@
     }
     .header-top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     
-    /* ⭐️ 타이틀 2줄 처리 */
     .header-info h1 {
       font-size: 1.05rem; font-weight: 800; color: #0f172a; line-height: 1.35; max-width: 210px; word-break: keep-all;
     }
-    .company-info { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #475569; }
+    
+    .company-info { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 700; color: #475569; white-space: nowrap; }
     .call-btn {
       background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(16,185,129,0.3); white-space: nowrap;
     }
@@ -146,10 +146,9 @@
 
     .header-bottom-row { display: flex; align-items: center; gap: 5px; }
     
-    /* ⭐️ 코스 선택 셀렉트 박스 폭 넓힘 */
-    .course-select-wrapper { flex: 1.3; position: relative; display: flex; align-items: center; min-width: 130px; }
+    .course-select-wrapper { flex: 1.4; position: relative; display: flex; align-items: center; min-width: 140px; }
     .course-select-wrapper select {
-      width: 100%; height: 38px; padding: 0 24px 0 10px; background: #f1f5f9; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; font-weight: 800; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+      width: 100%; height: 38px; padding: 0 24px 0 10px; background: #f8fafc; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; font-weight: 800; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
     }
     .course-select-wrapper select:focus { border-color: #2563eb; background: #ffffff; }
     .course-select-wrapper::after { content: '▼'; font-size: 9px; color: #64748b; position: absolute; right: 10px; pointer-events: none; }
@@ -172,15 +171,20 @@
     .notice-badge { background: #f59e0b; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
     .notice-close-btn { background: none; border: none; font-size: 18px; color: #92400e; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 
+    /* ⭐️ LIVE 운행 상태바 (좌우 스크롤 지원 및 스크롤바 숨김) */
     #liveStatusBar {
       width: 100%; height: 38px; background: #0f172a; color: #ffffff; display: flex; align-items: center; padding: 0 16px; font-size: 0.82rem; gap: 8px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; box-sizing: border-box;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none; /* Firefox 스크롤바 숨김 */
     }
+    #liveStatusBar::-webkit-scrollbar { display: none; /* Chrome, Safari 스크롤바 숨김 */ }
+
     .live-tag { background: #ef4444; color: #fff; padding: 2px 7px; border-radius: 12px; font-weight: 800; font-size: 0.72rem; animation: pulse 1.5s infinite; flex-shrink: 0; }
     .live-tag.holiday, .live-tag.ended { background: #475569 !important; animation: none !important; }
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+    
     #liveStatusText { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .live-item {
-      background: rgba(255, 255, 255, 0.1); padding: 3px 8px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 0.78rem; flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.1); padding: 3px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 0.78rem; flex-shrink: 0;
     }
     .live-item:hover { background: rgba(59, 130, 246, 0.6); }
 
@@ -373,7 +377,6 @@
       }
       #sidebar.minimized { height: 52px !important; }
       #sidebar.minimized #stopList { display: none !important; }
-      /* ⭐️ 모바일에서 위로 스와이프 시 전체화면(94%)으로 확장되도록 수정 */
       #sidebar.expanded { height: 94% !important; }
 
       .sheet-handle-bar { display: flex; justify-content: center; align-items: center; height: 22px; cursor: pointer; flex-shrink: 0; }
@@ -406,9 +409,9 @@
       <div id="header">
         <div class="header-top-row">
           <div class="header-info">
-            <h1>거제시종합사회복지관<br>셔틀버스 노선도</h1>
+            <h1>2026년 운행업체:<br>거제시종합사회복지관 셔틀버스</h1>
           </div>
-          <div class="company-info" style="flex-direction:column; align-items:flex-end; gap:2px;">
+          <div class="company-info">
             <span>(주)여행과 사람</span>
             <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
           </div>
@@ -435,7 +438,6 @@
             <button class="action-btn nearby-btn" onclick="findNearestStop()" title="주변">📍주변</button>
             <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="표">📋표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유">🔗</button>
-            <!-- ⭐️ 접기 버튼을 검색 창 우측 하단 버튼 바 맨 끝으로 배치 -->
             <button class="action-btn fold-btn" onclick="collapseTopArea()" title="상단 접기">▲접기</button>
           </div>
         </div>
@@ -450,7 +452,7 @@
         <button class="notice-close-btn" onclick="closeNoticeBanner()">&times;</button>
       </div>
 
-      <!-- 실시간 운행 현황 배너 -->
+      <!-- 실시간 운행 현황 배너 (좌우 스크롤 지원) -->
       <div id="liveStatusBar">
         <span class="live-tag" id="liveTag">LIVE 운행</span>
         <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
@@ -802,7 +804,7 @@
     }
     function closeTimetableModal() { document.getElementById('timetableModal').style.display = 'none'; }
 
-    // ⭐️ 모바일 바텀시트(사파리/크롬 대응 스와이프 제스처 핸들러 대폭 보완)
+    // ⭐️ 모바일 바텀시트 스와이프 제스처 핸들러 완벽 복원
     document.addEventListener('DOMContentLoaded', () => {
       const sidebar = document.getElementById('sidebar');
       const handle = document.getElementById('sheetHandle');
@@ -826,12 +828,10 @@
         if (window.innerWidth > 850 || !startY || !currentY) return;
         const diff = currentY - startY;
 
-        if (diff < -40) {
-          // 위로 휙 쓸어올리면 전체화면(expanded)으로 확장
+        if (diff < -35) {
           sidebar.classList.remove('minimized');
           sidebar.classList.add('expanded');
-        } else if (diff > 40) {
-          // 아래로 내리면 축소 또는 원래대로
+        } else if (diff > 35) {
           if (sidebar.classList.contains('expanded')) {
             sidebar.classList.remove('expanded');
           } else {
@@ -847,7 +847,6 @@
         elem?.addEventListener('touchmove', onTouchMove, { passive: true });
         elem?.addEventListener('touchend', onTouchEnd, { passive: true });
         
-        // 클릭 시 토글
         elem?.addEventListener('click', () => {
           if (window.innerWidth > 850) return;
           if (sidebar.classList.contains('minimized')) {
@@ -861,7 +860,6 @@
         });
       });
 
-      // 배차시간표 모달 스와이프도 동일 적용
       const ttHeader = document.getElementById('ttHeaderTouch');
       const ttCard = document.getElementById('timetableCardElem');
       if (ttHeader && ttCard) {
@@ -1086,7 +1084,7 @@
           const stopNo = getVal(colMap.stopNo).replace(/,/g, '');
           const photoUrl = formatImageUrl(getVal(colMap.photo));
 
-          if (!course || !name || course.includes('코s구분')) return;
+          if (!course || !name || course.includes('코스구분')) return;
           const isWaypoint = desc.includes('경유') || name.includes('[경유]');
 
           const schedules = [];
