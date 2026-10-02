@@ -171,12 +171,11 @@
     .notice-badge { background: #f59e0b; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
     .notice-close-btn { background: none; border: none; font-size: 18px; color: #92400e; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 
-    /* ⭐️ LIVE 운행 상태바 (좌우 스크롤 지원 및 스크롤바 숨김) */
     #liveStatusBar {
       width: 100%; height: 38px; background: #0f172a; color: #ffffff; display: flex; align-items: center; padding: 0 16px; font-size: 0.82rem; gap: 8px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; box-sizing: border-box;
-      -webkit-overflow-scrolling: touch; scrollbar-width: none; /* Firefox 스크롤바 숨김 */
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
     }
-    #liveStatusBar::-webkit-scrollbar { display: none; /* Chrome, Safari 스크롤바 숨김 */ }
+    #liveStatusBar::-webkit-scrollbar { display: none; }
 
     .live-tag { background: #ef4444; color: #fff; padding: 2px 7px; border-radius: 12px; font-weight: 800; font-size: 0.72rem; animation: pulse 1.5s infinite; flex-shrink: 0; }
     .live-tag.holiday, .live-tag.ended { background: #475569 !important; animation: none !important; }
@@ -377,6 +376,8 @@
       }
       #sidebar.minimized { height: 52px !important; }
       #sidebar.minimized #stopList { display: none !important; }
+      
+      /* ⭐️ 세부정류소 영역을 위로 쓸어 올렸을 때 전체 화면(94%)으로 확장되도록 연결 */
       #sidebar.expanded { height: 94% !important; }
 
       .sheet-handle-bar { display: flex; justify-content: center; align-items: center; height: 22px; cursor: pointer; flex-shrink: 0; }
@@ -438,6 +439,7 @@
             <button class="action-btn nearby-btn" onclick="findNearestStop()" title="주변">📍주변</button>
             <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="표">📋표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유">🔗</button>
+            <!-- ⭐️ 접기 버튼을 상단 검색 창 우측 하단 버튼 바 맨 끝으로 배치 -->
             <button class="action-btn fold-btn" onclick="collapseTopArea()" title="상단 접기">▲접기</button>
           </div>
         </div>
@@ -804,7 +806,7 @@
     }
     function closeTimetableModal() { document.getElementById('timetableModal').style.display = 'none'; }
 
-    // ⭐️ 모바일 바텀시트 스와이프 제스처 핸들러 완벽 복원
+    // ⭐️ 세부정류소를 위로 쓸어 올리면 상단 영역이 자동으로 접히며 전체화면(94%)으로 확장되는 제스처 로직
     document.addEventListener('DOMContentLoaded', () => {
       const sidebar = document.getElementById('sidebar');
       const handle = document.getElementById('sheetHandle');
@@ -828,10 +830,12 @@
         if (window.innerWidth > 850 || !startY || !currentY) return;
         const diff = currentY - startY;
 
-        if (diff < -35) {
+        if (diff < -30) {
+          // 위로 쓸어 올리면 상단 영역을 접고 세부노선도를 전체화면으로 확장
+          collapseTopArea();
           sidebar.classList.remove('minimized');
           sidebar.classList.add('expanded');
-        } else if (diff > 35) {
+        } else if (diff > 30) {
           if (sidebar.classList.contains('expanded')) {
             sidebar.classList.remove('expanded');
           } else {
@@ -852,6 +856,7 @@
           if (sidebar.classList.contains('minimized')) {
             sidebar.classList.remove('minimized');
           } else if (!sidebar.classList.contains('expanded')) {
+            collapseTopArea();
             sidebar.classList.add('expanded');
           } else {
             sidebar.classList.remove('expanded');
