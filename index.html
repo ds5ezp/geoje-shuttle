@@ -79,7 +79,7 @@
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; -webkit-tap-highlight-color: transparent; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #f1f5f9; font-size: 19px; /* ⭐️ 전체 기본 글씨 크기를 어르신 맞춤형으로 대폭 확대 */ }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #f1f5f9; font-size: 19px; }
 
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -102,7 +102,7 @@
     #topExpandTab {
       display: none; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
       background: rgba(15, 23, 42, 0.95); color: #ffffff; padding: 6px 16px; border-radius: 20px;
-      font-size: 0.92rem; font-weight: 800; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-size: 0.88rem; font-weight: 800; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       cursor: pointer; z-index: 95; align-items: center; gap: 4px;
     }
 
@@ -121,13 +121,16 @@
     }
     .call-btn:hover { background: #059669; }
 
-    .header-middle-row { display: flex; align-items: center; gap: 8px; }
-    .stop-search-box { position: relative; display: flex; align-items: center; width: 100%; }
+    /* ⭐️ 검색창과 접기 버튼을 한 줄에 배치 */
+    .header-middle-row { display: flex; align-items: center; gap: 6px; }
+    .stop-search-box { position: relative; display: flex; align-items: center; flex: 1; }
     .stop-search-box input {
-      width: 100%; height: 46px; padding: 0 36px 0 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 1.05rem; font-weight: 700; color: #0f172a; outline: none; background: #f8fafc;
+      width: 100%; height: 44px; padding: 0 36px 0 14px; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 1.05rem; font-weight: 700; color: #0f172a; outline: none; background: #f8fafc;
     }
     .stop-search-box input:focus { border-color: #2563eb; background: #fff; }
     .search-clear-btn { position: absolute; right: 12px; background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; display: none; }
+
+    .fold-btn { background: #64748b; color: #ffffff; height: 44px; padding: 0 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 0.9rem; white-space: nowrap; flex-shrink: 0; }
 
     #searchDropdownList {
       display: none; position: absolute; top: 50px; left: 0; right: 0; background: #ffffff; border: 2px solid #2563eb; border-radius: 10px; max-height: 300px; overflow-y: auto; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
@@ -141,14 +144,14 @@
     .search-time-chip { background: #f1f5f9; color: #334155; border: 1.5px solid #e2e8f0; font-size: 0.9rem; font-weight: 800; padding: 3px 8px; border-radius: 6px; }
     .search-time-chip b { color: #2563eb; }
 
+    /* ⭐️ 코스 선택 셀렉트 박스가 여유 공간을 모두 차지하도록 확장 */
     .header-bottom-row { display: flex; align-items: center; gap: 6px; }
-    
-    .course-select-wrapper { flex: 1.4; position: relative; display: flex; align-items: center; min-width: 150px; }
+    .course-select-wrapper { flex: 1; position: relative; display: flex; align-items: center; }
     .course-select-wrapper select {
-      width: 100%; height: 46px; padding: 0 28px 0 12px; background: #f8fafc; color: #0f172a; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 1.02rem; font-weight: 900; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+      width: 100%; height: 46px; padding: 0 32px 0 14px; background: #f8fafc; color: #0f172a; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 1.05rem; font-weight: 900; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
     }
     .course-select-wrapper select:focus { border-color: #2563eb; background: #ffffff; }
-    .course-select-wrapper::after { content: '▼'; font-size: 11px; color: #64748b; position: absolute; right: 12px; pointer-events: none; }
+    .course-select-wrapper::after { content: '▼'; font-size: 11px; color: #64748b; position: absolute; right: 14px; pointer-events: none; }
 
     .header-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
     .action-btn {
@@ -159,13 +162,12 @@
     .nearby-btn { background: #2563eb; color: #ffffff; }
     .table-view-btn { background: #047857; color: #ffffff; }
     .qr-share-btn { background: #475569; color: #ffffff; }
-    .fold-btn { background: #64748b; color: #ffffff; }
 
     #noticeBanner {
       display: none; width: 100%; background: #fffbeb; color: #b45309; border-top: 1px solid #fef3c7; border-bottom: 1px solid #fde68a; padding: 10px 16px; font-size: 0.95rem; font-weight: 800; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box;
     }
     .notice-content { display: flex; align-items: center; gap: 6px; flex: 1; word-break: break-all; }
-    .notice-badge { background: #f59e0b; color: #ffffff; font-size: 0.8rem; font-weight: 900; padding: 2px 8px; border-radius: 6px; flex-shrink: 0; }
+    .notice-badge { background: #f59e0b; color: #ffffff; font-size: 0.78rem; font-weight: 900; padding: 2px 8px; border-radius: 6px; flex-shrink: 0; }
     .notice-close-btn { background: none; border: none; font-size: 20px; color: #92400e; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 
     #liveStatusBar {
@@ -272,7 +274,7 @@
 
     .stop-photo-box { width: 100%; height: 180px; border-radius: 10px; overflow: hidden; margin-top: 8px; position: relative; background: #e2e8f0; cursor: zoom-in; }
     .stop-photo-box img { width: 100%; height: 100%; object-fit: cover; }
-    .photo-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(15,23,42,0.85); color: #fff; font-size: 0.85rem; font-weight: bold; padding: 4px 10px; border-radius: 12px; }
+    .photo-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(15,23,42,0.85); color: #fff; font-size: 0.8rem; font-weight: bold; padding: 4px 10px; border-radius: 12px; }
 
     .popup-btn-row { display: flex; gap: 10px; margin-top: 10px; width: 100%; }
     .popup-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 0; border-radius: 10px; background: #10b981; color: #ffffff; text-decoration: none; font-size: 1rem; font-weight: 900; }
@@ -414,11 +416,13 @@
           </div>
         </div>
 
+        <!-- ⭐️ 검색창과 [▲접기] 버튼을 같은 줄에 배치하여 코스 선택창 폭을 최대로 확보 -->
         <div class="header-middle-row">
           <div class="stop-search-box">
             <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색 (예: 포로수용소, 아이파크)" oninput="handleStopSearch(this.value)">
             <button class="search-clear-btn" id="searchClearBtn" onclick="clearStopSearch()">&times;</button>
           </div>
+          <button class="action-btn fold-btn" onclick="collapseTopArea()" title="상단 접기">▲접기</button>
           <div id="searchDropdownList"></div>
         </div>
 
@@ -435,7 +439,6 @@
             <button class="action-btn nearby-btn" onclick="findNearestStop()" title="주변">📍주변</button>
             <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="표">📋표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유">🔗</button>
-            <button class="action-btn fold-btn" onclick="collapseTopArea()" title="상단 접기">▲접기</button>
           </div>
         </div>
       </div>
@@ -652,7 +655,7 @@
         dropdown.innerHTML = matches.map(m => {
           const sorted = [...m.schedules].sort((a, b) => parseRoundNumber(a.round) - parseRoundNumber(b.round));
           const activeTimes = sorted.filter(sc => sc.time && !sc.time.includes('미운행'));
-          const timesHtml = activeTimes.length > 0 ? activeTimes.map(sc => `<span class="search-time-chip"><b>${sc.round}</b> ${sc.time}</span>`).join('') : `<span style="font-size:0.85rem; color:#94a3b8;">운행 시간 없음</span>`;
+          const timesHtml = activeTimes.length > 0 ? activeTimes.map(sc => `<span class="search-time-chip"><b>${sc.round}</b> ${sc.time}</span>`).join('') : `<span style="font-size:0.8rem; color:#94a3b8;">운행 시간 없음</span>`;
 
           return `
             <div class="search-result-item" onclick="selectSearchResult('${m.courseName}', ${m.stopIndex})">
