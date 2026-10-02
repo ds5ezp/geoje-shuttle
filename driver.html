@@ -4,12 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>거제시종합사회복지관 - 셔틀버스 운행 위치 송신</title>
-  <!-- Firebase SDK (Modular v9/v10 CDN) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // ⭐️ 본인의 파이어베이스 설정 정보 입력 (Firebase 콘솔에서 무료 발급)
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -27,6 +25,7 @@
 
     window.startDriving = function() {
       const courseName = document.getElementById('driverCourseSelect').value;
+      const busNumber = document.getElementById('busNumberInput').value.trim() || '셔틀버스';
       const statusText = document.getElementById('statusText');
 
       if (!navigator.geolocation) {
@@ -34,23 +33,22 @@
         return;
       }
 
-      statusText.innerText = `[${courseName}] 위치 전송 중... (GPS 수신 대기)`;
+      statusText.innerText = `[${courseName} / ${busNumber}] 위치 전송 중... (GPS 수신 대기)`;
       statusText.style.color = "#10b981";
 
-      // 실시간 위치 추적 시작
       watchId = navigator.geolocation.watchPosition(
         (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
           const timestamp = new Date().toLocaleTimeString();
 
-          // Firebase의 해당 노선 경로에 좌표 업로드
           set(ref(db, 'liveBuses/' + courseName), {
             lat: lat,
             lng: lng,
+            busNumber: busNumber, // ⭐️ 차량 번호 함께 전송
             updatedAt: timestamp
           }).then(() => {
-            statusText.innerText = `[${courseName}] 전송 성공 (${timestamp})\n위도: ${lat.toFixed(4)}, 경도: ${lng.toFixed(4)}`;
+            statusText.innerText = `[${courseName} - ${busNumber}] 전송 성공 (${timestamp})\n위도: ${lat.toFixed(4)}, 경도: ${lng.toFixed(4)}`;
           }).catch((error) => {
             statusText.innerText = "전송 실패: " + error.message;
             statusText.style.color = "#ef4444";
@@ -77,8 +75,9 @@
   <style>
     body { font-family: sans-serif; text-align: center; padding: 30px; background: #0f172a; color: #fff; }
     h2 { margin-bottom: 20px; }
-    select, button { width: 100%; max-width: 320px; padding: 14px; margin: 10px 0; font-size: 1rem; border-radius: 10px; border: none; font-weight: bold; }
-    select { background: #334155; color: #fff; }
+    select, input, button { width: 100%; max-width: 320px; padding: 14px; margin: 10px 0; font-size: 1rem; border-radius: 10px; border: none; font-weight: bold; box-sizing: border-box; }
+    select, input { background: #334155; color: #fff; text-align: center; outline: none; }
+    input::placeholder { color: #94a3b8; }
     .start-btn { background: #10b981; color: #fff; cursor: pointer; }
     .stop-btn { background: #ef4444; color: #fff; cursor: pointer; }
     #statusText { margin-top: 20px; font-size: 0.95rem; line-height: 1.5; color: #94a3b8; }
@@ -86,13 +85,15 @@
 </head>
 <body>
   <h2>🚌 기사님 위치 송신 앱</h2>
-  <p>운행하시는 노선을 선택 후 [운행 시작]을 누르세요.</p>
+  <p>노선과 차량 번호를 입력 후 운행을 시작하세요.</p>
   
   <select id="driverCourseSelect">
     <option value="고현·장평(오전)">고현·장평(오전)</option>
     <option value="수월·연초">수월·연초</option>
     <option value="둔덕·사등">둔덕·사등</option>
   </select>
+
+  <input type="text" id="busNumberInput" placeholder="차량번호 입력 (예: 74바 1748)">
 
   <button class="start-btn" onclick="startDriving()">운행 시작 (위치 송신)</button>
   <button class="stop-btn" onclick="stopDriving()">운행 중단</button>
