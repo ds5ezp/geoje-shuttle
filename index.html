@@ -88,11 +88,10 @@
 
     #app-wrapper { display: flex; flex-direction: column; width: 100%; height: 100%; position: relative; }
 
-    body.large-font .header-info h1 { font-size: 1.4rem !important; }
-    body.large-font .stop-item-title { font-size: 1.25rem !important; font-weight: 900 !important; }
-    body.large-font .stop-expand-panel { font-size: 1.05rem !important; }
+    body.large-font .header-info h1 { font-size: 1.25rem !important; }
+    body.large-font .stop-item-title { font-size: 1.2rem !important; font-weight: 900 !important; }
 
-    /* ⭐️ 접히고 펼쳐지는 상단 영역 스타일 */
+    /* 상단 접기/펼치기 영역 */
     #topCollapsibleArea {
       flex-shrink: 0; width: 100%; background: #ffffff; z-index: 100;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -111,95 +110,103 @@
     }
 
     #header {
-      padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; background: #ffffff;
+      padding: 10px 16px; display: flex; flex-direction: column; gap: 8px; background: #ffffff;
     }
     .header-top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .header-info h1 { font-size: 1.2rem; font-weight: 800; color: #0f172a; }
-    .company-info { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #475569; }
+    
+    /* ⭐️ 타이틀 2줄 처리 */
+    .header-info h1 {
+      font-size: 1.05rem; font-weight: 800; color: #0f172a; line-height: 1.35; max-width: 210px; word-break: keep-all;
+    }
+    .company-info { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #475569; }
     .call-btn {
-      background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.82rem; font-weight: 700; padding: 5px 12px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(16,185,129,0.3);
+      background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(16,185,129,0.3); white-space: nowrap;
     }
     .call-btn:hover { background: #059669; }
 
     .header-middle-row { display: flex; align-items: center; gap: 8px; }
     .stop-search-box { position: relative; display: flex; align-items: center; width: 100%; }
     .stop-search-box input {
-      width: 100%; height: 40px; padding: 0 32px 0 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-weight: 700; color: #0f172a; outline: none; background: #f8fafc;
+      width: 100%; height: 38px; padding: 0 32px 0 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem; font-weight: 700; color: #0f172a; outline: none; background: #f8fafc;
     }
     .stop-search-box input:focus { border-color: #2563eb; background: #fff; }
     .search-clear-btn { position: absolute; right: 10px; background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; display: none; }
 
     #searchDropdownList {
-      display: none; position: absolute; top: 44px; left: 0; right: 0; background: #ffffff; border: 1.5px solid #2563eb; border-radius: 8px; max-height: 280px; overflow-y: auto; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      display: none; position: absolute; top: 42px; left: 0; right: 0; background: #ffffff; border: 1.5px solid #2563eb; border-radius: 8px; max-height: 260px; overflow-y: auto; z-index: 2000; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
-    .search-result-item { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+    .search-result-item { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; flex-direction: column; gap: 4px; font-size: 0.88rem; }
     .search-result-item:hover { background: #eff6ff; }
     .search-item-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-    .search-result-item .item-main { font-weight: 800; color: #0f172a; font-size: 0.95rem; }
-    .search-result-item .item-course { background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; }
+    .search-result-item .item-main { font-weight: 800; color: #0f172a; font-size: 0.9rem; }
+    .search-result-item .item-course { background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
     .search-item-times { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
-    .search-time-chip { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; font-size: 0.78rem; font-weight: 700; padding: 2px 6px; border-radius: 6px; }
+    .search-time-chip { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; font-size: 0.75rem; font-weight: 700; padding: 2px 6px; border-radius: 6px; }
     .search-time-chip b { color: #2563eb; }
 
-    .header-bottom-row { display: flex; align-items: center; gap: 6px; }
-    .course-select-wrapper { flex: 1; position: relative; display: flex; align-items: center; }
+    .header-bottom-row { display: flex; align-items: center; gap: 5px; }
+    
+    /* ⭐️ 코스 선택 셀렉트 박스 폭 넓힘 */
+    .course-select-wrapper { flex: 1.3; position: relative; display: flex; align-items: center; min-width: 130px; }
     .course-select-wrapper select {
-      width: 100%; height: 40px; padding: 0 28px 0 12px; background: #f1f5f9; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-weight: 800; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none;
+      width: 100%; height: 38px; padding: 0 24px 0 10px; background: #f1f5f9; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; font-weight: 800; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
     }
     .course-select-wrapper select:focus { border-color: #2563eb; background: #ffffff; }
-    .course-select-wrapper::after { content: '▼'; font-size: 10px; color: #64748b; position: absolute; right: 12px; pointer-events: none; }
+    .course-select-wrapper::after { content: '▼'; font-size: 9px; color: #64748b; position: absolute; right: 10px; pointer-events: none; }
 
-    .header-actions { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .header-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
     .action-btn {
-      height: 40px; padding: 0 11px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.85rem; white-space: nowrap; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 3px;
+      height: 38px; padding: 0 8px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.78rem; white-space: nowrap; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 2px;
     }
     .pwa-btn { background: #0284c7; color: #ffffff; }
     .font-size-btn { background: #ea580c; color: #ffffff; }
     .nearby-btn { background: #2563eb; color: #ffffff; }
     .table-view-btn { background: #047857; color: #ffffff; }
     .qr-share-btn { background: #475569; color: #ffffff; }
+    .fold-btn { background: #64748b; color: #ffffff; }
 
     #noticeBanner {
-      display: none; width: 100%; background: #fffbeb; color: #b45309; border-top: 1px solid #fef3c7; border-bottom: 1px solid #fde68a; padding: 8px 16px; font-size: 0.88rem; font-weight: 700; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box;
+      display: none; width: 100%; background: #fffbeb; color: #b45309; border-top: 1px solid #fef3c7; border-bottom: 1px solid #fde68a; padding: 8px 16px; font-size: 0.85rem; font-weight: 700; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box;
     }
     .notice-content { display: flex; align-items: center; gap: 6px; flex: 1; word-break: break-all; }
-    .notice-badge { background: #f59e0b; color: #ffffff; font-size: 0.75rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+    .notice-badge { background: #f59e0b; color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
     .notice-close-btn { background: none; border: none; font-size: 18px; color: #92400e; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 
     #liveStatusBar {
-      width: 100%; height: 40px; background: #0f172a; color: #ffffff; display: flex; align-items: center; padding: 0 16px; font-size: 0.85rem; gap: 8px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; box-sizing: border-box;
+      width: 100%; height: 38px; background: #0f172a; color: #ffffff; display: flex; align-items: center; padding: 0 16px; font-size: 0.82rem; gap: 8px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; box-sizing: border-box;
     }
-    .live-tag { background: #ef4444; color: #fff; padding: 3px 8px; border-radius: 12px; font-weight: 800; font-size: 0.75rem; animation: pulse 1.5s infinite; flex-shrink: 0; }
+    .live-tag { background: #ef4444; color: #fff; padding: 2px 7px; border-radius: 12px; font-weight: 800; font-size: 0.72rem; animation: pulse 1.5s infinite; flex-shrink: 0; }
     .live-tag.holiday, .live-tag.ended { background: #475569 !important; animation: none !important; }
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     #liveStatusText { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .live-item {
-      background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 0.8rem; flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.1); padding: 3px 8px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(255, 255, 255, 0.15); font-size: 0.78rem; flex-shrink: 0;
     }
     .live-item:hover { background: rgba(59, 130, 246, 0.6); }
 
-    /* ================= 2단 관제 레이아웃 ================= */
+    /* ================= 2단 관제 메인 뷰 ================= */
     #main-container { flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden; }
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
     #sidebar {
       width: 440px; height: 100%; background: #ffffff; box-shadow: 2px 0 12px rgba(0,0,0,0.08); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 50; flex-shrink: 0;
+      transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
     .sheet-handle-bar { display: none; }
 
     .sidebar-header {
-      font-size: 1.1rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0; gap: 8px; cursor: pointer;
+      font-size: 1.05rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0; gap: 8px; cursor: pointer;
     }
     .sidebar-header-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .sidebar-header-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     
     .course-timetable-btn {
-      background: #eff6ff; color: #2563eb; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 5px 12px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; transition: background 0.2s;
+      background: #eff6ff; color: #2563eb; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 4px 10px; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; transition: background 0.2s;
     }
     .course-timetable-btn:hover { background: #dbeafe; }
 
     .header-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
-    .header-badges span { font-size: 0.8rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
+    .header-badges span { font-size: 0.78rem; color: #2563eb; background: #eff6ff; padding: 3px 7px; border-radius: 6px; font-weight: 700; }
     .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
     #stopList {
@@ -211,7 +218,7 @@
     }
 
     .course-section-title {
-      font-size: 0.95rem; font-weight: 800; padding: 6px 10px; border-radius: 6px; margin-top: 10px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; z-index: 2;
+      font-size: 0.9rem; font-weight: 800; padding: 6px 10px; border-radius: 6px; margin-top: 10px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; z-index: 2;
     }
 
     .stop-item-box { position: relative; margin-bottom: 12px; z-index: 2; cursor: pointer; }
@@ -228,52 +235,51 @@
     }
 
     .stop-item-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
-    .stop-item-title { font-size: 1.05rem; font-weight: 800; color: #0f172a; word-break: break-all; }
+    .stop-item-title { font-size: 1.02rem; font-weight: 800; color: #0f172a; word-break: break-all; }
     
     .stop-badges-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-top: 3px; }
-    .badge-tag { font-size: 0.75rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; }
+    .badge-tag { font-size: 0.72rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
     .badge-tag.gijum { background: #2563eb; color: #fff; }
     .badge-tag.jongjum { background: #dc2626; color: #fff; }
     .badge-tag.running { background: #ef4444; color: #fff; }
     .badge-tag.no-info { color: #64748b; font-weight: 700; }
 
-    .stop-expand-panel { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1; flex-direction: column; gap: 10px; font-size: 0.92rem; }
+    .stop-expand-panel { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1; flex-direction: column; gap: 10px; font-size: 0.9rem; }
     .stop-item-box.active .stop-expand-panel { display: flex; }
 
     .tts-speak-btn {
-      background: #e0f2fe; color: #0284c7; border: 1.5px solid #bae6fd; border-radius: 8px; padding: 4px 10px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      background: #e0f2fe; color: #0284c7; border: 1.5px solid #bae6fd; border-radius: 8px; padding: 4px 10px; font-size: 0.78rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
     }
     .tts-speak-btn:hover { background: #bae6fd; }
 
     .eta-alert-badge {
-      display: inline-flex; align-items: center; gap: 6px; background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 800; box-shadow: 0 1px 3px rgba(194,65,12,0.1);
+      display: inline-flex; align-items: center; gap: 6px; background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; padding: 6px 12px; border-radius: 8px; font-size: 0.82rem; font-weight: 800; box-shadow: 0 1px 3px rgba(194,65,12,0.1);
     }
     .eta-alert-badge.imminent { background: #fef2f2; color: #dc2626; border-color: #fee2e2; animation: pulse 1.5s infinite; }
 
     .schedule-rounds-box { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .round-pill {
-      font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;
+      font-size: 0.78rem; padding: 4px 8px; border-radius: 6px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;
     }
     .round-pill b { font-weight: 800; color: #1d4ed8; }
     .round-pill.active { background: #ef4444 !important; color: #ffffff !important; border-color: #ef4444 !important; font-weight: 800; }
     .round-pill.none { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; }
 
     .meta-tags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
-    .dist-tag { background: #ecfdf5; color: #065f46; font-size: 0.8rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; border: 1px solid #a7f3d0; }
-    .stop-info .desc { font-size: 0.88rem; color: #475569; margin-top: 6px; line-height: 1.45; word-break: break-all; }
+    .dist-tag { background: #ecfdf5; color: #065f46; font-size: 0.78rem; font-weight: 700; padding: 4px 8px; border-radius: 6px; border: 1px solid #a7f3d0; }
+    .stop-info .desc { font-size: 0.85rem; color: #475569; margin-top: 6px; line-height: 1.45; word-break: break-all; }
 
     .stop-photo-box { width: 100%; height: 140px; border-radius: 8px; overflow: hidden; margin-top: 6px; position: relative; background: #e2e8f0; cursor: zoom-in; }
     .stop-photo-box img { width: 100%; height: 100%; object-fit: cover; }
-    .photo-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(15,23,42,0.8); color: #fff; font-size: 0.75rem; font-weight: bold; padding: 3px 9px; border-radius: 12px; }
+    .photo-badge { position: absolute; bottom: 8px; right: 8px; background: rgba(15,23,42,0.8); color: #fff; font-size: 0.72rem; font-weight: bold; padding: 3px 9px; border-radius: 12px; }
 
     .popup-btn-row { display: flex; gap: 8px; margin-top: 8px; width: 100%; }
-    .popup-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 0; border-radius: 8px; background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.85rem; font-weight: 800; }
-    .popup-roadview-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 0; border-radius: 8px; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 0.85rem; font-weight: 800; }
+    .popup-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 0; border-radius: 8px; background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.82rem; font-weight: 800; }
+    .popup-roadview-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 0; border-radius: 8px; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 0.82rem; font-weight: 800; }
 
-    /* ================= 모달 및 기타 UI ================= */
+    /* ================= 모달 공통 스타일 ================= */
     .timetable-card {
-      background: #ffffff; width: 100%; max-width: 820px;
-      height: 75vh;
+      background: #ffffff; width: 100%; max-width: 820px; height: 75vh;
       border-radius: 18px; box-shadow: 0 12px 36px rgba(0,0,0,0.35);
       display: flex; flex-direction: column; overflow: hidden;
       transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
@@ -288,7 +294,7 @@
     .tt-summary-bar { background: #f8fafc; padding: 8px 16px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 16px; font-size: 0.82rem; font-weight: 700; color: #334155; flex-shrink: 0; justify-content: center; align-items: center; }
     
     .tt-tabs { display: flex; flex-wrap: nowrap; gap: 6px; padding: 10px 12px; background: #ffffff; border-bottom: 1px solid #e2e8f0; overflow-x: auto; flex-shrink: 0; -webkit-overflow-scrolling: touch; }
-    .tt-tab-btn { padding: 6px 14px; border-radius: 16px; font-size: 0.85rem; font-weight: 800; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; }
+    .tt-tab-btn { padding: 6px 14px; border-radius: 16px; font-size: 0.82rem; font-weight: 800; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; }
     .tt-tab-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
     .tt-tab-btn.active { background: #2563eb; color: #ffffff; border-color: #2563eb; box-shadow: 0 2px 6px rgba(37,99,235,0.3); }
 
@@ -296,13 +302,13 @@
     .tt-stop-row { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
     .tt-stop-name { font-size: 1.02rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
     .tt-badges-container { display: flex; flex-wrap: wrap; gap: 6px; }
-    .tt-time-badge { background: #2563eb; color: #ffffff; font-size: 0.9rem; font-weight: 800; padding: 6px 14px; border-radius: 18px; box-shadow: 0 1px 3px rgba(37,99,235,0.3); }
+    .tt-time-badge { background: #2563eb; color: #ffffff; font-size: 0.85rem; font-weight: 800; padding: 5px 12px; border-radius: 16px; box-shadow: 0 1px 3px rgba(37,99,235,0.3); }
 
     .tt-footer {
       background: #f8fafc; padding: 12px 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; align-items: center;
     }
     .tt-action-btn {
-      padding: 9px 16px; border-radius: 8px; font-size: 0.88rem; font-weight: 800; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 5px; transition: opacity 0.2s; color: #fff;
+      padding: 9px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 800; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 5px; transition: opacity 0.2s; color: #fff;
     }
     .tt-action-btn:hover { opacity: 0.9; }
     .tt-copy-link-btn { background: #2563eb; box-shadow: 0 2px 6px rgba(37,99,235,0.3); }
@@ -360,20 +366,20 @@
       #main-container { display: block; position: relative; }
       #map { width: 100%; height: 100%; position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 
-      /* ⭐️ 상단 접기/펼치기 탭 표시 (모바일 전용) */
       #topExpandTab { display: flex; }
 
       #sidebar {
-        position: absolute; bottom: 0; left: 0; right: 0; width: 100%; height: 320px; background: #ffffff; border-radius: 22px 22px 0 0; box-shadow: 0 -6px 25px rgba(0,0,0,0.22); padding: 8px 14px 20px 14px; z-index: 60; display: flex; flex-direction: column; transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1); overflow: hidden;
+        position: absolute; bottom: 0; left: 0; right: 0; width: 100%; height: 280px; background: #ffffff; border-radius: 22px 22px 0 0; box-shadow: 0 -6px 25px rgba(0,0,0,0.22); padding: 8px 14px 20px 14px; z-index: 60; display: flex; flex-direction: column; transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1); overflow: hidden;
       }
-      #sidebar.minimized { height: 56px !important; }
+      #sidebar.minimized { height: 52px !important; }
       #sidebar.minimized #stopList { display: none !important; }
-      #sidebar.expanded { height: 92% !important; }
+      /* ⭐️ 모바일에서 위로 스와이프 시 전체화면(94%)으로 확장되도록 수정 */
+      #sidebar.expanded { height: 94% !important; }
 
       .sheet-handle-bar { display: flex; justify-content: center; align-items: center; height: 22px; cursor: pointer; flex-shrink: 0; }
       .sheet-handle-bar::after { content: ''; width: 44px; height: 5px; background: #cbd5e1; border-radius: 3px; }
 
-      .sidebar-header { padding-bottom: 8px; font-size: 1rem; }
+      .sidebar-header { padding-bottom: 8px; font-size: 0.98rem; }
       #stopList { padding-left: 22px; }
       #stopList::before { left: 33px; }
       .timeline-node { width: 26px; height: 26px; left: -15px; font-size: 10px; }
@@ -392,19 +398,17 @@
   <div id="loadingModal">구글 시트에서 최신 노선 데이터 연동 중...</div>
 
   <div id="app-wrapper">
-    <!-- ⭐️ 상단 접기/펼치기 탭 (모바일에서 헤더 숨겼을 때 나타남) -->
     <div id="topExpandTab" onclick="expandTopArea()">
       <span>🚌 노선 및 운행현황 열기 ▼</span>
     </div>
 
-    <!-- ⭐️ 접고 펼칠 수 있는 상단 영역 (검색창, 노선 선택, LIVE 배너 포함) -->
     <div id="topCollapsibleArea">
       <div id="header">
         <div class="header-top-row">
           <div class="header-info">
-            <h1>거제시종합사회복지관 셔틀버스</h1>
+            <h1>거제시종합사회복지관<br>셔틀버스 노선도</h1>
           </div>
-          <div class="company-info">
+          <div class="company-info" style="flex-direction:column; align-items:flex-end; gap:2px;">
             <span>(주)여행과 사람</span>
             <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
           </div>
@@ -426,13 +430,13 @@
           </div>
 
           <div class="header-actions">
-            <button class="action-btn pwa-btn" onclick="openPwaModal()" title="홈 화면 바로가기">📲홈</button>
-            <button class="action-btn font-size-btn" onclick="toggleFontSize()" id="btnFontSize" title="글자 확대">🔍글씨</button>
-            <button class="action-btn nearby-btn" onclick="findNearestStop()" title="내 주변 정류소">📍주변</button>
-            <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="시간표">📋표</button>
+            <button class="action-btn pwa-btn" onclick="openPwaModal()" title="홈">📲홈</button>
+            <button class="action-btn font-size-btn" onclick="toggleFontSize()" id="btnFontSize" title="글씨">🔍글씨</button>
+            <button class="action-btn nearby-btn" onclick="findNearestStop()" title="주변">📍주변</button>
+            <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="표">📋표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유">🔗</button>
-            <!-- ⭐️ 상단 접기 버튼 -->
-            <button class="action-btn" style="background:#64748b; color:#fff;" onclick="collapseTopArea()" title="상단 접기">▲접기</button>
+            <!-- ⭐️ 접기 버튼을 검색 창 우측 하단 버튼 바 맨 끝으로 배치 -->
+            <button class="action-btn fold-btn" onclick="collapseTopArea()" title="상단 접기">▲접기</button>
           </div>
         </div>
       </div>
@@ -798,28 +802,78 @@
     }
     function closeTimetableModal() { document.getElementById('timetableModal').style.display = 'none'; }
 
+    // ⭐️ 모바일 바텀시트(사파리/크롬 대응 스와이프 제스처 핸들러 대폭 보완)
     document.addEventListener('DOMContentLoaded', () => {
-      const headerTouch = document.getElementById('ttHeaderTouch');
-      const cardElem = document.getElementById('timetableCardElem');
-      if (!headerTouch || !cardElem) return;
+      const sidebar = document.getElementById('sidebar');
+      const handle = document.getElementById('sheetHandle');
+      const header = document.getElementById('sidebarHeaderElem');
+      if (!sidebar || !handle) return;
 
       let startY = 0;
-      headerTouch.addEventListener('touchstart', (e) => {
+      let currentY = 0;
+
+      const onTouchStart = (e) => {
+        if (window.innerWidth > 850) return;
         startY = e.touches[0].clientY;
-      }, { passive: true });
+      };
 
-      headerTouch.addEventListener('touchend', (e) => {
-        const diffY = e.changedTouches[0].clientY - startY;
-        if (diffY < -30) {
-          cardElem.classList.add('expanded-modal');
-        } else if (diffY > 30) {
-          cardElem.classList.remove('expanded-modal');
+      const onTouchMove = (e) => {
+        if (window.innerWidth > 850) return;
+        currentY = e.touches[0].clientY;
+      };
+
+      const onTouchEnd = () => {
+        if (window.innerWidth > 850 || !startY || !currentY) return;
+        const diff = currentY - startY;
+
+        if (diff < -40) {
+          // 위로 휙 쓸어올리면 전체화면(expanded)으로 확장
+          sidebar.classList.remove('minimized');
+          sidebar.classList.add('expanded');
+        } else if (diff > 40) {
+          // 아래로 내리면 축소 또는 원래대로
+          if (sidebar.classList.contains('expanded')) {
+            sidebar.classList.remove('expanded');
+          } else {
+            sidebar.classList.add('minimized');
+          }
         }
-      }, { passive: true });
+        startY = 0;
+        currentY = 0;
+      };
 
-      headerTouch.addEventListener('click', () => {
-        cardElem.classList.toggle('expanded-modal');
+      [handle, header].forEach(elem => {
+        elem?.addEventListener('touchstart', onTouchStart, { passive: true });
+        elem?.addEventListener('touchmove', onTouchMove, { passive: true });
+        elem?.addEventListener('touchend', onTouchEnd, { passive: true });
+        
+        // 클릭 시 토글
+        elem?.addEventListener('click', () => {
+          if (window.innerWidth > 850) return;
+          if (sidebar.classList.contains('minimized')) {
+            sidebar.classList.remove('minimized');
+          } else if (!sidebar.classList.contains('expanded')) {
+            sidebar.classList.add('expanded');
+          } else {
+            sidebar.classList.remove('expanded');
+            sidebar.classList.add('minimized');
+          }
+        });
       });
+
+      // 배차시간표 모달 스와이프도 동일 적용
+      const ttHeader = document.getElementById('ttHeaderTouch');
+      const ttCard = document.getElementById('timetableCardElem');
+      if (ttHeader && ttCard) {
+        let ttStartY = 0;
+        ttHeader.addEventListener('touchstart', (e) => { ttStartY = e.touches[0].clientY; }, { passive: true });
+        ttHeader.addEventListener('touchend', (e) => {
+          const diff = e.changedTouches[0].clientY - ttStartY;
+          if (diff < -30) ttCard.classList.add('expanded-modal');
+          else if (diff > 30) ttCard.classList.remove('expanded-modal');
+        }, { passive: true });
+        ttHeader.addEventListener('click', () => ttCard.classList.toggle('expanded-modal'));
+      }
     });
 
     function renderSeochoTimetableTabs() {
@@ -1032,7 +1086,7 @@
           const stopNo = getVal(colMap.stopNo).replace(/,/g, '');
           const photoUrl = formatImageUrl(getVal(colMap.photo));
 
-          if (!course || !name || course.includes('코스구분')) return;
+          if (!course || !name || course.includes('코s구분')) return;
           const isWaypoint = desc.includes('경유') || name.includes('[경유]');
 
           const schedules = [];
@@ -1067,32 +1121,10 @@
       kakao.maps.event.addListener(map, 'zoom_changed', () => setTimeout(() => map?.relayout(), 100));
       window.addEventListener('resize', () => map?.relayout());
 
-      initBottomSheetGestures();
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
       loadSettings();
     };
-
-    function initBottomSheetGestures() {
-      const sidebar = document.getElementById('sidebar'), handle = document.getElementById('sheetHandle'), header = document.getElementById('sidebarHeaderElem');
-      if (!sidebar || !handle) return;
-      let startY = 0;
-      [handle, header].forEach(elem => {
-        elem?.addEventListener('touchstart', (e) => { if (window.innerWidth > 850) return; startY = e.touches[0].clientY; }, { passive: true });
-        elem?.addEventListener('touchend', (e) => {
-          if (window.innerWidth > 850) return;
-          const diff = e.changedTouches[0].clientY - startY;
-          if (diff > 30) { if (sidebar.classList.contains('expanded')) sidebar.classList.remove('expanded'); else sidebar.classList.add('minimized'); }
-          else if (diff < -30) { if (sidebar.classList.contains('minimized')) sidebar.classList.remove('minimized'); else sidebar.classList.add('expanded'); }
-        }, { passive: true });
-        elem?.addEventListener('click', () => {
-          if (window.innerWidth > 850) return;
-          if (sidebar.classList.contains('minimized')) sidebar.classList.remove('minimized');
-          else if (!sidebar.classList.contains('expanded')) sidebar.classList.add('expanded');
-          else { sidebar.classList.remove('expanded'); sidebar.classList.add('minimized'); }
-        });
-      });
-    }
 
     function clearMapLayers() {
       markerOverlays.forEach(o => o.setMap(null)); markerOverlays = [];
