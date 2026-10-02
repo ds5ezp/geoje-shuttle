@@ -8,7 +8,7 @@
   <!-- 카카오맵 SDK -->
   <script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=f01d8615df654cbc9c30cca0069570ba&libraries=services"></script>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK 및 차량번호 연동 리스너 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -39,27 +39,36 @@
           if (!pos || !pos.lat || !pos.lng) return;
 
           const busLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+          const busNum = pos.busNumber || '운행차량';
+
           if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
-            updateRealtimeBusMarker(courseName, busLatLng);
+            updateRealtimeBusMarker(courseName, busNum, busLatLng);
           }
         });
       });
     };
 
-    function updateRealtimeBusMarker(courseName, latLng) {
+    function updateRealtimeBusMarker(courseName, busNum, latLng) {
       if (!window.map) return;
       if (window.realtimeBusMarkers[courseName]) {
         window.realtimeBusMarkers[courseName].setPosition(latLng);
       } else {
+        // ⭐️ 서초구 스타일 실제 차량번호판 및 버스 아이콘 마커 디자인
         const busElem = document.createElement('div');
         busElem.className = 'live-real-bus-marker';
-        busElem.innerHTML = `🚍 <span style="font-size:10px; font-weight:bold; background:#ef4444; color:#fff; padding:1px 4px; border-radius:4px;">${courseName}</span>`;
-        busElem.style.cssText = "background:#fff; border:2px solid #ef4444; padding:2px 8px; border-radius:20px; font-weight:800; font-size:12px; color:#ef4444; box-shadow:0 3px 10px rgba(0,0,0,0.3); white-space:nowrap; cursor:pointer;";
+        busElem.innerHTML = `
+          <div style="background:#ffffff; border:2.5px solid #2563eb; border-radius:18px; padding:3px 10px; box-shadow:0 4px 12px rgba(0,0,0,0.35); display:flex; align-items:center; gap:5px; white-space:nowrap; cursor:pointer;">
+            <span style="font-size:15px;">🚌</span>
+            <div style="display:flex; flex-direction:column; text-align:left;">
+              <span style="font-size:9px; font-weight:800; color:#2563eb; line-height:1;">${courseName}</span>
+              <span style="font-size:11px; font-weight:900; color:#0f172a; line-height:1.2;">${busNum}</span>
+            </div>
+          </div>`;
 
         const realBusOverlay = new kakao.maps.CustomOverlay({
           position: latLng,
           content: busElem,
-          yAnchor: 1.0,
+          yAnchor: 1.1,
           xAnchor: 0.5,
           zIndex: 300
         });
@@ -74,9 +83,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; -webkit-tap-highlight-color: transparent; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #f1f5f9; }
 
-    #app-wrapper {
-      display: flex; flex-direction: column; width: 100%; height: 100%; position: relative;
-    }
+    #app-wrapper { display: flex; flex-direction: column; width: 100%; height: 100%; position: relative; }
 
     body.large-font .header-info h1 { font-size: 1.25rem !important; }
     body.large-font .stop-item-title { font-size: 1.15rem !important; font-weight: 900 !important; }
@@ -150,7 +157,6 @@
     }
     .live-item:hover { background: rgba(59, 130, 246, 0.6); }
 
-    /* ================= ⭐️ 2단 관제 레이아웃 ================= */
     #main-container { flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden; }
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
@@ -159,7 +165,6 @@
     }
     .sheet-handle-bar { display: none; }
 
-    /* 사이드바 헤더 (배차시간표 버튼 포함) */
     .sidebar-header {
       font-size: 1.02rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0; gap: 8px;
     }
@@ -179,7 +184,6 @@
       flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0; position: relative; padding-left: 28px; margin-top: 6px;
     }
 
-    /* 끊김 없는 굵은 타임라인 선 */
     #stopList::before {
       content: ''; position: absolute; top: 10px; bottom: 10px; left: 42px; width: 4.5px; background: #d97706; z-index: 1; border-radius: 2px;
     }
@@ -188,28 +192,17 @@
       font-size: 0.88rem; font-weight: 800; padding: 6px 10px; border-radius: 6px; margin-top: 10px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; z-index: 2;
     }
 
-    .stop-item-box {
-      position: relative; margin-bottom: 12px; z-index: 2; cursor: pointer;
-    }
-    .stop-item-inner {
-      background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 12px 10px 24px; transition: all 0.2s;
-    }
-    .stop-item-box:hover .stop-item-inner, .stop-item-box.active .stop-item-inner {
-      background: #eff6ff; border-color: #2563eb;
-    }
-    .stop-item-box.now-running .stop-item-inner {
-      border-color: #ef4444; background: #fef2f2;
-    }
+    .stop-item-box { position: relative; margin-bottom: 12px; z-index: 2; cursor: pointer; }
+    .stop-item-inner { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 12px 10px 24px; transition: all 0.2s; }
+    .stop-item-box:hover .stop-item-inner, .stop-item-box.active .stop-item-inner { background: #eff6ff; border-color: #2563eb; }
+    .stop-item-box.now-running .stop-item-inner { border-color: #ef4444; background: #fef2f2; }
 
     .timeline-node {
-      position: absolute; left: -18px; top: 12px; width: 28px; height: 28px; border-radius: 50%;
-      background: #ffffff; border: 3px solid #d97706; color: #d97706; font-size: 11px;
-      display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 3;
+      position: absolute; left: -18px; top: 12px; width: 28px; height: 28px; border-radius: 50%; background: #ffffff; border: 3px solid #d97706; color: #d97706; font-size: 11px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 3;
     }
     .timeline-node.bokji { border-color: #dc2626; color: #dc2626; }
     .timeline-node.bus-active {
-      background: #ef4444; border-color: #ffffff; color: #fff; font-size: 13px;
-      box-shadow: 0 0 12px rgba(239,68,68,0.9); animation: pulse 1.5s infinite;
+      background: #ef4444; border-color: #ffffff; color: #fff; font-size: 13px; box-shadow: 0 0 12px rgba(239,68,68,0.9); animation: pulse 1.5s infinite;
     }
 
     .stop-item-header { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 2px; }
@@ -222,25 +215,17 @@
     .badge-tag.running { background: #ef4444; color: #fff; }
     .badge-tag.no-info { color: #64748b; font-weight: 700; }
 
-    .stop-expand-panel {
-      display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; flex-direction: column; gap: 8px;
-    }
+    .stop-expand-panel { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #cbd5e1; flex-direction: column; gap: 8px; }
     .stop-item-box.active .stop-expand-panel { display: flex; }
 
-    .tts-speak-btn {
-      background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; padding: 2px 7px; font-size: 0.72rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
-    }
+    .tts-speak-btn { background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 6px; padding: 2px 7px; font-size: 0.72rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; }
     .tts-speak-btn:hover { background: #bae6fd; }
 
-    .eta-alert-badge {
-      display: inline-flex; align-items: center; gap: 5px; background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; padding: 4px 10px; border-radius: 8px; font-size: 0.76rem; font-weight: 800; box-shadow: 0 1px 3px rgba(194,65,12,0.1);
-    }
+    .eta-alert-badge { display: inline-flex; align-items: center; gap: 5px; background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; padding: 4px 10px; border-radius: 8px; font-size: 0.76rem; font-weight: 800; box-shadow: 0 1px 3px rgba(194,65,12,0.1); }
     .eta-alert-badge.imminent { background: #fef2f2; color: #dc2626; border-color: #fee2e2; animation: pulse 1.5s infinite; }
 
     .schedule-rounds-box { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
-    .round-pill {
-      font-size: 0.72rem; padding: 2px 6px; border-radius: 6px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 3px; font-weight: 600;
-    }
+    .round-pill { font-size: 0.72rem; padding: 2px 6px; border-radius: 6px; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; display: inline-flex; align-items: center; gap: 3px; font-weight: 600; }
     .round-pill b { font-weight: 800; color: #1d4ed8; }
     .round-pill.active { background: #ef4444 !important; color: #ffffff !important; border-color: #ef4444 !important; font-weight: 800; }
     .round-pill.none { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; }
@@ -417,10 +402,9 @@
     <div id="main-container">
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
-        <div class="sidebar-header" id="sheetHeader">
+        <div class="sidebar-header" id="sidebarHeaderElem">
           <div class="sidebar-header-left">
             <span id="courseTitle">노선 안내</span>
-            <!-- ⭐️ 서초구 스타일 배차시간표 버튼 추가 -->
             <button class="course-timetable-btn" onclick="openTimetableModal()">🕒 배차시간표</button>
           </div>
           <div class="header-badges">
@@ -990,7 +974,7 @@
     };
 
     function initBottomSheetGestures() {
-      const sidebar = document.getElementById('sidebar'), handle = document.getElementById('sheetHandle'), header = document.getElementById('sheetHeader');
+      const sidebar = document.getElementById('sidebar'), handle = document.getElementById('sheetHandle'), header = document.getElementById('sidebarHeaderElem');
       if (!sidebar || !handle) return;
       let startY = 0;
       [handle, header].forEach(elem => {
