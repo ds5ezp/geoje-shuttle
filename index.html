@@ -255,16 +255,16 @@
     /* ================= ⭐️ 모바일 완벽 최적화 배차시간표 모달 (스와이프 대형화 지원) ================= */
     .timetable-card {
       background: #ffffff; width: 100%; max-width: 820px;
-      height: 75vh; /* 기본 높이 */
+      height: 75vh;
       border-radius: 18px; box-shadow: 0 12px 36px rgba(0,0,0,0.35);
       display: flex; flex-direction: column; overflow: hidden;
       transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
     .timetable-card.expanded-modal {
-      height: 96vh !important; /* 위로 스와이프 시 전체 화면 확장 */
+      height: 96vh !important;
     }
 
-    .tt-header { padding: 14px 18px; border-bottom: 1.5px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; background: #2563eb; color: #fff; flex-shrink: 0; cursor: pointer; }
+    .tt-header { padding: 14px 18px; border-bottom: 1.5px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; background: #2563eb; color: #fff; flex-shrink: 0; cursor: pointer; user-select: none; }
     .tt-header-left h3 { font-size: 1.1rem; font-weight: 800; color: #ffffff; }
     .tt-header-left p { font-size: 0.75rem; color: #e0f2fe; margin-top: 2px; }
     .tt-close-btn { background: none; border: none; font-size: 24px; color: #ffffff; cursor: pointer; }
@@ -453,7 +453,7 @@
   <!-- 배차시간표 모달 (스와이프 대형화 지원) -->
   <div id="timetableModal" onclick="closeTimetableModal(event)">
     <div class="timetable-card" id="timetableCardElem" onclick="event.stopPropagation()">
-      <div class="tt-header" id="ttHeaderTouch" title="위로 밀면 전체화면, 아래로 내리면 축소됩니다">
+      <div class="tt-header" id="ttHeaderTouch">
         <div class="tt-header-left">
           <h3 id="ttModalTitle">배차시간표</h3>
           <p id="ttModalSubtitle">운행업체: (주)여행과 사람 | 문의: 055-687-4000 (▲ 위로 밀어 크게보기)</p>
@@ -759,7 +759,7 @@
     }
     function closeTimetableModal() { document.getElementById('timetableModal').style.display = 'none'; }
 
-    // ⭐️ 모바일 배차시간표 바텀시트 스와이프 확장/축소 로직
+    // ⭐️ 모바일 배차시간표 바텀시트 스와이프 제스처 핸들러 보완
     document.addEventListener('DOMContentLoaded', () => {
       const headerTouch = document.getElementById('ttHeaderTouch');
       const cardElem = document.getElementById('timetableCardElem');
@@ -772,16 +772,13 @@
 
       headerTouch.addEventListener('touchend', (e) => {
         const diffY = e.changedTouches[0].clientY - startY;
-        if (diffY < -30) {
-          // 위로 쓸어올리면 대형화 (전체화면)
+        if (diffY < -25) {
           cardElem.classList.add('expanded-modal');
-        } else if (diffY > 30) {
-          // 아래로 내리면 원래 크기로 축소
+        } else if (diffY > 25) {
           cardElem.classList.remove('expanded-modal');
         }
       }, { passive: true });
 
-      // 헤더를 탭해도 토글되도록 설정
       headerTouch.addEventListener('click', () => {
         cardElem.classList.toggle('expanded-modal');
       });
