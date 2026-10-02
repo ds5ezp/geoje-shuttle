@@ -81,7 +81,6 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", dotum, sans-serif; -webkit-tap-highlight-color: transparent; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #f1f5f9; font-size: 16px; }
 
-    /* ⭐️ 웹 전용 세련된 커스텀 스크롤바 디자인 */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -262,7 +261,6 @@
     
     .tt-summary-bar { background: #f8fafc; padding: 12px 20px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 24px; font-size: 0.9rem; font-weight: 700; color: #334155; flex-shrink: 0; justify-content: center; align-items: center; }
     
-    /* ⭐️ 탭 영역 줄바꿈 및 스크롤 최적화 (가로 스크롤 제거 및 깔끔한 정렬) */
     .tt-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 20px; background: #ffffff; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
     .tt-tab-btn { padding: 8px 16px; border-radius: 20px; font-size: 0.88rem; font-weight: 800; border: 1.5px solid #cbd5e1; background: #f8fafc; color: #475569; cursor: pointer; transition: all 0.2s; }
     .tt-tab-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
@@ -482,8 +480,8 @@
       <p style="font-size:0.85rem; color:#64748b;">스마트폰으로 스캔하면 바로 연결됩니다.</p>
       <img id="qrImage" src="" alt="QR코드">
       <div class="qr-btn-group">
-        <button class="qr-action-btn copy-url-btn" onclick="copyCurrentRouteUrl()" style="flex:1;">주소 복사</button>
-        <button class="qr-action-btn close-qr-btn" onclick="closeQrModal()" style="flex:1; background:#1e293b; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:800;">닫기</button>
+        <button class="qr-action-btn copy-url-btn" onclick="copyCurrentRouteUrl()" style="flex:1; background:#2563eb; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:800; padding:11px 0;">주소 복사</button>
+        <button class="qr-action-btn close-qr-btn" onclick="closeQrModal()" style="flex:1; background:#1e293b; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:800; padding:11px 0;">닫기</button>
       </div>
     </div>
   </div>
@@ -806,7 +804,7 @@
       if (!url) return '';
       url = url.trim();
       if (url.includes('drive.google.com')) {
-        const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+        const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
         if (idMatch && idMatch[1]) return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
       }
       return url;
