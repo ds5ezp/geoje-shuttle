@@ -150,7 +150,7 @@
     }
     .live-item:hover { background: rgba(59, 130, 246, 0.6); }
 
-    /* ================= ⭐️ 끊김 없는 굵은 세로 타임라인 관제 레이아웃 ================= */
+    /* ================= ⭐️ 2단 관제 레이아웃 ================= */
     #main-container { flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden; }
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
 
@@ -159,18 +159,27 @@
     }
     .sheet-handle-bar { display: none; }
 
+    /* 사이드바 헤더 (배차시간표 버튼 포함) */
     .sidebar-header {
-      font-size: 1.02rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0;
+      font-size: 1.02rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; flex-shrink: 0; gap: 8px;
     }
-    .header-badges { display: flex; gap: 6px; align-items: center; }
-    .header-badges span { font-size: 0.78rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
+    .sidebar-header-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .sidebar-header-left span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .course-timetable-btn {
+      background: #eff6ff; color: #2563eb; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 4px 10px; font-size: 0.75rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; transition: background 0.2s;
+    }
+    .course-timetable-btn:hover { background: #dbeafe; }
+
+    .header-badges { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+    .header-badges span { font-size: 0.75rem; color: #2563eb; background: #eff6ff; padding: 3px 7px; border-radius: 6px; font-weight: 700; }
     .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
     #stopList {
       flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0; position: relative; padding-left: 28px; margin-top: 6px;
     }
 
-    /* ⭐️ 10번 이후에도 끊기지 않도록 top/bottom을 0으로 확장한 굵은 타임라인 선 */
+    /* 끊김 없는 굵은 타임라인 선 */
     #stopList::before {
       content: ''; position: absolute; top: 10px; bottom: 10px; left: 42px; width: 4.5px; background: #d97706; z-index: 1; border-radius: 2px;
     }
@@ -192,7 +201,6 @@
       border-color: #ef4444; background: #fef2f2;
     }
 
-    /* ⭐️ 타임라인 노드 아이콘 */
     .timeline-node {
       position: absolute; left: -18px; top: 12px; width: 28px; height: 28px; border-radius: 50%;
       background: #ffffff; border: 3px solid #d97706; color: #d97706; font-size: 11px;
@@ -410,7 +418,11 @@
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
         <div class="sidebar-header" id="sheetHeader">
-          <span id="courseTitle">노선 안내</span>
+          <div class="sidebar-header-left">
+            <span id="courseTitle">노선 안내</span>
+            <!-- ⭐️ 서초구 스타일 배차시간표 버튼 추가 -->
+            <button class="course-timetable-btn" onclick="openTimetableModal()">🕒 배차시간표</button>
+          </div>
           <div class="header-badges">
             <span id="stopCount">정류장</span>
             <span id="totalDistBadge" class="dist-badge">총 0.0 km</span>
@@ -1479,8 +1491,8 @@
     function resolveStopCoordinates(stop) {
       return new Promise((resolve) => {
         const stopNo = (stop.stopNo || '').trim();
-        const name = (stop.name || '').trim();
-        const addr = (stop.addr || '').trim();
+        const name   = (stop.name || '').trim();
+        const addr   = (stop.addr || '').trim();
 
         if (stopNo && masterStopMapByNo[stopNo]) return resolve(new kakao.maps.LatLng(masterStopMapByNo[stopNo].lat, masterStopMapByNo[stopNo].lng));
         if (name && masterStopMapByName[name]) return resolve(new kakao.maps.LatLng(masterStopMapByName[name].lat, masterStopMapByName[name].lng));
