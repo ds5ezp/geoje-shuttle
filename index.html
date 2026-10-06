@@ -2,7 +2,6 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <!-- 모바일 브라우저 캐시 방지 메타태그 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -33,15 +32,13 @@
 
     window.realtimeBusMarkers = {};
     window.hasGpsData = {};
-    window.latestGpsStore = {}; // latestGpsStore[courseName][subKey] = { ... }
+    window.latestGpsStore = {};
 
-    // 문자열 공백 및 특수문자 안전 정규화
     window.normKey = function(str) {
       if (!str) return '';
       return String(str).replace(/[·.\s\-_()]/g, '').trim();
     };
 
-    // 맵 매칭: 실제 GPS 좌표를 노선 도로선 위로 보정
     window.snapGpsToRoute = function(courseName, rawLatLng) {
       const cleanKey = (courseName || '').trim();
       const cached = window.routeCache ? window.routeCache[cleanKey] : null;
@@ -93,7 +90,6 @@
       return { latLng: rawLatLng, headingOffset: null };
     };
 
-    // Firebase 실시간 리스너 (단일 구조 및 다중 회차 구조 완벽 대응)
     window.initRealtimeBusTracking = function() {
       const liveBusRef = ref(db, 'liveBuses/');
       onValue(liveBusRef, (snapshot) => {
@@ -106,8 +102,6 @@
           const val = data[courseName];
           if (!val) return;
 
-          // 1) 단일 노드 형태: liveBuses/고현·장평(오후)/{lat, lng, ...}
-          // 2) 다중 노드 형태: liveBuses/고현·장평(오후)/4회/{lat, lng, ...}
           const isDirect = (val.lat !== undefined && val.lng !== undefined);
           const entries = isDirect ? { "단일": val } : val;
 
@@ -160,7 +154,6 @@
           }
         });
 
-        // 사이드바 서초구 스타일 카드 갱신
         if (window.renderSidebarBusCards) {
           window.renderSidebarBusCards(currentSelectedCourseKey);
         }
@@ -465,7 +458,6 @@
 
     .sheet-handle-bar { display: none; }
 
-    /* 서초구 스타일 헤더 및 차량 정보 카드 영역 */
     .sidebar-header-box {
       display: flex; flex-direction: column; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; flex-shrink: 0;
     }
@@ -484,7 +476,6 @@
     .header-badges span { font-size: 0.82rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
     .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
-    /* 서초구 스타일 실시간 다중 차량 카드 컨테이너 */
     #sidebarCardsContainer {
       display: flex; flex-direction: column; gap: 8px; width: 100%;
     }
@@ -501,7 +492,6 @@
     .seocho-live-speed { font-size: 0.85rem; font-weight: 700; color: #64748b; }
     .seocho-live-speed b { color: #10b981; font-weight: 800; }
 
-    /* 지도 마커용 LIVE GPS 미니 배지 */
     .live-gps-pill {
       background: #10b981; color: #ffffff; font-size: 10px; font-weight: 900;
       padding: 1.5px 5px; border-radius: 4px; margin-right: 3px; display: inline-block; vertical-align: middle;
@@ -641,7 +631,7 @@
     .zoom-content { position: relative; max-width: 92%; max-height: 85%; display: flex; flex-direction: column; align-items: center; }
     #zoomedImg { max-width: 100%; max-height: 75vh; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); object-fit: contain; }
     .zoom-caption { color: #ffffff; font-size: 1.1rem; font-weight: bold; margin-top: 12px; text-align: center; }
-    .close-zoom-btn { position: absolute; top: -45px; right: 0; background: #ffffff; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 22px; font-weight: bold; cursor: pointer; display: align-items; justify-content: center; color: #0f172a; }
+    .close-zoom-btn { position: absolute; top: -45px; right: 0; background: #ffffff; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0f172a; }
 
     @media (max-width: 850px) {
       #sidebarToggleBtn { display: none !important; }
@@ -742,7 +732,7 @@
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
         
-        <!-- 사이드바 상단 헤더 및 서초구 스타일 실시간 다중 차량 카드 컨테이너 -->
+        <!-- 사이드바 상단 헤더 및 서초구 스타일 실시간 차량 카드 영역 -->
         <div class="sidebar-header-box" id="sidebarHeaderElem">
           <div class="sidebar-header-top">
             <div class="sidebar-header-left">
@@ -870,7 +860,7 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // 사이드바 차량 카드 렌더링 (다중 차량/회차별 독립 카드 표시)
+    // 사이드바 차량 카드 렌더링 함수
     window.renderSidebarBusCards = function(courseKey) {
       const container = document.getElementById('sidebarCardsContainer');
       if (!container) return;
@@ -878,18 +868,19 @@
       const store = window.latestGpsStore || {};
       const activeCardsHtml = [];
 
-      const currentNorm = window.normKey ? window.normKey(courseKey) : courseKey;
+      const cleanTarget = (courseKey || '').replace(/[·.\s\-_()]/g, '');
 
       Object.keys(store).forEach(cName => {
-        const cNorm = window.normKey ? window.normKey(cName) : cName;
+        const cleanCurrent = cName.replace(/[·.\s\-_()]/g, '');
 
-        // 전체 노선망이거나 정규화된 노선명이 일치하는 경우
-        if (courseKey === 'ALL' || currentNorm === cNorm) {
+        if (courseKey === 'ALL' || cleanTarget === cleanCurrent) {
           const subMap = store[cName] || {};
           const vehicleGroup = {};
 
           Object.keys(subMap).forEach(subKey => {
             const item = subMap[subKey];
+            if (!item || !item.busNum) return;
+
             if (!vehicleGroup[item.busNum]) {
               vehicleGroup[item.busNum] = {
                 busNum: item.busNum,
@@ -897,7 +888,7 @@
                 rounds: new Set()
               };
             }
-            if (item.round && item.round !== '단일') {
+            if (item.round && item.round !== '단일' && item.round !== '기본') {
               vehicleGroup[item.busNum].rounds.add(item.round);
             }
             vehicleGroup[item.busNum].speed = item.speed;
@@ -1626,7 +1617,6 @@
       const list = document.getElementById('stopList');
       list.innerHTML = '';
 
-      // 서초구 스타일 차량 정보 카드 갱신
       if (window.renderSidebarBusCards) {
         window.renderSidebarBusCards(courseName);
       }
@@ -1758,6 +1748,9 @@
       }
       setTimeout(() => map?.relayout(), 200);
       checkActiveBuses();
+      if (window.renderSidebarBusCards) {
+        window.renderSidebarBusCards(courseName);
+      }
     }
 
     function toggleStopCard(innerElem) {
@@ -1915,6 +1908,9 @@
       if (!totalBounds.isEmpty()) map.setBounds(totalBounds);
       setTimeout(() => map?.relayout(), 200);
       checkActiveBuses();
+      if (window.renderSidebarBusCards) {
+        window.renderSidebarBusCards('ALL');
+      }
     }
 
     async function drawSingleRoadLine(courseKey, stops, color) {
@@ -1960,7 +1956,7 @@
         const arrowDiv = document.createElement('div');
         arrowDiv.className = 'route-dir-arrow';
         arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing - 90}deg)`;
-        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
+        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
         const overlay = new kakao.maps.CustomOverlay({ position: p2, content: arrowDiv, yAnchor: 0.5, xAnchor: 0.5, zIndex: 8 });
         overlay.setMap(map); arrowOverlays.push(overlay);
       }
