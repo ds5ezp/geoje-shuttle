@@ -86,7 +86,7 @@
       });
     };
 
-    // 맵 매칭: 실제 GPS를 도로 경로선 위로 자석처럼 안착
+    // 맵 매칭: 실제 GPS를 도로 경로선 위로 안착
     window.snapGpsToRoute = function(courseName, rawLatLng) {
       const cleanKey = (courseName || '').trim();
       const cached = window.routeCache ? window.routeCache[cleanKey] : null;
@@ -138,7 +138,7 @@
       return { latLng: rawLatLng, headingOffset: null };
     };
 
-    // Firebase 실시간 수신 리스너
+    // Firebase 실시간 수신 리스너 (3분 초과 유령 데이터 자동 필터 적용)
     window.initRealtimeBusTracking = function() {
       const liveBusRef = ref(db, 'liveBuses/');
       onValue(liveBusRef, (snapshot) => {
@@ -146,7 +146,9 @@
         if (!data) return;
 
         window.latestGpsStore = {};
+        const nowMs = Date.now();
 
+        // 수신된 전체 노선 검사
         Object.keys(data).forEach(courseName => {
           const val = data[courseName];
           if (!val) return;
@@ -159,7 +161,11 @@
             if (!pos || typeof pos !== 'object') return;
             if (pos.lat === undefined || pos.lng === undefined) return;
 
-            const isOperating = (pos.isOperating === true || pos.isOperating === "true");
+            // 마지막 전송 후 180초(3분) 초과 시 오프라인 처리
+            const lastUpdated = pos.updatedAt || 0;
+            const isFresh = (nowMs - lastUpdated) < (180 * 1000);
+            const isOperating = (pos.isOperating === true || pos.isOperating === "true") && isFresh;
+
             if (isOperating) {
               window.hasGpsData[courseName] = true;
 
@@ -192,6 +198,13 @@
 
               if (window.map && isMatch) {
                 updateRealtimeBusMarker(markerKey, courseName, busNum, roundLabel, busLatLng, heading, speed, true);
+              }
+            } else {
+              // 3분 초과되었거나 종료된 차량 마커 제거
+              const markerKey = `${courseName}_${pos.busNumber || subKey}`;
+              if (window.realtimeBusMarkers[markerKey]) {
+                window.realtimeBusMarkers[markerKey].setMap(null);
+                delete window.realtimeBusMarkers[markerKey];
               }
             }
           });
@@ -2121,7 +2134,7 @@
       });
     }
 
-    // 최상단 LIVE 상태 바 (실시간 위치 칩 표기 복원 및 가상마커 충돌 방지)
+    // 최상단 LIVE 상태 바 (실시간 위치 칩 표기 및 가상마커 충돌 방지)
     function checkActiveBuses() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
