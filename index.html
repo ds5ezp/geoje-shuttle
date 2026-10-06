@@ -386,7 +386,7 @@
 
     #header { padding: 12px 18px; display: flex; flex-direction: column; gap: 10px; background: #ffffff; }
     
-    /* 1. 상단 업체 및 연락처 세로 3줄 정렬 스타일 */
+    /* 1. 상단 업체 및 연락처 3줄 세로 정렬 */
     .header-top-row { 
       display: flex; 
       align-items: flex-start; 
@@ -485,7 +485,7 @@
     .notice-badge { background: #f59e0b; color: #ffffff; font-size: 0.75rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; }
     .notice-close-btn { background: none; border: none; font-size: 20px; color: #92400e; cursor: pointer; padding: 2px 6px; font-weight: bold; }
 
-    /* 최상단 LIVE 상태 바 (실시간 위치 칩 표기) */
+    /* 최상단 LIVE 상태 바 */
     #liveStatusBar {
       width: 100%; height: 42px; background: #0f172a; color: #ffffff; display: flex; align-items: center; padding: 0 16px; font-size: 0.88rem; gap: 10px; overflow-x: auto; overflow-y: hidden; white-space: nowrap; box-sizing: border-box;
       -webkit-overflow-scrolling: touch; scrollbar-width: none;
@@ -1223,7 +1223,7 @@
       }
 
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
-      const lng = stopA.coords.getLng() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
+      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLat()) * ratio;
       const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
       return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
     }
@@ -2112,7 +2112,16 @@
       setInterval(checkActiveBuses, 1000);
     }
 
-    // 최상단 LIVE 상태 바 (실시간 위치 칩 표기 복원)
+    // 실시간 GPS 운행 여부 확인 함수 (정규화 적용)
+    function isCourseRunningGps(courseName) {
+      if (!window.hasGpsData) return false;
+      const targetNorm = window.normKey(courseName);
+      return Object.keys(window.hasGpsData).some(k => {
+        return window.normKey(k) === targetNorm && window.hasGpsData[k] === true;
+      });
+    }
+
+    // 최상단 LIVE 상태 바 (실시간 위치 칩 표기 복원 및 가상마커 충돌 방지)
     function checkActiveBuses() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
@@ -2159,12 +2168,23 @@
           });
         });
 
+        const isLiveGpsActive = isCourseRunningGps(cName);
+
         Object.keys(rounds).forEach(roundName => {
           const schedList = rounds[roundName].sort((a, b) => a.stopIndex - b.stopIndex);
           if (schedList.length < 2) return;
 
           const startMin = schedList[0].min;
           const endMin = schedList[schedList.length - 1].min;
+          const markerKey = `${cName}_${roundName}`;
+
+          // 실제 GPS 수신 중이면 가상 마커 즉시 제거
+          if (isLiveGpsActive) {
+            if (window.realtimeBusMarkers[markerKey]) {
+              window.realtimeBusMarkers[markerKey].setMap(null);
+              delete window.realtimeBusMarkers[markerKey];
+            }
+          }
 
           if (currentMinutes >= startMin - 10 && currentMinutes < startMin) {
             isAnyWaiting = true;
@@ -2180,9 +2200,8 @@
               stopIndex: schedList[0].stopIndex
             });
 
-            const markerKey = `${cName}_${roundName}`;
-            if (!window.hasGpsData || !window.hasGpsData[cName]) {
-              if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
+            if (!isLiveGpsActive) {
+              if (currentSelectedCourseKey === 'ALL' || window.normKey(currentSelectedCourseKey) === window.normKey(cName)) {
                 window.updateRealtimeBusMarker(markerKey, cName, `${roundName} 대기`, roundName, firstStop.coords, initialHeading, 0, false);
               } else if (window.realtimeBusMarkers[markerKey]) {
                 window.realtimeBusMarkers[markerKey].setMap(null);
@@ -2247,9 +2266,8 @@
                 stopIndex: curStopItem.stopIndex
               });
 
-              const markerKey = `${cName}_${roundName}`;
-              if (!window.hasGpsData || !window.hasGpsData[cName]) {
-                if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
+              if (!isLiveGpsActive) {
+                if (currentSelectedCourseKey === 'ALL' || window.normKey(currentSelectedCourseKey) === window.normKey(cName)) {
                   window.updateRealtimeBusMarker(markerKey, cName, `${roundName}`, roundName, liveLatLng, heading, 25, false);
                 } else if (window.realtimeBusMarkers[markerKey]) {
                   window.realtimeBusMarkers[markerKey].setMap(null);
@@ -2257,11 +2275,8 @@
               }
             }
           } else {
-            const markerKey = `${cName}_${roundName}`;
-            if (!window.hasGpsData || !window.hasGpsData[cName]) {
-              if (window.realtimeBusMarkers[markerKey]) {
-                window.realtimeBusMarkers[markerKey].setMap(null);
-              }
+            if (!isLiveGpsActive && window.realtimeBusMarkers[markerKey]) {
+              window.realtimeBusMarkers[markerKey].setMap(null);
             }
           }
         });
