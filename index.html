@@ -33,7 +33,13 @@
 
     window.realtimeBusMarkers = {};
     window.hasGpsData = {};
-    window.latestGpsStore = {}; // 구조: latestGpsStore[courseName][roundKey] = { ... }
+    window.latestGpsStore = {}; // latestGpsStore[courseName][subKey] = { ... }
+
+    // 문자열 공백 및 특수문자 안전 정규화
+    window.normKey = function(str) {
+      if (!str) return '';
+      return String(str).replace(/[·.\s\-_()]/g, '').trim();
+    };
 
     // 맵 매칭: 실제 GPS 좌표를 노선 도로선 위로 보정
     window.snapGpsToRoute = function(courseName, rawLatLng) {
@@ -81,79 +87,72 @@
         }
       }
 
-      // 오차 45m 이내 도로선 강제 밀착
       if (minDistanceMeters <= 45) {
         return { latLng: closestPoint, headingOffset: matchedSegmentHeading };
       }
       return { latLng: rawLatLng, headingOffset: null };
     };
 
-    // Firebase 실시간 수신 리스너 (회차별 다중 전송 liveBuses/{course}/{round} 및 단일 전송 모두 호환)
+    // Firebase 실시간 리스너 (단일 구조 및 다중 회차 구조 완벽 대응)
     window.initRealtimeBusTracking = function() {
       const liveBusRef = ref(db, 'liveBuses/');
       onValue(liveBusRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
 
-        const currentActiveKeys = new Set();
+        window.latestGpsStore = {};
 
         Object.keys(data).forEach(courseName => {
-          const courseVal = data[courseName];
-          if (!courseVal) return;
+          const val = data[courseName];
+          if (!val) return;
 
-          // 단일 전송 vs 다중 회차 전송 판별
-          const isDirectNode = (typeof courseVal.lat === 'number' || typeof courseVal.lat === 'string');
-          const roundEntries = isDirectNode ? { "기본": courseVal } : courseVal;
+          // 1) 단일 노드 형태: liveBuses/고현·장평(오후)/{lat, lng, ...}
+          // 2) 다중 노드 형태: liveBuses/고현·장평(오후)/4회/{lat, lng, ...}
+          const isDirect = (val.lat !== undefined && val.lng !== undefined);
+          const entries = isDirect ? { "단일": val } : val;
 
-          Object.keys(roundEntries).forEach(roundKey => {
-            const pos = roundEntries[roundKey];
-            if (!pos || !pos.lat || !pos.lng) return;
+          Object.keys(entries).forEach(subKey => {
+            const pos = entries[subKey];
+            if (!pos || typeof pos !== 'object') return;
+            if (pos.lat === undefined || pos.lng === undefined) return;
 
-            const markerKey = `${courseName}_${pos.busNumber || roundKey}`;
             const isOperating = (pos.isOperating === true || pos.isOperating === "true");
-            const isFresh = (Date.now() - (pos.updatedAt || 0)) < 300000; // 5분 이내 데이터
-
-            if (isOperating && isFresh) {
-              currentActiveKeys.add(markerKey);
+            if (isOperating) {
               window.hasGpsData[courseName] = true;
 
               if (!window.latestGpsStore[courseName]) window.latestGpsStore[courseName] = {};
-              window.latestGpsStore[courseName][roundKey] = {
+              window.latestGpsStore[courseName][subKey] = {
                 busNum: pos.busNumber || '운행차량',
-                round: pos.round || roundKey,
+                round: pos.round || (subKey !== '단일' ? subKey : ''),
                 speed: Math.round(pos.speed || 0),
+                lat: parseFloat(pos.lat),
+                lng: parseFloat(pos.lng),
+                heading: pos.heading || 0,
                 updatedAt: pos.updatedAt
               };
 
-              const rawLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+              const markerKey = `${courseName}_${pos.busNumber || subKey}`;
+              const rawLatLng = new kakao.maps.LatLng(parseFloat(pos.lat), parseFloat(pos.lng));
               const busNum = pos.busNumber || '운행차량';
               let heading = pos.heading || 0;
               const speed = Math.round(pos.speed || 0);
-              const roundLabel = pos.round || roundKey;
+              const roundLabel = pos.round || (subKey !== '단일' ? subKey : '');
 
-              // 맵 매칭 보정
               const snapResult = window.snapGpsToRoute(courseName, rawLatLng);
               const busLatLng = snapResult.latLng;
               if (speed > 3 && snapResult.headingOffset !== null) {
                 heading = snapResult.headingOffset;
               }
 
-              // 지도 위 버스 마커 갱신
-              if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
+              const isMatch = (currentSelectedCourseKey === 'ALL') || 
+                              (window.normKey(currentSelectedCourseKey) === window.normKey(courseName));
+
+              if (window.map && isMatch) {
                 updateRealtimeBusMarker(markerKey, courseName, busNum, roundLabel, busLatLng, heading, speed, true);
-              }
-            } else {
-              if (window.latestGpsStore[courseName]) {
-                delete window.latestGpsStore[courseName][roundKey];
-              }
-              if (window.realtimeBusMarkers[markerKey]) {
-                window.realtimeBusMarkers[markerKey].setMap(null);
-                delete window.realtimeBusMarkers[markerKey];
               }
             }
           });
 
-          // 해당 노선의 활성 GPS 존재 여부 갱신
           if (window.latestGpsStore[courseName] && Object.keys(window.latestGpsStore[courseName]).length > 0) {
             window.hasGpsData[courseName] = true;
           } else {
@@ -161,7 +160,7 @@
           }
         });
 
-        // 사이드바 차량 카드 갱신 호출
+        // 사이드바 서초구 스타일 카드 갱신
         if (window.renderSidebarBusCards) {
           window.renderSidebarBusCards(currentSelectedCourseKey);
         }
@@ -180,7 +179,7 @@
             const overlay = window.realtimeBusMarkers[markerKey];
             if (!st || !overlay) return;
 
-            if (currentSelectedCourseKey !== 'ALL' && currentSelectedCourseKey !== st.courseName) {
+            if (currentSelectedCourseKey !== 'ALL' && window.normKey(currentSelectedCourseKey) !== window.normKey(st.courseName)) {
               overlay.setMap(null);
               return;
             }
@@ -210,12 +209,11 @@
     }
     startSmoothBusLoop();
 
-    // 지도 위 버스 마커 생성 및 갱신
     window.updateRealtimeBusMarker = function(markerKey, courseName, busNum, roundLabel, latLng, rawHeading = 0, speed = 0, isGpsMode = false) {
       const targetMap = window.map || window.kakaoMapInstance;
       if (!targetMap || !latLng) return;
 
-      if (currentSelectedCourseKey !== 'ALL' && currentSelectedCourseKey !== courseName) {
+      if (currentSelectedCourseKey !== 'ALL' && window.normKey(currentSelectedCourseKey) !== window.normKey(courseName)) {
         if (window.realtimeBusMarkers[markerKey]) {
           window.realtimeBusMarkers[markerKey].setMap(null);
         }
@@ -467,7 +465,7 @@
 
     .sheet-handle-bar { display: none; }
 
-    /* 사이드바 상단 헤더 및 서초구 스타일 차량 정보 카드 영역 */
+    /* 서초구 스타일 헤더 및 차량 정보 카드 영역 */
     .sidebar-header-box {
       display: flex; flex-direction: column; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; flex-shrink: 0;
     }
@@ -643,7 +641,7 @@
     .zoom-content { position: relative; max-width: 92%; max-height: 85%; display: flex; flex-direction: column; align-items: center; }
     #zoomedImg { max-width: 100%; max-height: 75vh; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); object-fit: contain; }
     .zoom-caption { color: #ffffff; font-size: 1.1rem; font-weight: bold; margin-top: 12px; text-align: center; }
-    .close-zoom-btn { position: absolute; top: -45px; right: 0; background: #ffffff; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0f172a; }
+    .close-zoom-btn { position: absolute; top: -45px; right: 0; background: #ffffff; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 22px; font-weight: bold; cursor: pointer; display: align-items; justify-content: center; color: #0f172a; }
 
     @media (max-width: 850px) {
       #sidebarToggleBtn { display: none !important; }
@@ -880,41 +878,49 @@
       const store = window.latestGpsStore || {};
       const activeCardsHtml = [];
 
-      // 특정 차량이 여러 회차(예: 4회, 6회)를 담당할 경우 차량별로 묶어 표기
-      const targetCourses = (courseKey === 'ALL') ? Object.keys(store) : (store[courseKey] ? [courseKey] : []);
+      const currentNorm = window.normKey ? window.normKey(courseKey) : courseKey;
 
-      targetCourses.forEach(cName => {
-        const roundDataMap = store[cName] || {};
-        const vehicleGroup = {};
+      Object.keys(store).forEach(cName => {
+        const cNorm = window.normKey ? window.normKey(cName) : cName;
 
-        Object.keys(roundDataMap).forEach(rKey => {
-          const item = roundDataMap[rKey];
-          if (!vehicleGroup[item.busNum]) {
-            vehicleGroup[item.busNum] = {
-              busNum: item.busNum,
-              speed: item.speed,
-              rounds: new Set()
-            };
-          }
-          vehicleGroup[item.busNum].rounds.add(item.round);
-          vehicleGroup[item.busNum].speed = item.speed;
-        });
+        // 전체 노선망이거나 정규화된 노선명이 일치하는 경우
+        if (courseKey === 'ALL' || currentNorm === cNorm) {
+          const subMap = store[cName] || {};
+          const vehicleGroup = {};
 
-        Object.values(vehicleGroup).forEach(vInfo => {
-          const roundsBadge = Array.from(vInfo.rounds).join(',');
-          activeCardsHtml.push(`
-            <div class="seocho-live-card">
-              <div class="seocho-live-left">
-                <span class="seocho-bus-icon">🚌</span>
-                <span class="seocho-bus-num">${courseKey === 'ALL' ? `[${cName}] ` : ''}${vInfo.busNum}</span>
-                <span class="seocho-bus-round">${roundsBadge}</span>
+          Object.keys(subMap).forEach(subKey => {
+            const item = subMap[subKey];
+            if (!vehicleGroup[item.busNum]) {
+              vehicleGroup[item.busNum] = {
+                busNum: item.busNum,
+                speed: item.speed,
+                rounds: new Set()
+              };
+            }
+            if (item.round && item.round !== '단일') {
+              vehicleGroup[item.busNum].rounds.add(item.round);
+            }
+            vehicleGroup[item.busNum].speed = item.speed;
+          });
+
+          Object.values(vehicleGroup).forEach(vInfo => {
+            const roundsArr = Array.from(vInfo.rounds);
+            const roundsBadge = roundsArr.length > 0 ? `<span class="seocho-bus-round">${roundsArr.join(',')}</span>` : '';
+
+            activeCardsHtml.push(`
+              <div class="seocho-live-card">
+                <div class="seocho-live-left">
+                  <span class="seocho-bus-icon">🚌</span>
+                  <span class="seocho-bus-num">${courseKey === 'ALL' ? `[${cName}] ` : ''}${vInfo.busNum}</span>
+                  ${roundsBadge}
+                </div>
+                <div class="seocho-live-speed">
+                  실시간 속도: <b>${vInfo.speed} km/h</b>
+                </div>
               </div>
-              <div class="seocho-live-speed">
-                실시간 속도: <b>${vInfo.speed} km/h</b>
-              </div>
-            </div>
-          `);
-        });
+            `);
+          });
+        }
       });
 
       if (activeCardsHtml.length > 0) {
@@ -1019,7 +1025,7 @@
       }
 
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
-      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLng()) * ratio;
+      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLat()) * ratio;
       const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
       return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
     }
@@ -1599,7 +1605,7 @@
       Object.keys(window.realtimeBusMarkers).forEach(k => {
         const overlay = window.realtimeBusMarkers[k];
         const st = window.busAnimStates[k];
-        if (st && currentSelectedCourseKey !== 'ALL' && currentSelectedCourseKey !== st.courseName) {
+        if (st && currentSelectedCourseKey !== 'ALL' && window.normKey(currentSelectedCourseKey) !== window.normKey(st.courseName)) {
           overlay?.setMap(null);
         }
       });
@@ -1620,7 +1626,7 @@
       const list = document.getElementById('stopList');
       list.innerHTML = '';
 
-      // 서초구 스타일 차량 정보 카드 렌더링
+      // 서초구 스타일 차량 정보 카드 갱신
       if (window.renderSidebarBusCards) {
         window.renderSidebarBusCards(courseName);
       }
@@ -1980,7 +1986,6 @@
       setInterval(checkActiveBuses, 1000);
     }
 
-    // 최상단 LIVE 운행 바는 회차별 운행/대기 알림 담당
     function checkActiveBuses() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
@@ -2048,7 +2053,6 @@
               stopIndex: schedList[0].stopIndex
             });
 
-            // 실시간 GPS 미수신 노선인 경우 가상 출발 대기 마커 노출
             const markerKey = `${cName}_${roundName}`;
             if (!window.hasGpsData || !window.hasGpsData[cName]) {
               if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
@@ -2116,7 +2120,6 @@
                 stopIndex: curStopItem.stopIndex
               });
 
-              // 실시간 GPS 미수신 노선인 경우 가상 시간표 주행 마커 노출
               const markerKey = `${cName}_${roundName}`;
               if (!window.hasGpsData || !window.hasGpsData[cName]) {
                 if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
