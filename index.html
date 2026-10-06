@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <!-- 모바일 브라우저 캐시 방지 메타태그 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -54,7 +55,6 @@
       });
     };
 
-    // 버스별 회전 각도 누적값 관리 (360도 스핀 방지용)
     window.busHeadingState = {};
 
     window.updateRealtimeBusMarker = function(courseName, busNum, latLng, rawHeading = 0, isEstimated = false) {
@@ -63,7 +63,6 @@
 
       const themeColor = getCourseColor(courseName);
 
-      // 최단 회전각 보정: 0 <-> 360 경계에서 뱅글 도는 것 방지
       let prevHeading = window.busHeadingState[courseName] !== undefined ? window.busHeadingState[courseName] : rawHeading;
       let diff = (rawHeading - (prevHeading % 360) + 540) % 360 - 180;
       let smoothHeading = prevHeading + diff;
@@ -93,7 +92,7 @@
         `;
 
         const busRoofSvg = `
-          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${smoothHeading}deg); transform-origin: 16px 25px; transition: transform 0.3s ease-out; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5));">
+          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${smoothHeading}deg); transform-origin: 16px 25px; transition: transform 0.25s linear; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5));">
             <svg width="32" height="50" viewBox="0 0 32 50" fill="none">
               <rect x="2" y="2" width="28" height="46" rx="9" fill="${themeColor}" stroke="#0f172a" stroke-width="2.8"/>
               <rect x="5.5" y="7" width="21" height="9" rx="3" fill="#ffffff" stroke="#0f172a" stroke-width="1.8"/>
@@ -237,12 +236,57 @@
     .live-item:hover { background: rgba(59, 130, 246, 0.6); }
 
     #main-container { flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden; }
-    #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; }
+    #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
 
+    /* 사이드바 & 접기 토글 버튼 */
     #sidebar {
       width: 440px; height: 100%; background: #ffffff; box-shadow: 2px 0 12px rgba(0,0,0,0.08); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 50; flex-shrink: 0;
-      transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), padding 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+      position: relative;
     }
+    /* 웹에서 사이드바가 닫혔을 때 */
+    #sidebar.web-hidden {
+      width: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      transform: translateX(-100%);
+      overflow: hidden !important;
+    }
+
+    /* 사이드바 접기/열기 플로팅 버튼 (PC 웹용) */
+    #sidebarToggleBtn {
+      position: absolute;
+      top: 50%;
+      left: 440px;
+      transform: translateY(-50%);
+      width: 26px;
+      height: 64px;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-left: none;
+      border-radius: 0 10px 10px 0;
+      box-shadow: 4px 0 12px rgba(0,0,0,0.12);
+      cursor: pointer;
+      z-index: 120;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 900;
+      color: #334155;
+      transition: left 0.3s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s, color 0.2s;
+      user-select: none;
+    }
+    #sidebarToggleBtn:hover {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+    #sidebarToggleBtn.collapsed {
+      left: 0px !important;
+      border-left: 1.5px solid #cbd5e1;
+    }
+
     .sheet-handle-bar { display: none; }
 
     .sidebar-header {
@@ -396,6 +440,7 @@
     .close-zoom-btn { position: absolute; top: -45px; right: 0; background: #ffffff; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0f172a; }
 
     @media (max-width: 850px) {
+      #sidebarToggleBtn { display: none !important; }
       #main-container { display: block; position: relative; }
       #map { width: 100%; height: 100%; position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
 
@@ -488,6 +533,9 @@
     </div>
 
     <div id="main-container">
+      <!-- 사이드바 접기/열기 버튼 (PC 웹용) -->
+      <div id="sidebarToggleBtn" onclick="toggleSidebarWeb()" title="목록 접기/열기">◀</div>
+
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
         <div class="sidebar-header" id="sidebarHeaderElem">
@@ -602,6 +650,22 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
+    // PC 웹용 사이드바 토글 함수
+    function toggleSidebarWeb() {
+      const sidebar = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebarToggleBtn');
+      if (!sidebar || !toggleBtn) return;
+
+      const isHidden = sidebar.classList.toggle('web-hidden');
+      toggleBtn.classList.toggle('collapsed', isHidden);
+      toggleBtn.innerText = isHidden ? '▶' : '◀';
+      toggleBtn.title = isHidden ? '목록 열기' : '목록 접기';
+
+      setTimeout(() => {
+        if (map) map.relayout();
+      }, 310);
+    }
+
     function calcHaversineMeters(lat1, lon1, lat2, lon2) {
       const R = 6371e3, φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180, Δφ = (lat2 - lat1) * Math.PI / 180, Δλ = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
@@ -705,7 +769,6 @@
         return;
       }
 
-      // 현재 시각 기준 운행/대기 중인 노선 탐색
       const now = new Date();
       const currentMin = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
       let activeCourse = null;
@@ -1594,7 +1657,7 @@
         const arrowDiv = document.createElement('div');
         arrowDiv.className = 'route-dir-arrow';
         arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing - 90}deg)`;
-        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
+        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
         const overlay = new kakao.maps.CustomOverlay({ position: p2, content: arrowDiv, yAnchor: 0.5, xAnchor: 0.5, zIndex: 8 });
         overlay.setMap(map); arrowOverlays.push(overlay);
       }
@@ -1673,7 +1736,6 @@
           const startMin = schedList[0].min;
           const endMin = schedList[schedList.length - 1].min;
 
-          // 1. 출발 10분 전 ~ 출발 시각 대기
           if (currentMinutes >= startMin - 10 && currentMinutes < startMin) {
             isAnyWaiting = true;
             const diffMin = Math.ceil(startMin - currentMinutes);
@@ -1694,7 +1756,6 @@
               }
             }
           }
-          // 2. 실시간 주행 모드
           else if (currentMinutes >= startMin && currentMinutes <= endMin + 1) {
             let curStopItem = null;
             let nextStopItem = null;
