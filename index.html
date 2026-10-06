@@ -2,7 +2,6 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <!-- 모바일 브라우저 캐시 방지 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -47,16 +46,15 @@
 
           const busLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
           const busNum = pos.busNumber || '운행차량';
-          const heading = pos.heading || 0;
           if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
-            updateRealtimeBusMarker(courseName, busNum, busLatLng, heading, false);
+            updateRealtimeBusMarker(courseName, busNum, busLatLng, false);
           }
         });
       });
     };
 
-    // 서초구 스타일: 도로 선 위에 정확히 탑뷰 버스 안착 + 진행각도 회전 + 하단 선명한 텍스트
-    window.updateRealtimeBusMarker = function(courseName, busNum, latLng, heading = 0, isEstimated = false) {
+    // 서초구 스타일: 도로 선 위에 안정적으로 안착 (360도 스핀 제거)
+    window.updateRealtimeBusMarker = function(courseName, busNum, latLng, isEstimated = false) {
       const targetMap = window.map || window.kakaoMapInstance;
       if (!targetMap || !latLng) return;
 
@@ -67,9 +65,7 @@
         window.realtimeBusMarkers[courseName].setMap(targetMap);
         const markerElem = window.realtimeBusMarkers[courseName].getContent();
         if (markerElem) {
-          const iconElem = markerElem.querySelector('.seocho-bus-body');
           const textElem = markerElem.querySelector('.seocho-bus-title');
-          if (iconElem) iconElem.style.transform = `rotate(${heading}deg)`;
           if (textElem) textElem.innerText = `${courseName} (${busNum})`;
         }
       } else {
@@ -86,7 +82,7 @@
         `;
 
         const busRoofSvg = `
-          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${heading}deg); transform-origin: 16px 25px; transition: transform 0.2s linear; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5));">
+          <div class="seocho-bus-body" style="width: 32px; height: 50px; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.45));">
             <svg width="32" height="50" viewBox="0 0 32 50" fill="none">
               <rect x="2" y="2" width="28" height="46" rx="9" fill="${themeColor}" stroke="#0f172a" stroke-width="2.8"/>
               <rect x="5.5" y="7" width="21" height="9" rx="3" fill="#ffffff" stroke="#0f172a" stroke-width="1.8"/>
@@ -115,7 +111,7 @@
         const realBusOverlay = new kakao.maps.CustomOverlay({
           position: latLng,
           content: busContainer,
-          yAnchor: 0.35, // 차체 중심이 정확히 도로선 좌표와 일치하도록 보정
+          yAnchor: 0.35,
           xAnchor: 0.5,
           zIndex: 1000
         });
@@ -754,60 +750,6 @@
       }
     }
 
-    // 초기 로딩 시 현재 운행 중이거나 대기 중인 노선 탐색하여 자동 선택
-    function initCourseDropdown() {
-      const select = document.getElementById('courseSelect');
-      select.innerHTML = '<option value="ALL">🌐 전체 노선망</option>';
-      const courses = Object.keys(routeData);
-      courses.forEach(cName => {
-        const opt = document.createElement('option');
-        opt.value = cName;
-        opt.innerText = `🚌 ${cName}`;
-        select.appendChild(opt);
-      });
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const queryCourse = urlParams.get('course');
-      if (queryCourse === 'ALL') {
-        select.value = 'ALL';
-        selectAllCourses();
-        return;
-      }
-      if (queryCourse && courses.includes(queryCourse)) {
-        select.value = queryCourse;
-        selectCourse(queryCourse, courses.indexOf(queryCourse));
-        return;
-      }
-
-      // 현재 시각 기준 운행/대기 중인 노선 우선 탐색
-      const now = new Date();
-      const currentMin = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
-      let activeCourse = null;
-
-      for (let cName of courses) {
-        const stops = (routeData[cName] || []).filter(s => !s.isWaypoint);
-        for (let s of stops) {
-          for (let sc of (s.schedules || [])) {
-            if (sc.time && !sc.time.includes('미운행')) {
-              const m = timeToMinutes(sc.time);
-              if (currentMin >= m - 10 && currentMin <= m + 15) {
-                activeCourse = cName;
-                break;
-              }
-            }
-          }
-          if (activeCourse) break;
-        }
-        if (activeCourse) break;
-      }
-
-      const initialCourse = activeCourse || (courses.length > 0 ? courses[0] : null);
-      if (initialCourse) {
-        select.value = initialCourse;
-        selectCourse(initialCourse, courses.indexOf(initialCourse) >= 0 ? courses.indexOf(initialCourse) : 0);
-      }
-    }
-
     function findNearestStop() {
       if (!navigator.geolocation) { alert("위치 정보를 지원하지 않습니다."); return; }
       const badge = document.getElementById('routeBadge');
@@ -1026,12 +968,6 @@
       const R = 6371e3, φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180, Δφ = (lat2 - lat1) * Math.PI / 180, Δλ = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
       return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 1.25;
-    }
-
-    function calculateBearing(lat1, lon1, lat2, lon2) {
-      const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
-      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
-      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
     }
 
     function getShareUrl() {
@@ -1560,8 +1496,8 @@
       return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
     }
 
-    // 도로선 정확한 매핑(Snap to Polyline): 두 정류소 사이의 도로 세그먼트 누적 거리를 기준으로 선 위 정확한 좌표 반환
-    function interpolateAlongPathWithHeading(courseKey, stopA, stopB, ratio) {
+    // 도로선 정확한 매핑(Snap to Polyline)
+    function interpolateAlongPath(courseKey, stopA, stopB, ratio) {
       ratio = Math.max(0, Math.min(1, isNaN(ratio) ? 0 : ratio));
       const cleanKey = courseKey.trim();
       const cached = routeCache[cleanKey];
@@ -1582,7 +1518,6 @@
         }
 
         if (idxB > idxA) {
-          // idxA부터 idxB까지의 도로 경로 누적 거리 계산
           const segDistances = [0];
           let totalSegDist = 0;
           for (let k = idxA; k < idxB; k++) {
@@ -1599,18 +1534,15 @@
               const p2 = path[idxA + k + 1];
               const lat = p1.getLat() + (p2.getLat() - p1.getLat()) * subRatio;
               const lng = p1.getLng() + (p2.getLng() - p1.getLng()) * subRatio;
-              const heading = calculateBearing(p1.getLat(), p1.getLng(), p2.getLat(), p2.getLng());
-              return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
+              return new kakao.maps.LatLng(lat, lng);
             }
           }
         }
       }
 
-      // 도로선 캐시가 없으면 직선 보간
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
       const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLng()) * ratio;
-      const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
-      return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
+      return new kakao.maps.LatLng(lat, lng);
     }
 
     function checkActiveBuses() {
@@ -1666,13 +1598,11 @@
           const startMin = schedList[0].min;
           const endMin = schedList[schedList.length - 1].min;
 
-          // 1. 운행 시작 10분 전 ~ 출발 시각: [복지관 출발 대기 모드]
+          // 1. 출발 10분 전 ~ 출발 시각 대기
           if (currentMinutes >= startMin - 10 && currentMinutes < startMin) {
             isAnyWaiting = true;
             const diffMin = Math.ceil(startMin - currentMinutes);
             const firstStop = schedList[0].stop;
-            const nextStop = schedList[1].stop;
-            const initialHeading = calculateBearing(firstStop.coords.getLat(), firstStop.coords.getLng(), nextStop.coords.getLat(), nextStop.coords.getLng());
 
             activeList.push({
               courseName: cName,
@@ -1683,11 +1613,11 @@
 
             if (!window.hasGpsData || !window.hasGpsData[cName]) {
               if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
-                window.updateRealtimeBusMarker(cName, `${roundName} 대기`, firstStop.coords, initialHeading, true);
+                window.updateRealtimeBusMarker(cName, `${roundName} 대기`, firstStop.coords, true);
               }
             }
           }
-          // 2. 출발 이후 ~ 종점 도착: [실시간 도로 주행 모드]
+          // 2. 실시간 주행 모드
           else if (currentMinutes >= startMin && currentMinutes <= endMin + 1) {
             let curStopItem = null;
             let nextStopItem = null;
@@ -1723,19 +1653,13 @@
 
             if (curStopItem) {
               let liveLatLng;
-              let heading = 0;
               let statusDesc = '';
 
               if (isAtStation || !nextStopItem) {
                 liveLatLng = curStopItem.stop.coords;
                 statusDesc = `${curStopItem.stop.name} 정차 중`;
-                if (nextStopItem) {
-                  heading = calculateBearing(curStopItem.stop.coords.getLat(), curStopItem.stop.coords.getLng(), nextStopItem.stop.coords.getLat(), nextStopItem.stop.coords.getLng());
-                }
               } else {
-                const res = interpolateAlongPathWithHeading(cName, curStopItem.stop, nextStopItem.stop, ratio);
-                liveLatLng = res.latLng;
-                heading = res.heading;
+                liveLatLng = interpolateAlongPath(cName, curStopItem.stop, nextStopItem.stop, ratio);
                 statusDesc = `${nextStopItem.stop.name} 향해 이동 중 (${Math.round(ratio * 100)}%)`;
               }
 
@@ -1748,7 +1672,7 @@
 
               if (!window.hasGpsData || !window.hasGpsData[cName]) {
                 if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
-                  window.updateRealtimeBusMarker(cName, `${roundName}`, liveLatLng, heading, true);
+                  window.updateRealtimeBusMarker(cName, `${roundName}`, liveLatLng, true);
                 }
               }
             }
