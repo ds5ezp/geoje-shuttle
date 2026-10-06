@@ -39,7 +39,7 @@
           const pos = data[courseName];
           if (!pos || !pos.lat || !pos.lng) return;
 
-          // 실제 GPS 수신 중임을 마킹 (가상 위치 덮어쓰기 방지)
+          // 실제 GPS 수신 플래그
           window.hasGpsData[courseName] = true;
 
           const busLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
@@ -55,6 +55,8 @@
       if (!window.map) return;
       if (window.realtimeBusMarkers[courseName]) {
         window.realtimeBusMarkers[courseName].setPosition(latLng);
+        const label = window.realtimeBusMarkers[courseName].getContent().querySelector('.bus-badge-label');
+        if (label) label.innerText = busNum;
       } else {
         const busElem = document.createElement('div');
         busElem.className = 'live-real-bus-marker';
@@ -63,7 +65,7 @@
             <span style="font-size:16px;">🚌</span>
             <div style="display:flex; flex-direction:column; text-align:left;">
               <span style="font-size:10px; font-weight:800; color:${isEstimated ? '#ea580c' : '#2563eb'}; line-height:1;">${courseName}</span>
-              <span style="font-size:12px; font-weight:900; color:#0f172a; line-height:1.2;">${busNum}</span>
+              <span class="bus-badge-label" style="font-size:12px; font-weight:900; color:#0f172a; line-height:1.2;">${busNum}</span>
             </div>
           </div>`;
 
@@ -1517,11 +1519,11 @@
 
     function startRealtimeCheck() {
       checkActiveBuses();
-      // 2초 단위로 실시간 보간 이동 계산
-      setInterval(checkActiveBuses, 2000);
+      // 1초 주기로 부드러운 위치 갱신
+      setInterval(checkActiveBuses, 1000);
     }
 
-    // 시간 파싱 헬퍼 (시:분 -> 분)
+    // 시간 문자열(HH:MM)을 분 단위 숫자로 변환
     function timeToMinutes(tStr) {
       if (!tStr) return -1;
       const m = tStr.match(/(\d{1,2}):(\d{2})/);
@@ -1529,18 +1531,23 @@
       return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
     }
 
-    // 두 정류장 사이의 경로선을 따라 보간된 LatLng 계산
+    // 도로 경로선 기반 보간 계산 함수 (역전 방지 및 안전 보간)
     function interpolatePositionAlongPath(courseKey, stopA, stopB, ratio) {
-      const cached = routeCache[courseKey];
-      if (cached && cached.path && cached.path.length > 0) {
-        const path = cached.path;
-        // 도로 경로 전체에서 stopA와 stopB에 가장 가까운 인덱스 탐색
-        let idxA = 0, minDistA = Infinity;
-        let idxB = path.length - 1, minDistB = Infinity;
+      ratio = Math.max(0, Math.min(1, isNaN(ratio) ? 0 : ratio));
 
+      const cached = routeCache[courseKey];
+      if (cached && cached.path && cached.path.length > 1) {
+        const path = cached.path;
+
+        let idxA = 0, minDistA = Infinity;
         for (let i = 0; i < path.length; i++) {
           const dA = calcHaversineMeters(stopA.coords.getLat(), stopA.coords.getLng(), path[i].getLat(), path[i].getLng());
           if (dA < minDistA) { minDistA = dA; idxA = i; }
+        }
+
+        // stopB는 idxA 이후 인덱스부터 검색하여 순방향 유지
+        let idxB = idxA, minDistB = Infinity;
+        for (let i = idxA; i < path.length; i++) {
           const dB = calcHaversineMeters(stopB.coords.getLat(), stopB.coords.getLng(), path[i].getLat(), path[i].getLng());
           if (dB < minDistB) { minDistB = dB; idxB = i; }
         }
@@ -1551,7 +1558,7 @@
         }
       }
 
-      // 도로선 캐시가 아직 없거나 오차가 클 경우 직선 보간
+      // 도로선 데이터가 없거나 인덱스가 같으면 좌표 직선 보간
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
       const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLng()) * ratio;
       return new kakao.maps.LatLng(lat, lng);
@@ -1559,8 +1566,8 @@
 
     function checkActiveBuses() {
       const now = new Date();
-      const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-      const currentMinutes = currentSeconds / 60; // 초 단위 소수점 포함
+      // 초 단위 실시간 연속 분(minute) 계산
+      const currentMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
       const barText = document.getElementById('liveStatusText'), liveTag = document.getElementById('liveTag');
 
       if (isNonOperatingDay(now)) {
@@ -1590,7 +1597,7 @@
         const stops = (routeData[cName] || []).filter(s => !s.isWaypoint && s.coords);
         if (stops.length < 2) return;
 
-        // 회차별 탐색
+        // 회차별 정류소 매핑
         const rounds = {};
         stops.forEach((s, sIdx) => {
           (s.schedules || []).forEach(sc => {
@@ -1604,7 +1611,6 @@
           });
         });
 
-        // 각 회차에 대해 현재 시각이 포함되어 있는지 확인
         Object.keys(rounds).forEach(roundName => {
           const schedList = rounds[roundName].sort((a, b) => a.min - b.min);
           if (schedList.length < 2) return;
@@ -1612,7 +1618,7 @@
           const startMin = schedList[0].min;
           const endMin = schedList[schedList.length - 1].min;
 
-          // 현재 시각이 회차 운행 범위 내에 있을 때 (출발 ~ 도착 + 1분)
+          // 현재 회차가 운행 중인 시간대일 때
           if (currentMinutes >= startMin && currentMinutes <= endMin + 1) {
             let curStopItem = null;
             let nextStopItem = null;
@@ -1621,20 +1627,30 @@
 
             for (let i = 0; i < schedList.length; i++) {
               const cur = schedList[i];
-              // 정류소 도착 전후 30초(0.5분) 내외일 때는 해당 정류소에 정차 중인 것으로 처리
-              if (Math.abs(currentMinutes - cur.min) <= 0.5) {
-                curStopItem = cur;
-                isAtStation = true;
+              const next = schedList[i + 1];
+
+              if (!next) {
+                if (currentMinutes >= cur.min) {
+                  curStopItem = cur;
+                  isAtStation = true;
+                }
                 break;
               }
-              if (i < schedList.length - 1) {
-                const next = schedList[i + 1];
-                if (currentMinutes >= cur.min && currentMinutes < next.min) {
-                  curStopItem = cur;
-                  nextStopItem = next;
-                  ratio = (currentMinutes - cur.min) / (next.min - cur.min);
-                  break;
+
+              // 시간표의 분(min)이 같거나 역전된 경우 최소 1분 간격 자동 부여
+              const effectiveNextMin = next.min <= cur.min ? cur.min + 1 : next.min;
+
+              if (currentMinutes >= cur.min && currentMinutes < effectiveNextMin) {
+                curStopItem = cur;
+                nextStopItem = next;
+
+                // 정류소 시각 직후 15초(0.25분) 동안은 정차로 처리하고, 이후는 도로 이동
+                if (currentMinutes - cur.min < 0.25) {
+                  isAtStation = true;
+                } else {
+                  ratio = (currentMinutes - cur.min) / (effectiveNextMin - cur.min);
                 }
+                break;
               }
             }
 
@@ -1642,15 +1658,12 @@
               let liveLatLng;
               let statusDesc = '';
 
-              if (isAtStation) {
+              if (isAtStation || !nextStopItem) {
                 liveLatLng = curStopItem.stop.coords;
                 statusDesc = `${curStopItem.stop.name} 정차 중`;
-              } else if (nextStopItem) {
-                liveLatLng = interpolatePositionAlongPath(cName, curStopItem.stop, nextStopItem.stop, ratio);
-                statusDesc = `${nextStopItem.stop.name} 향해 이동 중`;
               } else {
-                liveLatLng = curStopItem.stop.coords;
-                statusDesc = `${curStopItem.stop.name} 운행 완료`;
+                liveLatLng = interpolatePositionAlongPath(cName, curStopItem.stop, nextStopItem.stop, ratio);
+                statusDesc = `${nextStopItem.stop.name} 이동 중 (${Math.round(ratio * 100)}%)`;
               }
 
               activeList.push({
@@ -1660,10 +1673,10 @@
                 stopIndex: curStopItem.stopIndex
               });
 
-              // 실제 GPS 데이터가 들어오지 않은 상태일 때만 시간 추정 위치로 버스 마커를 이동시킴
+              // Firebase GPS 실데이터가 수신되지 않은 경우 가상 이동 마커 갱신
               if (!window.hasGpsData || !window.hasGpsData[cName]) {
                 if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName)) {
-                  window.updateRealtimeBusMarker(cName, `${roundName} (추정)`, liveLatLng, true);
+                  window.updateRealtimeBusMarker(cName, `${roundName}`, liveLatLng, true);
                 }
               }
             }
