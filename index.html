@@ -740,14 +740,22 @@
           </div>
         </div>
 
+        <!-- 1. 정류장 검색창 + 표, 링크, 접기 버튼 라인 -->
         <div class="header-middle-row">
           <div class="stop-search-box">
-            <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색 (예: 포로수용소, 아이파크)" oninput="handleStopSearch(this.value)">
+            <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색" oninput="handleStopSearch(this.value)">
             <button class="search-clear-btn" id="searchClearBtn" onclick="clearStopSearch()">&times;</button>
           </div>
           <div id="searchDropdownList"></div>
+
+          <div class="header-actions">
+            <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="표">📋표</button>
+            <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유">🔗</button>
+            <button class="action-btn fold-btn" onclick="collapseTopArea()" title="상단 접기">▲접기</button>
+          </div>
         </div>
 
+        <!-- 2. 노선 선택 드롭다운 + 홈, 기록, 주변 버튼 라인 -->
         <div class="header-bottom-row">
           <div class="course-select-wrapper">
             <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
@@ -759,9 +767,6 @@
             <button class="action-btn pwa-btn" onclick="openPwaModal()" title="홈">📲홈</button>
             <button class="action-btn history-btn" onclick="openHistoryModal()" title="통과기록">📅기록</button>
             <button class="action-btn nearby-btn" onclick="findNearestStop()" title="주변">📍주변</button>
-            <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="표">📋표</button>
-            <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유">🔗</button>
-            <button class="action-btn fold-btn" onclick="collapseTopArea()" title="상단 접기">▲접기</button>
           </div>
         </div>
       </div>
