@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <!-- 모바일 브라우저 캐시 방지 메타태그 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -32,9 +33,9 @@
 
     window.realtimeBusMarkers = {};
     window.hasGpsData = {};
-    window.latestGpsStore = {}; // 코스별 최신 GPS 정보 저장
+    window.latestGpsStore = {}; // 구조: latestGpsStore[courseName][roundKey] = { ... }
 
-    // 맵 매칭: 실제 GPS를 도로 경로선 위로 자석처럼 안착시키는 함수
+    // 맵 매칭: 실제 GPS 좌표를 노선 도로선 위로 보정
     window.snapGpsToRoute = function(courseName, rawLatLng) {
       const cleanKey = (courseName || '').trim();
       const cached = window.routeCache ? window.routeCache[cleanKey] : null;
@@ -80,64 +81,90 @@
         }
       }
 
-      // 오차 45m 이내면 도로선에 강제 밀착
+      // 오차 45m 이내 도로선 강제 밀착
       if (minDistanceMeters <= 45) {
         return { latLng: closestPoint, headingOffset: matchedSegmentHeading };
       }
       return { latLng: rawLatLng, headingOffset: null };
     };
 
+    // Firebase 실시간 수신 리스너 (회차별 다중 전송 liveBuses/{course}/{round} 및 단일 전송 모두 호환)
     window.initRealtimeBusTracking = function() {
       const liveBusRef = ref(db, 'liveBuses/');
       onValue(liveBusRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
 
+        const currentActiveKeys = new Set();
+
         Object.keys(data).forEach(courseName => {
-          const pos = data[courseName];
-          if (!pos || !pos.lat || !pos.lng) return;
+          const courseVal = data[courseName];
+          if (!courseVal) return;
 
-          const isOperating = (pos.isOperating === true || pos.isOperating === "true");
-          const isFresh = (Date.now() - (pos.updatedAt || 0)) < 300000; // 5분 이내 최신
+          // 단일 전송 vs 다중 회차 전송 판별
+          const isDirectNode = (typeof courseVal.lat === 'number' || typeof courseVal.lat === 'string');
+          const roundEntries = isDirectNode ? { "기본": courseVal } : courseVal;
 
-          if (isOperating && isFresh) {
+          Object.keys(roundEntries).forEach(roundKey => {
+            const pos = roundEntries[roundKey];
+            if (!pos || !pos.lat || !pos.lng) return;
+
+            const markerKey = `${courseName}_${pos.busNumber || roundKey}`;
+            const isOperating = (pos.isOperating === true || pos.isOperating === "true");
+            const isFresh = (Date.now() - (pos.updatedAt || 0)) < 300000; // 5분 이내 데이터
+
+            if (isOperating && isFresh) {
+              currentActiveKeys.add(markerKey);
+              window.hasGpsData[courseName] = true;
+
+              if (!window.latestGpsStore[courseName]) window.latestGpsStore[courseName] = {};
+              window.latestGpsStore[courseName][roundKey] = {
+                busNum: pos.busNumber || '운행차량',
+                round: pos.round || roundKey,
+                speed: Math.round(pos.speed || 0),
+                updatedAt: pos.updatedAt
+              };
+
+              const rawLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+              const busNum = pos.busNumber || '운행차량';
+              let heading = pos.heading || 0;
+              const speed = Math.round(pos.speed || 0);
+              const roundLabel = pos.round || roundKey;
+
+              // 맵 매칭 보정
+              const snapResult = window.snapGpsToRoute(courseName, rawLatLng);
+              const busLatLng = snapResult.latLng;
+              if (speed > 3 && snapResult.headingOffset !== null) {
+                heading = snapResult.headingOffset;
+              }
+
+              // 지도 위 버스 마커 갱신
+              if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
+                updateRealtimeBusMarker(markerKey, courseName, busNum, roundLabel, busLatLng, heading, speed, true);
+              }
+            } else {
+              if (window.latestGpsStore[courseName]) {
+                delete window.latestGpsStore[courseName][roundKey];
+              }
+              if (window.realtimeBusMarkers[markerKey]) {
+                window.realtimeBusMarkers[markerKey].setMap(null);
+                delete window.realtimeBusMarkers[markerKey];
+              }
+            }
+          });
+
+          // 해당 노선의 활성 GPS 존재 여부 갱신
+          if (window.latestGpsStore[courseName] && Object.keys(window.latestGpsStore[courseName]).length > 0) {
             window.hasGpsData[courseName] = true;
-
-            const rawLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
-            const busNum = pos.busNumber || '운행차량';
-            let heading = pos.heading || 0;
-            const speed = Math.round(pos.speed || 0);
-
-            // 최신 상태 저장
-            window.latestGpsStore[courseName] = { busNum, speed, latLng: rawLatLng };
-
-            // 사이드바 헤더의 차량 정보 카드 실시간 갱신
-            if (window.updateSidebarBusInfoCard) {
-              window.updateSidebarBusInfoCard(courseName, busNum, speed);
-            }
-
-            // 도로선 맵 매칭 보정
-            const snapResult = window.snapGpsToRoute(courseName, rawLatLng);
-            const busLatLng = snapResult.latLng;
-            if (speed > 3 && snapResult.headingOffset !== null) {
-              heading = snapResult.headingOffset;
-            }
-
-            // 지도 위 버스 마커 갱신 (isGpsMode = true)
-            if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
-              updateRealtimeBusMarker(courseName, busNum, busLatLng, heading, speed, true);
-            }
           } else {
             window.hasGpsData[courseName] = false;
-            delete window.latestGpsStore[courseName];
-            if (window.updateSidebarBusInfoCard) {
-              window.updateSidebarBusInfoCard(courseName, null, 0);
-            }
-            if (window.realtimeBusMarkers[courseName]) {
-              window.realtimeBusMarkers[courseName].setMap(null);
-            }
           }
         });
+
+        // 사이드바 차량 카드 갱신 호출
+        if (window.renderSidebarBusCards) {
+          window.renderSidebarBusCards(currentSelectedCourseKey);
+        }
       });
     };
 
@@ -148,12 +175,12 @@
       function step() {
         const targetMap = window.map || window.kakaoMapInstance;
         if (targetMap) {
-          Object.keys(window.busAnimStates).forEach(courseName => {
-            const st = window.busAnimStates[courseName];
-            const overlay = window.realtimeBusMarkers[courseName];
+          Object.keys(window.busAnimStates).forEach(markerKey => {
+            const st = window.busAnimStates[markerKey];
+            const overlay = window.realtimeBusMarkers[markerKey];
             if (!st || !overlay) return;
 
-            if (currentSelectedCourseKey !== 'ALL' && currentSelectedCourseKey !== courseName) {
+            if (currentSelectedCourseKey !== 'ALL' && currentSelectedCourseKey !== st.courseName) {
               overlay.setMap(null);
               return;
             }
@@ -183,14 +210,14 @@
     }
     startSmoothBusLoop();
 
-    // 지도 위 마커 라벨에 LIVE GPS 배지 표시
-    window.updateRealtimeBusMarker = function(courseName, busNum, latLng, rawHeading = 0, speed = 0, isGpsMode = false) {
+    // 지도 위 버스 마커 생성 및 갱신
+    window.updateRealtimeBusMarker = function(markerKey, courseName, busNum, roundLabel, latLng, rawHeading = 0, speed = 0, isGpsMode = false) {
       const targetMap = window.map || window.kakaoMapInstance;
       if (!targetMap || !latLng) return;
 
       if (currentSelectedCourseKey !== 'ALL' && currentSelectedCourseKey !== courseName) {
-        if (window.realtimeBusMarkers[courseName]) {
-          window.realtimeBusMarkers[courseName].setMap(null);
+        if (window.realtimeBusMarkers[markerKey]) {
+          window.realtimeBusMarkers[markerKey].setMap(null);
         }
         return;
       }
@@ -199,13 +226,13 @@
       const tLat = latLng.getLat();
       const tLng = latLng.getLng();
 
-      // GPS 모드일 때만 라벨에 [LIVE GPS] 배지 부착
       const labelText = isGpsMode 
         ? `<span class="live-gps-pill">LIVE GPS</span> ${courseName} (${busNum})` 
         : `${courseName} (${busNum})`;
 
-      if (!window.busAnimStates[courseName]) {
-        window.busAnimStates[courseName] = {
+      if (!window.busAnimStates[markerKey]) {
+        window.busAnimStates[markerKey] = {
+          courseName: courseName,
           currLat: tLat,
           currLng: tLng,
           targetLat: tLat,
@@ -214,7 +241,7 @@
           targetHeading: rawHeading
         };
       } else {
-        const st = window.busAnimStates[courseName];
+        const st = window.busAnimStates[markerKey];
         st.targetLat = tLat;
         st.targetLng = tLng;
 
@@ -222,9 +249,9 @@
         st.targetHeading = st.targetHeading + diff;
       }
 
-      if (window.realtimeBusMarkers[courseName]) {
-        window.realtimeBusMarkers[courseName].setMap(targetMap);
-        const markerElem = window.realtimeBusMarkers[courseName].getContent();
+      if (window.realtimeBusMarkers[markerKey]) {
+        window.realtimeBusMarkers[markerKey].setMap(targetMap);
+        const markerElem = window.realtimeBusMarkers[markerKey].getContent();
         if (markerElem) {
           const textElem = markerElem.querySelector('.seocho-bus-title');
           if (textElem) textElem.innerHTML = labelText;
@@ -281,7 +308,7 @@
         });
 
         realBusOverlay.setMap(targetMap);
-        window.realtimeBusMarkers[courseName] = realBusOverlay;
+        window.realtimeBusMarkers[markerKey] = realBusOverlay;
       }
     };
   </script>
@@ -440,7 +467,7 @@
 
     .sheet-handle-bar { display: none; }
 
-    /* 서초구 스타일 헤더 및 차량 정보 카드 영역 */
+    /* 사이드바 상단 헤더 및 서초구 스타일 차량 정보 카드 영역 */
     .sidebar-header-box {
       display: flex; flex-direction: column; gap: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; flex-shrink: 0;
     }
@@ -459,7 +486,10 @@
     .header-badges span { font-size: 0.82rem; color: #2563eb; background: #eff6ff; padding: 4px 8px; border-radius: 6px; font-weight: 700; }
     .header-badges span.dist-badge { color: #047857; background: #ecfdf5; }
 
-    /* 서초구 참고자료 스타일 실시간 차량 카드 */
+    /* 서초구 스타일 실시간 다중 차량 카드 컨테이너 */
+    #sidebarCardsContainer {
+      display: flex; flex-direction: column; gap: 8px; width: 100%;
+    }
     .seocho-live-card {
       display: flex; align-items: center; justify-content: space-between;
       background: #f8fafc; border: 1px solid #e2e8f0; border-left: 5px solid #10b981;
@@ -469,6 +499,7 @@
     .seocho-live-left { display: flex; align-items: center; gap: 8px; }
     .seocho-bus-icon { font-size: 1.1rem; color: #0284c7; }
     .seocho-bus-num { font-size: 0.98rem; font-weight: 800; color: #0f172a; }
+    .seocho-bus-round { font-size: 0.78rem; font-weight: 700; color: #2563eb; background: #dbeafe; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
     .seocho-live-speed { font-size: 0.85rem; font-weight: 700; color: #64748b; }
     .seocho-live-speed b { color: #10b981; font-weight: 800; }
 
@@ -713,7 +744,7 @@
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
         
-        <!-- 사이드바 상단 헤더 및 서초구 스타일 차량 정보 카드 영역 -->
+        <!-- 사이드바 상단 헤더 및 서초구 스타일 실시간 다중 차량 카드 컨테이너 -->
         <div class="sidebar-header-box" id="sidebarHeaderElem">
           <div class="sidebar-header-top">
             <div class="sidebar-header-left">
@@ -726,14 +757,14 @@
             </div>
           </div>
 
-          <!-- 서초구 스타일 차량번호 및 속도 카드 -->
-          <div class="seocho-live-card waiting" id="seochoLiveCard">
-            <div class="seocho-live-left">
-              <span class="seocho-bus-icon">🚌</span>
-              <span class="seocho-bus-num" id="sidebarBusNum">차량 배차 대기</span>
-            </div>
-            <div class="seocho-live-speed" id="sidebarBusSpeed">
-              실시간 속도: <b id="sidebarSpeedVal">-</b>
+          <!-- 실시간 운행 차량 카드들이 동적으로 생성되는 컨테이너 -->
+          <div id="sidebarCardsContainer">
+            <div class="seocho-live-card waiting">
+              <div class="seocho-live-left">
+                <span class="seocho-bus-icon">🚌</span>
+                <span class="seocho-bus-num">차량 배차 대기</span>
+              </div>
+              <div class="seocho-live-speed">실시간 속도: <b>-</b></div>
             </div>
           </div>
         </div>
@@ -841,36 +872,63 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // 사이드바 차량 카드 실시간 갱신 함수
-    window.updateSidebarBusInfoCard = function(courseName, busNum, speed) {
-      const card = document.getElementById('seochoLiveCard');
-      const numElem = document.getElementById('sidebarBusNum');
-      const spdVal = document.getElementById('sidebarSpeedVal');
-      if (!card || !numElem || !spdVal) return;
+    // 사이드바 차량 카드 렌더링 (다중 차량/회차별 독립 카드 표시)
+    window.renderSidebarBusCards = function(courseKey) {
+      const container = document.getElementById('sidebarCardsContainer');
+      if (!container) return;
 
-      if (currentSelectedCourseKey === 'ALL') {
-        const anyGpsCourse = Object.keys(window.latestGpsStore || {})[0];
-        if (anyGpsCourse && window.latestGpsStore[anyGpsCourse]) {
-          const info = window.latestGpsStore[anyGpsCourse];
-          card.classList.remove('waiting');
-          numElem.innerText = `[${anyGpsCourse}] ${info.busNum}`;
-          spdVal.innerText = `${info.speed} km/h`;
-        } else {
-          card.classList.add('waiting');
-          numElem.innerText = "차량 배차 대기";
-          spdVal.innerText = "-";
-        }
-        return;
-      }
+      const store = window.latestGpsStore || {};
+      const activeCardsHtml = [];
 
-      if (currentSelectedCourseKey === courseName && busNum) {
-        card.classList.remove('waiting');
-        numElem.innerText = busNum;
-        spdVal.innerText = `${speed} km/h`;
-      } else if (currentSelectedCourseKey === courseName && !busNum) {
-        card.classList.add('waiting');
-        numElem.innerText = "차량 배차 대기";
-        spdVal.innerText = "-";
+      // 특정 차량이 여러 회차(예: 4회, 6회)를 담당할 경우 차량별로 묶어 표기
+      const targetCourses = (courseKey === 'ALL') ? Object.keys(store) : (store[courseKey] ? [courseKey] : []);
+
+      targetCourses.forEach(cName => {
+        const roundDataMap = store[cName] || {};
+        const vehicleGroup = {};
+
+        Object.keys(roundDataMap).forEach(rKey => {
+          const item = roundDataMap[rKey];
+          if (!vehicleGroup[item.busNum]) {
+            vehicleGroup[item.busNum] = {
+              busNum: item.busNum,
+              speed: item.speed,
+              rounds: new Set()
+            };
+          }
+          vehicleGroup[item.busNum].rounds.add(item.round);
+          vehicleGroup[item.busNum].speed = item.speed;
+        });
+
+        Object.values(vehicleGroup).forEach(vInfo => {
+          const roundsBadge = Array.from(vInfo.rounds).join(',');
+          activeCardsHtml.push(`
+            <div class="seocho-live-card">
+              <div class="seocho-live-left">
+                <span class="seocho-bus-icon">🚌</span>
+                <span class="seocho-bus-num">${courseKey === 'ALL' ? `[${cName}] ` : ''}${vInfo.busNum}</span>
+                <span class="seocho-bus-round">${roundsBadge}</span>
+              </div>
+              <div class="seocho-live-speed">
+                실시간 속도: <b>${vInfo.speed} km/h</b>
+              </div>
+            </div>
+          `);
+        });
+      });
+
+      if (activeCardsHtml.length > 0) {
+        container.innerHTML = activeCardsHtml.join('');
+      } else {
+        container.innerHTML = `
+          <div class="seocho-live-card waiting">
+            <div class="seocho-live-left">
+              <span class="seocho-bus-icon">🚌</span>
+              <span class="seocho-bus-num">차량 배차 대기</span>
+            </div>
+            <div class="seocho-live-speed">실시간 속도: <b>-</b></div>
+          </div>
+        `;
       }
     };
 
@@ -1538,9 +1596,11 @@
       arrowOverlays.forEach(o => o.setMap(null)); arrowOverlays = [];
       polylines.forEach(p => p.setMap(null)); polylines = [];
       
-      Object.keys(window.realtimeBusMarkers).forEach(cName => {
-        if (currentSelectedCourseKey !== 'ALL' && currentSelectedCourseKey !== cName) {
-          window.realtimeBusMarkers[cName]?.setMap(null);
+      Object.keys(window.realtimeBusMarkers).forEach(k => {
+        const overlay = window.realtimeBusMarkers[k];
+        const st = window.busAnimStates[k];
+        if (st && currentSelectedCourseKey !== 'ALL' && currentSelectedCourseKey !== st.courseName) {
+          overlay?.setMap(null);
         }
       });
     }
@@ -1560,11 +1620,9 @@
       const list = document.getElementById('stopList');
       list.innerHTML = '';
 
-      // 사이드바 차량 카드 상태 복원/갱신
-      if (window.updateSidebarBusInfoCard) {
-        const info = window.latestGpsStore ? window.latestGpsStore[courseName] : null;
-        if (info) window.updateSidebarBusInfoCard(courseName, info.busNum, info.speed);
-        else window.updateSidebarBusInfoCard(courseName, null, 0);
+      // 서초구 스타일 차량 정보 카드 렌더링
+      if (window.renderSidebarBusCards) {
+        window.renderSidebarBusCards(courseName);
       }
 
       const coordOccurrences = {};
@@ -1722,8 +1780,8 @@
       const badge = document.getElementById('routeBadge');
       badge.style.display = 'block'; badge.innerText = "전체 노선망 계산 중...";
 
-      if (window.updateSidebarBusInfoCard) {
-        window.updateSidebarBusInfoCard('ALL', null, 0);
+      if (window.renderSidebarBusCards) {
+        window.renderSidebarBusCards('ALL');
       }
 
       for (let cIdx = 0; cIdx < courses.length; cIdx++) {
@@ -1922,7 +1980,7 @@
       setInterval(checkActiveBuses, 1000);
     }
 
-    // 최상단 LIVE 운행 바는 회차별 운행/대기 알림을 담당 (정상 복원)
+    // 최상단 LIVE 운행 바는 회차별 운행/대기 알림 담당
     function checkActiveBuses() {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
@@ -1990,12 +2048,13 @@
               stopIndex: schedList[0].stopIndex
             });
 
-            // 실시간 GPS 미수신 시 가상 출발 대기 마커
+            // 실시간 GPS 미수신 노선인 경우 가상 출발 대기 마커 노출
+            const markerKey = `${cName}_${roundName}`;
             if (!window.hasGpsData || !window.hasGpsData[cName]) {
               if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
-                window.updateRealtimeBusMarker(cName, `${roundName} 대기`, firstStop.coords, initialHeading, 0, false);
-              } else if (window.realtimeBusMarkers[cName]) {
-                window.realtimeBusMarkers[cName].setMap(null);
+                window.updateRealtimeBusMarker(markerKey, cName, `${roundName} 대기`, roundName, firstStop.coords, initialHeading, 0, false);
+              } else if (window.realtimeBusMarkers[markerKey]) {
+                window.realtimeBusMarkers[markerKey].setMap(null);
               }
             }
           }
@@ -2057,19 +2116,21 @@
                 stopIndex: curStopItem.stopIndex
               });
 
-              // 실시간 GPS 미수신 시 가상 시간표 주행 마커
+              // 실시간 GPS 미수신 노선인 경우 가상 시간표 주행 마커 노출
+              const markerKey = `${cName}_${roundName}`;
               if (!window.hasGpsData || !window.hasGpsData[cName]) {
                 if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
-                  window.updateRealtimeBusMarker(cName, `${roundName}`, liveLatLng, heading, 25, false);
-                } else if (window.realtimeBusMarkers[cName]) {
-                  window.realtimeBusMarkers[cName].setMap(null);
+                  window.updateRealtimeBusMarker(markerKey, cName, `${roundName}`, roundName, liveLatLng, heading, 25, false);
+                } else if (window.realtimeBusMarkers[markerKey]) {
+                  window.realtimeBusMarkers[markerKey].setMap(null);
                 }
               }
             }
           } else {
+            const markerKey = `${cName}_${roundName}`;
             if (!window.hasGpsData || !window.hasGpsData[cName]) {
-              if (window.realtimeBusMarkers[cName]) {
-                window.realtimeBusMarkers[cName].setMap(null);
+              if (window.realtimeBusMarkers[markerKey]) {
+                window.realtimeBusMarkers[markerKey].setMap(null);
               }
             }
           }
@@ -2080,12 +2141,6 @@
         liveTag.innerText = 'LIVE 운행';
         liveTag.className = 'live-tag';
         barText.innerHTML = `현재 운행 중인 차량이 없습니다. (현재 시각 ${now.toTimeString().substring(0,5)})`;
-        Object.keys(window.realtimeBusMarkers).forEach(cName => {
-          if (!window.hasGpsData || !window.hasGpsData[cName]) {
-            window.realtimeBusMarkers[cName]?.setMap(null);
-            delete window.realtimeBusMarkers[cName];
-          }
-        });
       } else {
         if (isAnyWaiting && activeList.every(i => i.statusDesc.includes('대기'))) {
           liveTag.innerText = '출발 대기';
