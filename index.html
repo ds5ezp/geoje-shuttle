@@ -2,6 +2,10 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <!-- 모바일 브라우저 캐시 방지 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>거제시종합사회복지관 셔틀버스 관제 시스템</title>
 
@@ -51,7 +55,7 @@
       });
     };
 
-    // 서초구 스타일: 도로 위 버스 탑뷰 그래픽 + 하단 텍스트 + 방향 회전
+    // 서초구 스타일: 도로 선 위에 정확히 탑뷰 버스 안착 + 진행각도 회전 + 하단 선명한 텍스트
     window.updateRealtimeBusMarker = function(courseName, busNum, latLng, heading = 0, isEstimated = false) {
       const targetMap = window.map || window.kakaoMapInstance;
       if (!targetMap || !latLng) return;
@@ -75,33 +79,26 @@
           display: flex;
           flex-direction: column;
           align-items: center;
+          justify-content: center;
           cursor: pointer;
-          transform: translate(-50%, -50%);
           pointer-events: auto;
           z-index: 1000;
         `;
 
-        // 서초구 스타일 탑뷰 버스 SVG
         const busRoofSvg = `
-          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${heading}deg); transform-origin: center center; transition: transform 0.3s ease; filter: drop-shadow(0px 3px 6px rgba(0,0,0,0.45));">
+          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${heading}deg); transform-origin: 16px 25px; transition: transform 0.2s linear; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5));">
             <svg width="32" height="50" viewBox="0 0 32 50" fill="none">
-              <!-- 범퍼 및 차체 -->
               <rect x="2" y="2" width="28" height="46" rx="9" fill="${themeColor}" stroke="#0f172a" stroke-width="2.8"/>
-              <!-- 앞유리 -->
               <rect x="5.5" y="7" width="21" height="9" rx="3" fill="#ffffff" stroke="#0f172a" stroke-width="1.8"/>
-              <!-- 뒷유리 -->
               <rect x="6" y="38" width="20" height="5" rx="2" fill="#cbd5e1" stroke="#0f172a" stroke-width="1.5"/>
-              <!-- 지붕 환풍구/에어컨 장치 -->
               <rect x="9.5" y="21" width="13" height="11" rx="3" fill="#ffffff" stroke="#0f172a" stroke-width="1.8"/>
               <circle cx="16" cy="26.5" r="2" fill="#0f172a"/>
-              <!-- 앞 헤드라이트 -->
               <circle cx="7" cy="4" r="1.5" fill="#fef08a"/>
               <circle cx="25" cy="4" r="1.5" fill="#fef08a"/>
             </svg>
           </div>
         `;
 
-        // 하단 선명한 외곽선 글씨 (서초구 스타일)
         busContainer.innerHTML = `
           ${busRoofSvg}
           <div class="seocho-bus-title" style="
@@ -118,7 +115,7 @@
         const realBusOverlay = new kakao.maps.CustomOverlay({
           position: latLng,
           content: busContainer,
-          yAnchor: 0.5,
+          yAnchor: 0.35, // 차체 중심이 정확히 도로선 좌표와 일치하도록 보정
           xAnchor: 0.5,
           zIndex: 1000
         });
@@ -222,6 +219,7 @@
     #liveStatusBar::-webkit-scrollbar { display: none; }
 
     .live-tag { background: #ef4444; color: #fff; padding: 3px 8px; border-radius: 12px; font-weight: 800; font-size: 0.75rem; animation: pulse 1.5s infinite; flex-shrink: 0; }
+    .live-tag.waiting { background: #ea580c !important; }
     .live-tag.holiday, .live-tag.ended { background: #475569 !important; animation: none !important; }
     @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     
@@ -578,8 +576,9 @@
 
     function getCourseColor(courseName) {
       if (!courseName) return COURSE_COLORS[0];
+      const clean = courseName.trim();
       const courses = Object.keys(routeData);
-      const idx = courses.indexOf(courseName);
+      const idx = courses.indexOf(clean);
       return idx >= 0 ? COURSE_COLORS[idx % COURSE_COLORS.length] : COURSE_COLORS[0];
     }
 
@@ -755,6 +754,7 @@
       }
     }
 
+    // 초기 로딩 시 현재 운행 중이거나 대기 중인 노선 탐색하여 자동 선택
     function initCourseDropdown() {
       const select = document.getElementById('courseSelect');
       select.innerHTML = '<option value="ALL">🌐 전체 노선망</option>';
@@ -768,9 +768,44 @@
 
       const urlParams = new URLSearchParams(window.location.search);
       const queryCourse = urlParams.get('course');
-      if (queryCourse === 'ALL') { select.value = 'ALL'; selectAllCourses(); }
-      else if (queryCourse && courses.includes(queryCourse)) { select.value = queryCourse; selectCourse(queryCourse, courses.indexOf(queryCourse)); }
-      else if (courses.length > 0) { select.value = courses[0]; selectCourse(courses[0], 0); }
+      if (queryCourse === 'ALL') {
+        select.value = 'ALL';
+        selectAllCourses();
+        return;
+      }
+      if (queryCourse && courses.includes(queryCourse)) {
+        select.value = queryCourse;
+        selectCourse(queryCourse, courses.indexOf(queryCourse));
+        return;
+      }
+
+      // 현재 시각 기준 운행/대기 중인 노선 우선 탐색
+      const now = new Date();
+      const currentMin = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
+      let activeCourse = null;
+
+      for (let cName of courses) {
+        const stops = (routeData[cName] || []).filter(s => !s.isWaypoint);
+        for (let s of stops) {
+          for (let sc of (s.schedules || [])) {
+            if (sc.time && !sc.time.includes('미운행')) {
+              const m = timeToMinutes(sc.time);
+              if (currentMin >= m - 10 && currentMin <= m + 15) {
+                activeCourse = cName;
+                break;
+              }
+            }
+          }
+          if (activeCourse) break;
+        }
+        if (activeCourse) break;
+      }
+
+      const initialCourse = activeCourse || (courses.length > 0 ? courses[0] : null);
+      if (initialCourse) {
+        select.value = initialCourse;
+        selectCourse(initialCourse, courses.indexOf(initialCourse) >= 0 ? courses.indexOf(initialCourse) : 0);
+      }
     }
 
     function findNearestStop() {
@@ -1525,7 +1560,7 @@
       return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
     }
 
-    // 도로선 기반 보간 및 차체 회전각(heading) 계산 함수
+    // 도로선 정확한 매핑(Snap to Polyline): 두 정류소 사이의 도로 세그먼트 누적 거리를 기준으로 선 위 정확한 좌표 반환
     function interpolateAlongPathWithHeading(courseKey, stopA, stopB, ratio) {
       ratio = Math.max(0, Math.min(1, isNaN(ratio) ? 0 : ratio));
       const cleanKey = courseKey.trim();
@@ -1540,7 +1575,6 @@
           if (dA < minDistA) { minDistA = dA; idxA = i; }
         }
 
-        // stopB는 반드시 stopA 이후 인덱스부터 검색
         let idxB = idxA, minDistB = Infinity;
         for (let i = idxA; i < path.length; i++) {
           const dB = calcHaversineMeters(stopB.coords.getLat(), stopB.coords.getLng(), path[i].getLat(), path[i].getLng());
@@ -1548,12 +1582,27 @@
         }
 
         if (idxB > idxA) {
-          const targetIdx = Math.round(idxA + (idxB - idxA) * ratio);
-          const safeIdx = Math.min(targetIdx, path.length - 1);
-          const pCurrent = path[safeIdx];
-          const pNext = path[Math.min(safeIdx + 1, path.length - 1)];
-          const heading = calculateBearing(pCurrent.getLat(), pCurrent.getLng(), pNext.getLat(), pNext.getLng());
-          return { latLng: pCurrent, heading: heading };
+          // idxA부터 idxB까지의 도로 경로 누적 거리 계산
+          const segDistances = [0];
+          let totalSegDist = 0;
+          for (let k = idxA; k < idxB; k++) {
+            const d = calcHaversineMeters(path[k].getLat(), path[k].getLng(), path[k + 1].getLat(), path[k + 1].getLng());
+            totalSegDist += d;
+            segDistances.push(totalSegDist);
+          }
+
+          const targetDist = totalSegDist * ratio;
+          for (let k = 0; k < segDistances.length - 1; k++) {
+            if (targetDist >= segDistances[k] && targetDist <= segDistances[k + 1]) {
+              const subRatio = (segDistances[k + 1] === segDistances[k]) ? 0 : (targetDist - segDistances[k]) / (segDistances[k + 1] - segDistances[k]);
+              const p1 = path[idxA + k];
+              const p2 = path[idxA + k + 1];
+              const lat = p1.getLat() + (p2.getLat() - p1.getLat()) * subRatio;
+              const lng = p1.getLng() + (p2.getLng() - p1.getLng()) * subRatio;
+              const heading = calculateBearing(p1.getLat(), p1.getLng(), p2.getLat(), p2.getLng());
+              return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
+            }
+          }
         }
       }
 
@@ -1570,7 +1619,7 @@
       const barText = document.getElementById('liveStatusText'), liveTag = document.getElementById('liveTag');
 
       if (isNonOperatingDay(now)) {
-        liveTag.innerText = '미운행일'; liveTag.classList.add('holiday');
+        liveTag.innerText = '미운행일'; liveTag.className = 'live-tag holiday';
         barText.innerHTML = `오늘은 셔틀버스 미운행일(주말/공휴일)입니다.`;
         return;
       }
@@ -1584,16 +1633,15 @@
       })));
 
       if (latest > 0 && currentMinutes > latest + 10) {
-        liveTag.innerText = '운행 마감'; liveTag.classList.add('ended');
+        liveTag.innerText = '운행 마감'; liveTag.className = 'live-tag ended';
         barText.innerHTML = `오늘의 셔틀버스 운행이 모두 종료되었습니다.`;
         return;
       }
 
-      liveTag.innerText = 'LIVE 운행'; liveTag.classList.remove('holiday', 'ended');
       const activeList = [];
+      let isAnyWaiting = false;
 
       Object.keys(routeData).forEach(cName => {
-        // 실제 유효한 정류소만 필터링하고 원래 배열 순서대로 정렬 유지
         const stops = (routeData[cName] || []).filter(s => !s.isWaypoint && s.coords).sort((a,b) => a.rowIdx - b.rowIdx);
         if (stops.length < 2) return;
 
@@ -1612,14 +1660,35 @@
         });
 
         Object.keys(rounds).forEach(roundName => {
-          // 정류소 목록 순서(경로 진행 순서)대로 정렬
           const schedList = rounds[roundName].sort((a, b) => a.stopIndex - b.stopIndex);
           if (schedList.length < 2) return;
 
           const startMin = schedList[0].min;
           const endMin = schedList[schedList.length - 1].min;
 
-          if (currentMinutes >= startMin && currentMinutes <= endMin + 1) {
+          // 1. 운행 시작 10분 전 ~ 출발 시각: [복지관 출발 대기 모드]
+          if (currentMinutes >= startMin - 10 && currentMinutes < startMin) {
+            isAnyWaiting = true;
+            const diffMin = Math.ceil(startMin - currentMinutes);
+            const firstStop = schedList[0].stop;
+            const nextStop = schedList[1].stop;
+            const initialHeading = calculateBearing(firstStop.coords.getLat(), firstStop.coords.getLng(), nextStop.coords.getLat(), nextStop.coords.getLng());
+
+            activeList.push({
+              courseName: cName,
+              roundName: roundName,
+              statusDesc: `복지관 출발 대기 (${diffMin}분 뒤 출발)`,
+              stopIndex: schedList[0].stopIndex
+            });
+
+            if (!window.hasGpsData || !window.hasGpsData[cName]) {
+              if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
+                window.updateRealtimeBusMarker(cName, `${roundName} 대기`, firstStop.coords, initialHeading, true);
+              }
+            }
+          }
+          // 2. 출발 이후 ~ 종점 도착: [실시간 도로 주행 모드]
+          else if (currentMinutes >= startMin && currentMinutes <= endMin + 1) {
             let curStopItem = null;
             let nextStopItem = null;
             let ratio = 0;
@@ -1677,7 +1746,6 @@
                 stopIndex: curStopItem.stopIndex
               });
 
-              // 실시간 서초구 스타일 버스 마커 갱신
               if (!window.hasGpsData || !window.hasGpsData[cName]) {
                 if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
                   window.updateRealtimeBusMarker(cName, `${roundName}`, liveLatLng, heading, true);
@@ -1689,6 +1757,8 @@
       });
 
       if (activeList.length === 0) {
+        liveTag.innerText = 'LIVE 운행';
+        liveTag.className = 'live-tag';
         barText.innerHTML = `현재 운행 중인 차량이 없습니다. (현재 시각 ${now.toTimeString().substring(0,5)})`;
         Object.keys(window.realtimeBusMarkers).forEach(cName => {
           if (!window.hasGpsData || !window.hasGpsData[cName]) {
@@ -1697,6 +1767,14 @@
           }
         });
       } else {
+        if (isAnyWaiting && activeList.every(i => i.statusDesc.includes('대기'))) {
+          liveTag.innerText = '출발 대기';
+          liveTag.className = 'live-tag waiting';
+        } else {
+          liveTag.innerText = 'LIVE 운행';
+          liveTag.className = 'live-tag';
+        }
+
         barText.innerHTML = '';
         activeList.forEach(item => {
           const span = document.createElement('span');
