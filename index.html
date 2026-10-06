@@ -27,7 +27,7 @@
     const db = getDatabase(app);
 
     window.realtimeBusMarkers = {};
-    window.hasGpsData = {}; // 실제 GPS 수신 여부 플래그
+    window.hasGpsData = {};
 
     window.initRealtimeBusTracking = function() {
       const liveBusRef = ref(db, 'liveBuses/');
@@ -39,7 +39,6 @@
           const pos = data[courseName];
           if (!pos || !pos.lat || !pos.lng) return;
 
-          // 실제 GPS 수신 플래그
           window.hasGpsData[courseName] = true;
 
           const busLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
@@ -61,20 +60,20 @@
         const busElem = document.createElement('div');
         busElem.className = 'live-real-bus-marker';
         busElem.innerHTML = `
-          <div style="background:#ffffff; border:2.5px solid ${isEstimated ? '#ea580c' : '#2563eb'}; border-radius:18px; padding:4px 12px; box-shadow:0 4px 12px rgba(0,0,0,0.35); display:flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer;">
+          <div style="background:#ffffff; border:2.5px solid ${isEstimated ? '#ea580c' : '#2563eb'}; border-radius:18px; padding:4px 10px; box-shadow:0 4px 14px rgba(0,0,0,0.4); display:flex; align-items:center; gap:5px; white-space:nowrap; cursor:pointer;">
             <span style="font-size:16px;">🚌</span>
             <div style="display:flex; flex-direction:column; text-align:left;">
               <span style="font-size:10px; font-weight:800; color:${isEstimated ? '#ea580c' : '#2563eb'}; line-height:1;">${courseName}</span>
-              <span class="bus-badge-label" style="font-size:12px; font-weight:900; color:#0f172a; line-height:1.2;">${busNum}</span>
+              <span class="bus-badge-label" style="font-size:11px; font-weight:900; color:#0f172a; line-height:1.2;">${busNum}</span>
             </div>
           </div>`;
 
         const realBusOverlay = new kakao.maps.CustomOverlay({
           position: latLng,
           content: busElem,
-          yAnchor: 1.1,
+          yAnchor: 1.15,
           xAnchor: 0.5,
-          zIndex: 300
+          zIndex: 350
         });
 
         realBusOverlay.setMap(window.map);
@@ -330,12 +329,6 @@
     .route-dir-arrow { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; pointer-events: none; transform-origin: center center; filter: drop-shadow(0px 1px 3px rgba(0,0,0,0.65)); }
     .route-dir-arrow svg { width: 100%; height: 100%; overflow: visible; }
 
-    .live-bus-badge {
-      position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); background: #ffffff; border: 2px solid #ef4444; border-radius: 20px; padding: 2px 7px; font-size: 13px; font-weight: 800; color: #ef4444; box-shadow: 0 3px 10px rgba(239,68,68,0.5); display: flex; align-items: center; gap: 3px; white-space: nowrap; animation: bounceBus 1.2s infinite ease-in-out; pointer-events: none; z-index: 200;
-    }
-    .live-bus-badge::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-width: 6px 5px 0 5px; border-style: solid; border-color: #ef4444 transparent transparent transparent; }
-    @keyframes bounceBus { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
-
     #loadingModal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.7); color: #fff; z-index: 2000; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.15rem;
     }
@@ -553,7 +546,6 @@
     let geocoder = null;
     let places = null;
     let markerOverlays = [];
-    let liveBusOverlays = [];
     let arrowOverlays = [];
     let currentBubbleOverlay = null;
     let polylines = [];
@@ -1116,7 +1108,6 @@
 
     function clearMapLayers() {
       markerOverlays.forEach(o => o.setMap(null)); markerOverlays = [];
-      liveBusOverlays.forEach(o => o.setMap(null)); liveBusOverlays = [];
       arrowOverlays.forEach(o => o.setMap(null)); arrowOverlays = [];
       if (currentBubbleOverlay) { currentBubbleOverlay.setMap(null); currentBubbleOverlay = null; }
       polylines.forEach(p => p.setMap(null)); polylines = [];
@@ -1235,14 +1226,7 @@
             markerOverlay.setMap(map);
             markerOverlays.push(markerOverlay);
 
-            if (isNowActive) {
-              const busBadgeElem = document.createElement('div');
-              busBadgeElem.className = 'live-bus-badge';
-              busBadgeElem.innerHTML = `🚌 운행중`;
-              const busOverlay = new kakao.maps.CustomOverlay({ position: adjustedCoords, content: busBadgeElem, yAnchor: 1.0, xAnchor: 0.5, zIndex: 120 });
-              busOverlay.setMap(map);
-              liveBusOverlays.push(busOverlay);
-            }
+            // 중요: 7번 위에 고정되어 안 움직이던 정적 live-bus-badge 생성 제거
 
             badge.onclick = () => {
               const box = document.getElementById(`card-${i}`);
@@ -1408,15 +1392,6 @@
               markerOverlay.setMap(map);
               markerOverlays.push(markerOverlay);
 
-              if (isNowActive) {
-                const busBadgeElem = document.createElement('div');
-                busBadgeElem.className = 'live-bus-badge';
-                busBadgeElem.innerHTML = `🚌 운행중`;
-                const busOverlay = new kakao.maps.CustomOverlay({ position: coords, content: busBadgeElem, yAnchor: 1.0, xAnchor: 0.5, zIndex: 120 });
-                busOverlay.setMap(map);
-                liveBusOverlays.push(busOverlay);
-              }
-
               badgeElem.onclick = () => {
                 const box = document.getElementById(`all-card-${cIdx}-${i}`);
                 if (box) {
@@ -1519,11 +1494,10 @@
 
     function startRealtimeCheck() {
       checkActiveBuses();
-      // 1초 주기로 부드러운 위치 갱신
+      // 1초마다 보간 연산
       setInterval(checkActiveBuses, 1000);
     }
 
-    // 시간 문자열(HH:MM)을 분 단위 숫자로 변환
     function timeToMinutes(tStr) {
       if (!tStr) return -1;
       const m = tStr.match(/(\d{1,2}):(\d{2})/);
@@ -1531,7 +1505,7 @@
       return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
     }
 
-    // 도로 경로선 기반 보간 계산 함수 (역전 방지 및 안전 보간)
+    // 도로선 기반 보간 계산 함수
     function interpolatePositionAlongPath(courseKey, stopA, stopB, ratio) {
       ratio = Math.max(0, Math.min(1, isNaN(ratio) ? 0 : ratio));
 
@@ -1545,7 +1519,6 @@
           if (dA < minDistA) { minDistA = dA; idxA = i; }
         }
 
-        // stopB는 idxA 이후 인덱스부터 검색하여 순방향 유지
         let idxB = idxA, minDistB = Infinity;
         for (let i = idxA; i < path.length; i++) {
           const dB = calcHaversineMeters(stopB.coords.getLat(), stopB.coords.getLng(), path[i].getLat(), path[i].getLng());
@@ -1558,7 +1531,7 @@
         }
       }
 
-      // 도로선 데이터가 없거나 인덱스가 같으면 좌표 직선 보간
+      // 도로선 캐시가 없거나 인덱스가 같으면 두 정류장 간 직선 보간
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
       const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLng()) * ratio;
       return new kakao.maps.LatLng(lat, lng);
@@ -1566,7 +1539,6 @@
 
     function checkActiveBuses() {
       const now = new Date();
-      // 초 단위 실시간 연속 분(minute) 계산
       const currentMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
       const barText = document.getElementById('liveStatusText'), liveTag = document.getElementById('liveTag');
 
@@ -1597,7 +1569,6 @@
         const stops = (routeData[cName] || []).filter(s => !s.isWaypoint && s.coords);
         if (stops.length < 2) return;
 
-        // 회차별 정류소 매핑
         const rounds = {};
         stops.forEach((s, sIdx) => {
           (s.schedules || []).forEach(sc => {
@@ -1618,7 +1589,6 @@
           const startMin = schedList[0].min;
           const endMin = schedList[schedList.length - 1].min;
 
-          // 현재 회차가 운행 중인 시간대일 때
           if (currentMinutes >= startMin && currentMinutes <= endMin + 1) {
             let curStopItem = null;
             let nextStopItem = null;
@@ -1637,15 +1607,15 @@
                 break;
               }
 
-              // 시간표의 분(min)이 같거나 역전된 경우 최소 1분 간격 자동 부여
+              // 같은 분 단위이거나 오차가 있을 경우 최소 1분 간격 보장
               const effectiveNextMin = next.min <= cur.min ? cur.min + 1 : next.min;
 
               if (currentMinutes >= cur.min && currentMinutes < effectiveNextMin) {
                 curStopItem = cur;
                 nextStopItem = next;
 
-                // 정류소 시각 직후 15초(0.25분) 동안은 정차로 처리하고, 이후는 도로 이동
-                if (currentMinutes - cur.min < 0.25) {
+                // 정류소 시각 기준 10초(0.16분) 동안만 정차, 이후 바로 다음 정류소로 도로선 이동
+                if (currentMinutes - cur.min < 0.16) {
                   isAtStation = true;
                 } else {
                   ratio = (currentMinutes - cur.min) / (effectiveNextMin - cur.min);
@@ -1673,7 +1643,7 @@
                 stopIndex: curStopItem.stopIndex
               });
 
-              // Firebase GPS 실데이터가 수신되지 않은 경우 가상 이동 마커 갱신
+              // 실시간 이동 버스 마커 갱신
               if (!window.hasGpsData || !window.hasGpsData[cName]) {
                 if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName)) {
                   window.updateRealtimeBusMarker(cName, `${roundName}`, liveLatLng, true);
