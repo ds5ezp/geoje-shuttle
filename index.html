@@ -2,7 +2,6 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <!-- 모바일 브라우저 캐시 방지 메타태그 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -55,27 +54,78 @@
       });
     };
 
-    window.busHeadingState = {};
+    // 버스별 부드러운 위치/각도 애니메이션 상태 저장소
+    window.busAnimStates = {};
+
+    // 60FPS 프레임 단위 보간 루프 (미끄러지듯 주행)
+    function startSmoothBusLoop() {
+      function step() {
+        const targetMap = window.map || window.kakaoMapInstance;
+        if (targetMap) {
+          Object.keys(window.busAnimStates).forEach(courseName => {
+            const st = window.busAnimStates[courseName];
+            const overlay = window.realtimeBusMarkers[courseName];
+            if (!st || !overlay) return;
+
+            // 좌표 부드러운 LERP 보간 (계수: 0.08)
+            const dLat = st.targetLat - st.currLat;
+            const dLng = st.targetLng - st.currLng;
+            if (Math.abs(dLat) > 0.0000001 || Math.abs(dLng) > 0.0000001) {
+              st.currLat += dLat * 0.08;
+              st.currLng += dLng * 0.08;
+              overlay.setPosition(new kakao.maps.LatLng(st.currLat, st.currLng));
+            }
+
+            // 각도 부드러운 LERP 보간
+            const dHead = st.targetHeading - st.currHeading;
+            if (Math.abs(dHead) > 0.05) {
+              st.currHeading += dHead * 0.1;
+              const markerElem = overlay.getContent();
+              if (markerElem) {
+                const bodyElem = markerElem.querySelector('.seocho-bus-body');
+                if (bodyElem) bodyElem.style.transform = `rotate(${st.currHeading}deg)`;
+              }
+            }
+          });
+        }
+        requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+    startSmoothBusLoop();
 
     window.updateRealtimeBusMarker = function(courseName, busNum, latLng, rawHeading = 0, isEstimated = false) {
       const targetMap = window.map || window.kakaoMapInstance;
       if (!targetMap || !latLng) return;
 
       const themeColor = getCourseColor(courseName);
+      const tLat = latLng.getLat();
+      const tLng = latLng.getLng();
 
-      let prevHeading = window.busHeadingState[courseName] !== undefined ? window.busHeadingState[courseName] : rawHeading;
-      let diff = (rawHeading - (prevHeading % 360) + 540) % 360 - 180;
-      let smoothHeading = prevHeading + diff;
-      window.busHeadingState[courseName] = smoothHeading;
+      if (!window.busAnimStates[courseName]) {
+        window.busAnimStates[courseName] = {
+          currLat: tLat,
+          currLng: tLng,
+          targetLat: tLat,
+          targetLng: tLng,
+          currHeading: rawHeading,
+          targetHeading: rawHeading
+        };
+      } else {
+        const st = window.busAnimStates[courseName];
+        st.targetLat = tLat;
+        st.targetLng = tLng;
+
+        // 최단 회전각 계산
+        let diff = (rawHeading - (st.targetHeading % 360) + 540) % 360 - 180;
+        st.targetHeading = st.targetHeading + diff;
+      }
 
       if (window.realtimeBusMarkers[courseName]) {
-        window.realtimeBusMarkers[courseName].setPosition(latLng);
         window.realtimeBusMarkers[courseName].setMap(targetMap);
         const markerElem = window.realtimeBusMarkers[courseName].getContent();
         if (markerElem) {
-          const bodyElem = markerElem.querySelector('.seocho-bus-body');
           const textElem = markerElem.querySelector('.seocho-bus-title');
-          if (bodyElem) bodyElem.style.transform = `rotate(${smoothHeading}deg)`;
           if (textElem) textElem.innerText = `${courseName} (${busNum})`;
         }
       } else {
@@ -92,7 +142,7 @@
         `;
 
         const busRoofSvg = `
-          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${smoothHeading}deg); transform-origin: 16px 25px; transition: transform 0.25s linear; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5));">
+          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${rawHeading}deg); transform-origin: 16px 25px; will-change: transform; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5));">
             <svg width="32" height="50" viewBox="0 0 32 50" fill="none">
               <rect x="2" y="2" width="28" height="46" rx="9" fill="${themeColor}" stroke="#0f172a" stroke-width="2.8"/>
               <rect x="5.5" y="7" width="21" height="9" rx="3" fill="#ffffff" stroke="#0f172a" stroke-width="1.8"/>
@@ -238,13 +288,11 @@
     #main-container { flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden; }
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
 
-    /* 사이드바 & 접기 토글 버튼 */
     #sidebar {
       width: 440px; height: 100%; background: #ffffff; box-shadow: 2px 0 12px rgba(0,0,0,0.08); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; z-index: 50; flex-shrink: 0;
       transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), padding 0.3s cubic-bezier(0.25, 1, 0.5, 1);
       position: relative;
     }
-    /* 웹에서 사이드바가 닫혔을 때 */
     #sidebar.web-hidden {
       width: 0 !important;
       padding-left: 0 !important;
@@ -253,7 +301,6 @@
       overflow: hidden !important;
     }
 
-    /* 사이드바 접기/열기 플로팅 버튼 (PC 웹용) */
     #sidebarToggleBtn {
       position: absolute;
       top: 50%;
@@ -533,7 +580,6 @@
     </div>
 
     <div id="main-container">
-      <!-- 사이드바 접기/열기 버튼 (PC 웹용) -->
       <div id="sidebarToggleBtn" onclick="toggleSidebarWeb()" title="목록 접기/열기">◀</div>
 
       <div id="sidebar">
@@ -650,7 +696,6 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // PC 웹용 사이드바 토글 함수
     function toggleSidebarWeb() {
       const sidebar = document.getElementById('sidebar');
       const toggleBtn = document.getElementById('sidebarToggleBtn');
@@ -691,7 +736,7 @@
       return numMatch ? parseInt(numMatch[0], 10) : 999;
     }
 
-    // 도로선 기반 정확한 위치 및 진행 방향(Heading) 추출
+    // 도로선 기반 정밀 위치 및 회전각 추출
     function interpolateAlongPathWithHeading(courseKey, stopA, stopB, ratio) {
       ratio = Math.max(0, Math.min(1, isNaN(ratio) ? 0 : ratio));
       const cleanKey = courseKey.trim();
@@ -736,14 +781,12 @@
         }
       }
 
-      // 도로선이 없을 경우 정류장 간 직선 보간
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
       const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLng()) * ratio;
       const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
       return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
     }
 
-    // 드롭다운 초기화 및 현재 운행/대기 노선 자동 선택
     function initCourseDropdown() {
       const select = document.getElementById('courseSelect');
       if (!select) return;
@@ -1657,7 +1700,7 @@
         const arrowDiv = document.createElement('div');
         arrowDiv.className = 'route-dir-arrow';
         arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing - 90}deg)`;
-        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
+        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
         const overlay = new kakao.maps.CustomOverlay({ position: p2, content: arrowDiv, yAnchor: 0.5, xAnchor: 0.5, zIndex: 8 });
         overlay.setMap(map); arrowOverlays.push(overlay);
       }
@@ -1736,6 +1779,7 @@
           const startMin = schedList[0].min;
           const endMin = schedList[schedList.length - 1].min;
 
+          // 1. 출발 10분 전 ~ 출발 시각 대기
           if (currentMinutes >= startMin - 10 && currentMinutes < startMin) {
             isAnyWaiting = true;
             const diffMin = Math.ceil(startMin - currentMinutes);
@@ -1756,6 +1800,7 @@
               }
             }
           }
+          // 2. 실시간 주행 모드
           else if (currentMinutes >= startMin && currentMinutes <= endMin + 1) {
             let curStopItem = null;
             let nextStopItem = null;
