@@ -39,25 +39,46 @@
         const data = snapshot.val();
         if (!data) return;
 
+        let hasAnyLiveBus = false;
+
         Object.keys(data).forEach(courseName => {
           const pos = data[courseName];
           if (!pos || !pos.lat || !pos.lng) return;
 
-          const isFresh = (Date.now() - (pos.updatedAt || 0)) < 180000;
-          if (pos.isOperating && isFresh) {
+          // isOperating이 true이면 실시간 운행 중으로 즉시 인식
+          if (pos.isOperating === true || pos.isOperating === "true") {
             window.hasGpsData[courseName] = true;
+            hasAnyLiveBus = true;
+
+            const busLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+            const busNum = pos.busNumber || '운행차량';
+            const heading = pos.heading || 0;
+            const speed = Math.round(pos.speed || 0);
+
+            // 1. 지도 위 마커 표시
+            if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
+              updateRealtimeBusMarker(courseName, busNum, busLatLng, heading, speed, false);
+            }
+
+            // 2. 상단 LIVE 상태 바 즉시 갱신
+            const liveTag = document.getElementById('liveTag');
+            const barText = document.getElementById('liveStatusText');
+            if (liveTag && barText) {
+              liveTag.innerText = 'LIVE GPS';
+              liveTag.className = 'live-tag';
+              
+              // 기존 내용 대체 또는 추가
+              barText.innerHTML = `
+                <span class="live-item" onclick="switchToCourseAndStop('${courseName}', 0)">
+                  🚌 <b>[${courseName} ${busNum}]</b> 실시간 GPS 주행 중 (${speed} km/h)
+                </span>
+              `;
+            }
           } else {
             window.hasGpsData[courseName] = false;
-            return;
-          }
-
-          const busLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
-          const busNum = pos.busNumber || '운행차량';
-          const heading = pos.heading || 0;
-          const speed = Math.round(pos.speed || 0);
-
-          if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
-            updateRealtimeBusMarker(courseName, busNum, busLatLng, heading, speed, false);
+            if (window.realtimeBusMarkers[courseName]) {
+              window.realtimeBusMarkers[courseName].setMap(null);
+            }
           }
         });
       });
