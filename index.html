@@ -14,7 +14,7 @@
   <!-- Firebase SDK 실연동 -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDIOaN5jLCjjjK-xKUi4Bb-f4597panqDo",
@@ -29,14 +29,61 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    window.firebaseDb = db;
+    window.firebaseGet = get;
+    window.firebaseRef = ref;
 
     window.realtimeBusMarkers = {};
     window.hasGpsData = {};
     window.latestGpsStore = {};
+    window.todayStationLogs = {}; // 오늘 실시간 통과 기록 저장용
 
     window.normKey = function(str) {
       if (!str) return '';
       return String(str).replace(/[·.\s\-_()]/g, '').trim();
+    };
+
+    function getTodayString() {
+      const d = new Date();
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${yr}-${mo}-${day}`;
+    }
+
+    // 오늘 날짜의 정류장 통과 기록을 실시간 감시하여 사이드바에 뱃지 반영
+    window.initStationLogWatcher = function() {
+      const todayStr = getTodayString();
+      const logRef = ref(db, `stationLogs/${todayStr}/`);
+      onValue(logRef, (snapshot) => {
+        const data = snapshot.val() || {};
+        window.todayStationLogs = data;
+        applyPassingBadgesToSidebar();
+      });
+    };
+
+    window.applyPassingBadgesToSidebar = function() {
+      if (!currentSelectedCourseKey || currentSelectedCourseKey === 'ALL') return;
+      const courseLogs = window.todayStationLogs[currentSelectedCourseKey] || {};
+
+      document.querySelectorAll('.passed-time-badge').forEach(el => el.remove());
+
+      Object.keys(courseLogs).forEach(roundKey => {
+        const roundData = courseLogs[roundKey] || {};
+        Object.keys(roundData).forEach(stopKey => {
+          const item = roundData[stopKey];
+          if (!item || !item.stopIndex || !item.time) return;
+
+          const badgeRow = document.getElementById(`badge-row-${item.stopIndex - 1}`);
+          if (badgeRow) {
+            const span = document.createElement('span');
+            span.className = 'badge-tag passed-time-badge';
+            span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
+            span.innerText = `✔ ${roundKey} ${item.time} 통과`;
+            badgeRow.appendChild(span);
+          }
+        });
+      });
     };
 
     window.snapGpsToRoute = function(courseName, rawLatLng) {
@@ -377,7 +424,7 @@
       height: 42px; padding: 0 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: 800; font-size: 0.82rem; white-space: nowrap; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 2px;
     }
     .pwa-btn { background: #0284c7; color: #ffffff; }
-    .font-size-btn { background: #ea580c; color: #ffffff; }
+    .history-btn { background: #7c3aed; color: #ffffff; }
     .nearby-btn { background: #2563eb; color: #ffffff; }
     .table-view-btn { background: #047857; color: #ffffff; }
     .qr-share-btn { background: #475569; color: #ffffff; }
@@ -524,7 +571,6 @@
     .stop-item-title { font-size: 1.08rem; font-weight: 800; color: #0f172a; word-break: break-all; }
     
     .stop-badges-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
-    .stop-badges-row:empty { display: none; margin: 0; }
     .badge-tag { font-size: 0.75rem; font-weight: 800; padding: 2px 7px; border-radius: 4px; }
     .badge-tag.gijum { background: #2563eb; color: #fff; }
     .badge-tag.jongjum { background: #dc2626; color: #fff; }
@@ -556,13 +602,12 @@
     .popup-nav-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 0; border-radius: 8px; background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.85rem; font-weight: 800; }
     .popup-roadview-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 0; border-radius: 8px; background: #2563eb; color: #ffffff; text-decoration: none; font-size: 0.85rem; font-weight: 800; }
 
-    .timetable-card {
+    .timetable-card, .history-card {
       background: #ffffff; width: 100%; max-width: 820px; height: 75vh;
       border-radius: 18px; box-shadow: 0 12px 36px rgba(0,0,0,0.35);
       display: flex; flex-direction: column; overflow: hidden;
       transition: height 0.3s cubic-bezier(0.25, 1, 0.5, 1);
     }
-    .timetable-card.expanded-modal { height: 96vh !important; }
 
     .tt-header { padding: 16px 20px; border-bottom: 1.5px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; background: #2563eb; color: #fff; flex-shrink: 0; cursor: pointer; user-select: none; }
     .tt-header-left h3 { font-size: 1.15rem; font-weight: 800; color: #ffffff; }
@@ -614,7 +659,7 @@
       position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; z-index: 500; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
 
-    #timetableModal, #qrModal, #pwaModal, #photoZoomModal {
+    #timetableModal, #historyModal, #qrModal, #pwaModal, #photoZoomModal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.78); z-index: 3500; align-items: center; justify-content: center; padding: 12px;
     }
     .qr-card, .pwa-card { background: #ffffff; width: 100%; max-width: 380px; border-radius: 18px; padding: 22px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; }
@@ -632,6 +677,13 @@
     #zoomedImg { max-width: 100%; max-height: 75vh; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); object-fit: contain; }
     .zoom-caption { color: #ffffff; font-size: 1.1rem; font-weight: bold; margin-top: 12px; text-align: center; }
     .close-zoom-btn { position: absolute; top: -45px; right: 0; background: #ffffff; border: none; border-radius: 50%; width: 38px; height: 38px; font-size: 22px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0f172a; }
+
+    /* 날짜별 운행 이력 테이블 스타일 */
+    .history-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+    .history-table th { background: #f1f5f9; padding: 10px 12px; border-bottom: 2px solid #cbd5e1; color: #334155; font-weight: 800; }
+    .history-table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #0f172a; }
+    .history-table tr:hover { background: #f8fafc; }
+    .history-pass-time { color: #047857; font-weight: 800; background: #ecfdf5; padding: 3px 8px; border-radius: 6px; }
 
     @media (max-width: 850px) {
       #sidebarToggleBtn { display: none !important; }
@@ -657,11 +709,10 @@
       .timeline-node { width: 26px; height: 26px; left: -15px; font-size: 10px; }
       .stop-item-inner { padding: 12px 14px 12px 20px; }
       
-      .timetable-card {
+      .timetable-card, .history-card {
         height: 75vh !important; max-width: 100% !important; border-radius: 20px 20px 0 0 !important;
         position: absolute; bottom: 0; left: 0; right: 0;
       }
-      .timetable-card.expanded-modal { height: 96vh !important; }
     }
   </style>
 </head>
@@ -703,7 +754,7 @@
 
           <div class="header-actions">
             <button class="action-btn pwa-btn" onclick="openPwaModal()" title="홈">📲홈</button>
-            <button class="action-btn font-size-btn" onclick="toggleFontSize()" id="btnFontSize" title="글씨">🔍글씨</button>
+            <button class="action-btn history-btn" onclick="openHistoryModal()" title="통과기록">📅기록</button>
             <button class="action-btn nearby-btn" onclick="findNearestStop()" title="주변">📍주변</button>
             <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="표">📋표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유">🔗</button>
@@ -732,7 +783,6 @@
       <div id="sidebar">
         <div class="sheet-handle-bar" id="sheetHandle"></div>
         
-        <!-- 사이드바 상단 헤더 및 서초구 스타일 실시간 차량 카드 영역 -->
         <div class="sidebar-header-box" id="sidebarHeaderElem">
           <div class="sidebar-header-top">
             <div class="sidebar-header-left">
@@ -745,7 +795,6 @@
             </div>
           </div>
 
-          <!-- 실시간 운행 차량 카드들이 동적으로 생성되는 컨테이너 -->
           <div id="sidebarCardsContainer">
             <div class="seocho-live-card waiting">
               <div class="seocho-live-left">
@@ -766,12 +815,44 @@
     </div>
   </div>
 
+  <!-- 날짜별 정류소 통과 이력 조회 모달 -->
+  <div id="historyModal" onclick="closeHistoryModal(event)">
+    <div class="history-card" onclick="event.stopPropagation()">
+      <div class="tt-header" style="background:#7c3aed;">
+        <div class="tt-header-left">
+          <h3>📅 일자별 정류장 통과 시간 조회</h3>
+          <p>차량이 실제 정류소를 통과한 시각 기록을 확인합니다.</p>
+        </div>
+        <button class="tt-close-btn" onclick="closeHistoryModal()">&times;</button>
+      </div>
+
+      <div class="tt-summary-bar" style="gap:10px; justify-content:flex-start; flex-wrap:wrap;">
+        <label style="font-weight:800;">조회 날짜: </label>
+        <input type="date" id="historyDateInput" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; font-weight:800;" onchange="fetchHistoryData()">
+        
+        <label style="font-weight:800; margin-left:10px;">노선: </label>
+        <select id="historyCourseSelect" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; font-weight:800;" onchange="fetchHistoryData()"></select>
+
+        <label style="font-weight:800; margin-left:10px;">회차: </label>
+        <select id="historyRoundSelect" style="padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; font-weight:800;" onchange="renderHistoryTable()"></select>
+      </div>
+
+      <div class="tt-body-seocho" id="historyContentArea">
+        <p style="padding:30px; text-align:center; color:#64748b;">조회 조건을 선택해 주세요.</p>
+      </div>
+
+      <div class="tt-footer">
+        <button class="tt-action-btn tt-close-action-btn" onclick="closeHistoryModal()">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <div id="timetableModal" onclick="closeTimetableModal(event)">
     <div class="timetable-card" id="timetableCardElem" onclick="event.stopPropagation()">
       <div class="tt-header" id="ttHeaderTouch">
         <div class="tt-header-left">
           <h3 id="ttModalTitle">배차시간표</h3>
-          <p id="ttModalSubtitle">운행업체: (주)여행과 사람 | 문의: 055-687-4000 (▲ 위로 밀어 크게보기)</p>
+          <p id="ttModalSubtitle">운행업체: (주)여행과 사람 | 문의: 055-687-4000</p>
         </div>
         <button class="tt-close-btn" onclick="closeTimetableModal()">&times;</button>
       </div>
@@ -971,56 +1052,6 @@
       return numMatch ? parseInt(numMatch[0], 10) : 999;
     }
 
-    function interpolateAlongPathWithHeading(courseKey, stopA, stopB, ratio) {
-      ratio = Math.max(0, Math.min(1, isNaN(ratio) ? 0 : ratio));
-      const cleanKey = courseKey.trim();
-      const cached = routeCache[cleanKey];
-
-      if (cached && cached.path && cached.path.length > 1) {
-        const path = cached.path;
-        
-        let idxA = 0, minDistA = Infinity;
-        for (let i = 0; i < path.length; i++) {
-          const dA = calcHaversineMeters(stopA.coords.getLat(), stopA.coords.getLng(), path[i].getLat(), path[i].getLng());
-          if (dA < minDistA) { minDistA = dA; idxA = i; }
-        }
-
-        let idxB = idxA, minDistB = Infinity;
-        for (let i = idxA; i < path.length; i++) {
-          const dB = calcHaversineMeters(stopB.coords.getLat(), stopB.coords.getLng(), path[i].getLat(), path[i].getLng());
-          if (dB < minDistB) { minDistB = dB; idxB = i; }
-        }
-
-        if (idxB > idxA) {
-          const segDistances = [0];
-          let totalSegDist = 0;
-          for (let k = idxA; k < idxB; k++) {
-            const d = calcHaversineMeters(path[k].getLat(), path[k].getLng(), path[k + 1].getLat(), path[k + 1].getLng());
-            totalSegDist += d;
-            segDistances.push(totalSegDist);
-          }
-
-          const targetDist = totalSegDist * ratio;
-          for (let k = 0; k < segDistances.length - 1; k++) {
-            if (targetDist >= segDistances[k] && targetDist <= segDistances[k + 1]) {
-              const subRatio = (segDistances[k + 1] === segDistances[k]) ? 0 : (targetDist - segDistances[k]) / (segDistances[k + 1] - segDistances[k]);
-              const p1 = path[idxA + k];
-              const p2 = path[idxA + k + 1];
-              const lat = p1.getLat() + (p2.getLat() - p1.getLat()) * subRatio;
-              const lng = p1.getLng() + (p2.getLng() - p1.getLng()) * subRatio;
-              const heading = calculateBearing(p1.getLat(), p1.getLng(), p2.getLat(), p2.getLng());
-              return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
-            }
-          }
-        }
-      }
-
-      const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
-      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLat()) * ratio;
-      const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
-      return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
-    }
-
     function initCourseDropdown() {
       const select = document.getElementById('courseSelect');
       if (!select) return;
@@ -1046,31 +1077,10 @@
         return;
       }
 
-      const now = new Date();
-      const currentMin = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
-      let activeCourse = null;
-
-      for (let cName of courses) {
-        const stops = (routeData[cName] || []).filter(s => !s.isWaypoint);
-        for (let s of stops) {
-          for (let sc of (s.schedules || [])) {
-            if (sc.time && !sc.time.includes('미운행')) {
-              const m = timeToMinutes(sc.time);
-              if (currentMin >= m - 10 && currentMin <= m + 15) {
-                activeCourse = cName;
-                break;
-              }
-            }
-          }
-          if (activeCourse) break;
-        }
-        if (activeCourse) break;
-      }
-
-      const initialCourse = activeCourse || (courses.length > 0 ? courses[0] : null);
+      const initialCourse = courses.length > 0 ? courses[0] : null;
       if (initialCourse) {
         select.value = initialCourse;
-        selectCourse(initialCourse, courses.indexOf(initialCourse) >= 0 ? courses.indexOf(initialCourse) : 0);
+        selectCourse(initialCourse, 0);
       }
     }
 
@@ -1089,41 +1099,120 @@
     function openPwaModal() { document.getElementById('pwaModal').style.display = 'flex'; }
     function closePwaModal() { document.getElementById('pwaModal').style.display = 'none'; }
 
-    function toggleFontSize() {
-      const isLarge = document.body.classList.toggle('large-font');
-      const btn = document.getElementById('btnFontSize');
-      if (btn) btn.innerText = isLarge ? '🔍보통' : '🔍글씨';
-      setTimeout(() => { if (map) map.relayout(); }, 200);
-    }
+    // 날짜별 통과 이력 모달 로직
+    let currentFetchedHistory = {};
 
-    function speakStopArrival(stopName, schedules) {
-      if (!window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
+    window.openHistoryModal = function() {
+      const dInput = document.getElementById('historyDateInput');
+      const cSelect = document.getElementById('historyCourseSelect');
+      
       const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const eta = getNextArrivalInfo(schedules, currentMinutes);
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      dInput.value = `${yyyy}-${mm}-${dd}`;
 
-      let text = `${stopName} 정류소입니다. `;
-      if (eta && eta.targetSchedule) {
-        if (eta.isImminent) text += `현재 ${eta.targetSchedule.round} 셔틀버스가 곧 도착하거나 운행 중입니다.`;
-        else text += `다음 셔틀버스는 ${eta.targetSchedule.round}, 약 ${eta.diff}분 뒤 도착 예정입니다.`;
-      } else {
-        text += `오늘 운행이 종료되었거나 예정된 버스가 없습니다.`;
+      cSelect.innerHTML = '';
+      Object.keys(routeData).forEach(cName => {
+        const opt = document.createElement('option');
+        opt.value = cName;
+        opt.innerText = cName;
+        cSelect.appendChild(opt);
+      });
+      if (currentSelectedCourseKey && currentSelectedCourseKey !== 'ALL') {
+        cSelect.value = currentSelectedCourseKey;
       }
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ko-KR';
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-    }
 
-    function isNonOperatingDay(d) {
-      const day = d.getDay();
-      if (day === 0 || day === 6) return true;
-      const m = d.getMonth() + 1;
-      const dt = d.getDate();
-      const holidays = ['1-1', '3-1', '5-5', '6-6', '8-15', '10-3', '10-9', '12-25'];
-      return holidays.includes(`${m}-${dt}`);
-    }
+      document.getElementById('historyModal').style.display = 'flex';
+      fetchHistoryData();
+    };
+
+    window.closeHistoryModal = function() {
+      document.getElementById('historyModal').style.display = 'none';
+    };
+
+    window.fetchHistoryData = async function() {
+      const dateStr = document.getElementById('historyDateInput').value;
+      const courseStr = document.getElementById('historyCourseSelect').value;
+      const rSelect = document.getElementById('historyRoundSelect');
+      const area = document.getElementById('historyContentArea');
+
+      if (!dateStr || !courseStr) return;
+
+      area.innerHTML = '<p style="padding:30px; text-align:center; color:#64748b;">운행 기록을 불러오는 중입니다...</p>';
+
+      try {
+        const dbRef = window.firebaseRef(window.firebaseDb, `stationLogs/${dateStr}/${courseStr}`);
+        const snapshot = await window.firebaseGet(dbRef);
+        currentFetchedHistory = snapshot.val() || {};
+
+        rSelect.innerHTML = '';
+        const rounds = Object.keys(currentFetchedHistory);
+
+        if (rounds.length === 0) {
+          rSelect.innerHTML = '<option value="">운행 기록 없음</option>';
+          area.innerHTML = `<p style="padding:30px; text-align:center; color:#ef4444; font-weight:bold;">${dateStr} [${courseStr}] 노선의 저장된 운행 기록이 없습니다.</p>`;
+          return;
+        }
+
+        rounds.forEach(r => {
+          const opt = document.createElement('option');
+          opt.value = r;
+          opt.innerText = r;
+          rSelect.appendChild(opt);
+        });
+
+        renderHistoryTable();
+      } catch (e) {
+        area.innerHTML = `<p style="padding:30px; text-align:center; color:#ef4444;">조회 오류 발생: ${e.message}</p>`;
+      }
+    };
+
+    window.renderHistoryTable = function() {
+      const courseStr = document.getElementById('historyCourseSelect').value;
+      const roundStr = document.getElementById('historyRoundSelect').value;
+      const area = document.getElementById('historyContentArea');
+
+      if (!roundStr || !currentFetchedHistory[roundStr]) {
+        area.innerHTML = '<p style="padding:30px; text-align:center; color:#64748b;">선택된 회차의 통과 기록이 없습니다.</p>';
+        return;
+      }
+
+      const logMap = currentFetchedHistory[roundStr] || {};
+      const courseStops = (routeData[courseStr] || []).filter(s => !s.isWaypoint);
+
+      let rowsHtml = '';
+      courseStops.forEach((s, idx) => {
+        const stopNum = idx + 1;
+        const passedItem = logMap[`stop_${stopNum}`];
+        const passTimeHtml = passedItem 
+          ? `<span class="history-pass-time">✔ ${passedItem.time}</span> <span style="font-size:0.75rem; color:#64748b;">(${passedItem.busNumber || '차량'})</span>` 
+          : `<span style="color:#94a3b8; font-size:0.85rem;">미통과 (기록 없음)</span>`;
+
+        rowsHtml += `
+          <tr>
+            <td style="font-weight:800; color:#2563eb; width:50px;">${stopNum}</td>
+            <td style="font-weight:700;">${s.name} ${s.stopNo ? `<span style="font-size:0.75rem; color:#64748b;">(No.${s.stopNo})</span>` : ''}</td>
+            <td>${passTimeHtml}</td>
+          </tr>
+        `;
+      });
+
+      area.innerHTML = `
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>순번</th>
+              <th>정류장명</th>
+              <th>실제 통과 시각</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      `;
+    };
 
     function handleStopSearch(keyword) {
       keyword = keyword.trim().toLowerCase();
@@ -1194,31 +1283,6 @@
       setTimeout(() => { if (map) map.relayout(); }, 200);
     }
 
-    function getNextArrivalInfo(schedules, currentMinutes) {
-      if (!schedules || schedules.length === 0) return null;
-      let bestDiff = Infinity;
-      let nextSchedule = null;
-
-      schedules.forEach(s => {
-        if (!s.time || s.time.includes('미운행')) return;
-        const parts = s.time.split(':');
-        const targetMin = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-        const diff = targetMin - currentMinutes;
-        if (diff >= -1 && diff <= 120 && diff < bestDiff) {
-          bestDiff = diff;
-          nextSchedule = s;
-        }
-      });
-
-      if (!nextSchedule) return null;
-      if (Math.abs(bestDiff) <= 1) {
-        return { isImminent: true, diff: bestDiff, targetSchedule: nextSchedule };
-      } else if (bestDiff > 0) {
-        return { isImminent: false, diff: bestDiff, targetSchedule: nextSchedule };
-      }
-      return null;
-    }
-
     function handleCourseSelectChange(val) {
       if (val === 'ALL') selectAllCourses();
       else {
@@ -1273,83 +1337,11 @@
       if (!currentTimetableCourseKey || currentTimetableCourseKey === 'ALL') currentTimetableCourseKey = courses[0];
       
       const cardElem = document.getElementById('timetableCardElem');
-      cardElem.classList.remove('expanded-modal');
       renderSeochoTimetableTabs();
       renderSeochoTimetableContent(currentTimetableCourseKey);
       document.getElementById('timetableModal').style.display = 'flex';
     }
     function closeTimetableModal() { document.getElementById('timetableModal').style.display = 'none'; }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      const sidebar = document.getElementById('sidebar');
-      const handle = document.getElementById('sheetHandle');
-      const header = document.getElementById('sidebarHeaderElem');
-      if (!sidebar || !handle) return;
-
-      let startY = 0;
-      let currentY = 0;
-
-      const onTouchStart = (e) => {
-        if (window.innerWidth > 850) return;
-        startY = e.touches[0].clientY;
-      };
-
-      const onTouchMove = (e) => {
-        if (window.innerWidth > 850) return;
-        currentY = e.touches[0].clientY;
-      };
-
-      const onTouchEnd = () => {
-        if (window.innerWidth > 850 || !startY || !currentY) return;
-        const diff = currentY - startY;
-
-        if (diff < -30) {
-          collapseTopArea();
-          sidebar.classList.remove('minimized');
-          sidebar.classList.add('expanded');
-        } else if (diff > 30) {
-          if (sidebar.classList.contains('expanded')) {
-            sidebar.classList.remove('expanded');
-          } else {
-            sidebar.classList.add('minimized');
-          }
-        }
-        startY = 0;
-        currentY = 0;
-      };
-
-      [handle, header].forEach(elem => {
-        elem?.addEventListener('touchstart', onTouchStart, { passive: true });
-        elem?.addEventListener('touchmove', onTouchMove, { passive: true });
-        elem?.addEventListener('touchend', onTouchEnd, { passive: true });
-        
-        elem?.addEventListener('click', () => {
-          if (window.innerWidth > 850) return;
-          if (sidebar.classList.contains('minimized')) {
-            sidebar.classList.remove('minimized');
-          } else if (!sidebar.classList.contains('expanded')) {
-            collapseTopArea();
-            sidebar.classList.add('expanded');
-          } else {
-            sidebar.classList.remove('expanded');
-            sidebar.classList.add('minimized');
-          }
-        });
-      });
-
-      const ttHeader = document.getElementById('ttHeaderTouch');
-      const ttCard = document.getElementById('timetableCardElem');
-      if (ttHeader && ttCard) {
-        let ttStartY = 0;
-        ttHeader.addEventListener('touchstart', (e) => { ttStartY = e.touches[0].clientY; }, { passive: true });
-        ttHeader.addEventListener('touchend', (e) => {
-          const diff = e.changedTouches[0].clientY - ttStartY;
-          if (diff < -30) ttCard.classList.add('expanded-modal');
-          else if (diff > 30) ttCard.classList.remove('expanded-modal');
-        }, { passive: true });
-        ttHeader.addEventListener('click', () => ttCard.classList.toggle('expanded-modal'));
-      }
-    });
 
     function renderSeochoTimetableTabs() {
       const container = document.getElementById('ttTabsContainer');
@@ -1565,6 +1557,7 @@
         initCourseDropdown();
         startRealtimeCheck();
         if (window.initRealtimeBusTracking) window.initRealtimeBusTracking();
+        if (window.initStationLogWatcher) window.initStationLogWatcher();
       } catch (err) {
         alert("데이터 변환 오류: " + err.message);
       } finally {
@@ -1664,7 +1657,7 @@
                 <span class="stop-item-title">${displayNum}. ${stop.name}</span>
                 ${stop.stopNo ? `<span class="stop-id-tag">No.${stop.stopNo}</span>` : ''}
               </div>
-              <div class="stop-badges-row" id="badge-row-${i}">${badgeHtml}</div>
+              <div class="stop-badges-row" id="badge-row-${displayNum - 1}">${badgeHtml}</div>
               <div class="stop-expand-panel">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <span style="font-size:0.85rem; font-weight:700; color:#475569;">회차별 시간표</span>
@@ -1742,15 +1735,12 @@
             }
           });
         }
-      } else if (validStopsForRouting.length === 1) {
-        map.setCenter(validStopsForRouting[0].coords);
-        document.getElementById('totalDistBadge').innerText = '단일 지점';
       }
+
       setTimeout(() => map?.relayout(), 200);
       checkActiveBuses();
-      if (window.renderSidebarBusCards) {
-        window.renderSidebarBusCards(courseName);
-      }
+      if (window.renderSidebarBusCards) window.renderSidebarBusCards(courseName);
+      if (window.applyPassingBadgesToSidebar) window.applyPassingBadgesToSidebar();
     }
 
     function toggleStopCard(innerElem) {
@@ -1779,9 +1769,7 @@
       const badge = document.getElementById('routeBadge');
       badge.style.display = 'block'; badge.innerText = "전체 노선망 계산 중...";
 
-      if (window.renderSidebarBusCards) {
-        window.renderSidebarBusCards('ALL');
-      }
+      if (window.renderSidebarBusCards) window.renderSidebarBusCards('ALL');
 
       for (let cIdx = 0; cIdx < courses.length; cIdx++) {
         const cName = courses[cIdx];
@@ -1870,35 +1858,13 @@
               const markerOverlay = new kakao.maps.CustomOverlay({ position: coords, content: badgeElem, yAnchor: 0.5, xAnchor: 0.5, zIndex: isBokji ? 15 : 5 });
               markerOverlay.setMap(map);
               markerOverlays.push(markerOverlay);
-
-              badgeElem.onclick = () => {
-                const box = document.getElementById(`all-card-${cIdx}-${i}`);
-                if (box) {
-                  document.querySelectorAll('.stop-item-box').forEach(b => b.classList.remove('active'));
-                  box.classList.add('active');
-                  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                if (window.innerWidth <= 850) map.panTo(new kakao.maps.LatLng(coords.getLat() - 0.003, coords.getLng()));
-                else map.panTo(coords);
-              };
             }
           }
         }
 
         if (courseValid.length > 1) {
           const res = await drawSingleRoadLine(cName, courseValid, color);
-          if (res) {
-            totalDist += res.totalDistance;
-            document.getElementById(`course-dist-${cIdx}`).innerText = `총 ${(res.totalDistance / 1000).toFixed(1)} km`;
-            (res.legs || []).forEach((legDist, legIdx) => {
-              const curStop = courseValid[legIdx + 1];
-              if (curStop) {
-                curStop.distanceText = `구간 ${formatDistance(legDist)}`;
-                const tag = document.getElementById(`dist-all-card-${cIdx}-${curStop.arrayIndex}`);
-                if (tag) tag.innerText = curStop.distanceText;
-              }
-            });
-          }
+          if (res) totalDist += res.totalDistance;
         }
       }
 
@@ -1908,9 +1874,6 @@
       if (!totalBounds.isEmpty()) map.setBounds(totalBounds);
       setTimeout(() => map?.relayout(), 200);
       checkActiveBuses();
-      if (window.renderSidebarBusCards) {
-        window.renderSidebarBusCards('ALL');
-      }
     }
 
     async function drawSingleRoadLine(courseKey, stops, color) {
@@ -1919,7 +1882,6 @@
         const cached = routeCache[cleanKey];
         const line = new kakao.maps.Polyline({ path: cached.path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85, endArrow: true });
         line.setMap(map); polylines.push(line);
-        createRouteDirectionArrows(cached.path);
         return { totalDistance: cached.totalDistance, legs: cached.legs };
       }
 
@@ -1937,7 +1899,6 @@
           const path = route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
           const line = new kakao.maps.Polyline({ path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85, endArrow: true });
           line.setMap(map); polylines.push(line);
-          createRouteDirectionArrows(path);
 
           const legs = (route.legs || []).map(l => l.distance);
           routeCache[cleanKey] = { path, totalDistance: route.distance, legs };
@@ -1947,26 +1908,10 @@
       return fallbackHaversineLine(cleanKey, stops, color);
     }
 
-    function createRouteDirectionArrows(pathCoords) {
-      if (!pathCoords || pathCoords.length < 5) return;
-      const step = Math.max(12, Math.floor(pathCoords.length / 15));
-      for (let i = step; i < pathCoords.length - 2; i += step) {
-        const p1 = pathCoords[i - 1], p2 = pathCoords[i];
-        const bearing = calculateBearing(p1.getLat(), p1.getLng(), p2.getLat(), p2.getLng());
-        const arrowDiv = document.createElement('div');
-        arrowDiv.className = 'route-dir-arrow';
-        arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing - 90}deg)`;
-        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
-        const overlay = new kakao.maps.CustomOverlay({ position: p2, content: arrowDiv, yAnchor: 0.5, xAnchor: 0.5, zIndex: 8 });
-        overlay.setMap(map); arrowOverlays.push(overlay);
-      }
-    }
-
     function fallbackHaversineLine(cleanKey, stops, color) {
       const path = stops.map(s => s.coords);
       const line = new kakao.maps.Polyline({ path, strokeWeight: 5, strokeColor: color, strokeOpacity: 0.8, endArrow: true });
       line.setMap(map); polylines.push(line);
-      createRouteDirectionArrows(path);
 
       let total = 0; const legs = [];
       for (let i = 1; i < stops.length; i++) {
@@ -1984,179 +1929,16 @@
 
     function checkActiveBuses() {
       const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
       const barText = document.getElementById('liveStatusText'), liveTag = document.getElementById('liveTag');
 
-      if (isNonOperatingDay(now)) {
-        liveTag.innerText = '미운행일'; liveTag.className = 'live-tag holiday';
-        barText.innerHTML = `오늘은 셔틀버스 미운행일(주말/공휴일)입니다.`;
-        return;
-      }
-
-      let latest = 0;
-      Object.keys(routeData).forEach(c => (routeData[c] || []).forEach(s => (s.schedules || []).forEach(sc => {
-        if (sc.time && !sc.time.includes('미운행')) {
-          const p = sc.time.split(':'), m = parseInt(p[0]) * 60 + parseInt(p[1]);
-          if (m > latest) latest = m;
-        }
-      })));
-
-      if (latest > 0 && currentMinutes > latest + 10) {
-        liveTag.innerText = '운행 마감'; liveTag.className = 'live-tag ended';
-        barText.innerHTML = `오늘의 셔틀버스 운행이 모두 종료되었습니다.`;
-        return;
-      }
-
-      const activeList = [];
-      let isAnyWaiting = false;
-
-      Object.keys(routeData).forEach(cName => {
-        const stops = (routeData[cName] || []).filter(s => !s.isWaypoint && s.coords).sort((a,b) => a.rowIdx - b.rowIdx);
-        if (stops.length < 2) return;
-
-        const rounds = {};
-        stops.forEach((s, sIdx) => {
-          (s.schedules || []).forEach(sc => {
-            if (!sc.time || sc.time.includes('미운행')) return;
-            if (!rounds[sc.round]) rounds[sc.round] = [];
-            rounds[sc.round].push({
-              stopIndex: sIdx,
-              rawIdx: s.arrayIndex,
-              stop: s,
-              min: timeToMinutes(sc.time)
-            });
-          });
-        });
-
-        Object.keys(rounds).forEach(roundName => {
-          const schedList = rounds[roundName].sort((a, b) => a.stopIndex - b.stopIndex);
-          if (schedList.length < 2) return;
-
-          const startMin = schedList[0].min;
-          const endMin = schedList[schedList.length - 1].min;
-
-          if (currentMinutes >= startMin - 10 && currentMinutes < startMin) {
-            isAnyWaiting = true;
-            const diffMin = Math.ceil(startMin - currentMinutes);
-            const firstStop = schedList[0].stop;
-            const nextStop = schedList[1].stop;
-            const initialHeading = calculateBearing(firstStop.coords.getLat(), firstStop.coords.getLng(), nextStop.coords.getLat(), nextStop.coords.getLng());
-
-            activeList.push({
-              courseName: cName,
-              roundName: roundName,
-              statusDesc: `복지관 출발 대기 (${diffMin}분 뒤 출발)`,
-              stopIndex: schedList[0].stopIndex
-            });
-
-            const markerKey = `${cName}_${roundName}`;
-            if (!window.hasGpsData || !window.hasGpsData[cName]) {
-              if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
-                window.updateRealtimeBusMarker(markerKey, cName, `${roundName} 대기`, roundName, firstStop.coords, initialHeading, 0, false);
-              } else if (window.realtimeBusMarkers[markerKey]) {
-                window.realtimeBusMarkers[markerKey].setMap(null);
-              }
-            }
-          }
-          else if (currentMinutes >= startMin && currentMinutes <= endMin + 1) {
-            let curStopItem = null;
-            let nextStopItem = null;
-            let ratio = 0;
-            let isAtStation = false;
-
-            for (let i = 0; i < schedList.length; i++) {
-              const cur = schedList[i];
-              const next = schedList[i + 1];
-
-              if (!next) {
-                if (currentMinutes >= cur.min) {
-                  curStopItem = cur;
-                  isAtStation = true;
-                }
-                break;
-              }
-
-              const effectiveNextMin = next.min <= cur.min ? cur.min + 1 : next.min;
-
-              if (currentMinutes >= cur.min && currentMinutes < effectiveNextMin) {
-                curStopItem = cur;
-                nextStopItem = next;
-
-                if (currentMinutes - cur.min < 0.2) {
-                  isAtStation = true;
-                } else {
-                  ratio = (currentMinutes - cur.min) / (effectiveNextMin - cur.min);
-                }
-                break;
-              }
-            }
-
-            if (curStopItem) {
-              let liveLatLng;
-              let heading = 0;
-              let statusDesc = '';
-
-              if (isAtStation || !nextStopItem) {
-                liveLatLng = curStopItem.stop.coords;
-                statusDesc = `${curStopItem.stop.name} 정차 중`;
-                if (nextStopItem) {
-                  heading = calculateBearing(curStopItem.stop.coords.getLat(), curStopItem.stop.coords.getLng(), nextStopItem.stop.coords.getLat(), nextStopItem.stop.coords.getLng());
-                }
-              } else {
-                const res = interpolateAlongPathWithHeading(cName, curStopItem.stop, nextStopItem.stop, ratio);
-                liveLatLng = res.latLng;
-                heading = res.heading;
-                statusDesc = `${nextStopItem.stop.name} 향해 이동 중 (${Math.round(ratio * 100)}%)`;
-              }
-
-              activeList.push({
-                courseName: cName,
-                roundName: roundName,
-                statusDesc: statusDesc,
-                stopIndex: curStopItem.stopIndex
-              });
-
-              const markerKey = `${cName}_${roundName}`;
-              if (!window.hasGpsData || !window.hasGpsData[cName]) {
-                if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
-                  window.updateRealtimeBusMarker(markerKey, cName, `${roundName}`, roundName, liveLatLng, heading, 25, false);
-                } else if (window.realtimeBusMarkers[markerKey]) {
-                  window.realtimeBusMarkers[markerKey].setMap(null);
-                }
-              }
-            }
-          } else {
-            const markerKey = `${cName}_${roundName}`;
-            if (!window.hasGpsData || !window.hasGpsData[cName]) {
-              if (window.realtimeBusMarkers[markerKey]) {
-                window.realtimeBusMarkers[markerKey].setMap(null);
-              }
-            }
-          }
-        });
-      });
-
-      if (activeList.length === 0) {
+      if (Object.keys(window.hasGpsData).some(k => window.hasGpsData[k] === true)) {
+        liveTag.innerText = 'LIVE GPS';
+        liveTag.className = 'live-tag';
+        barText.innerHTML = `실시간 버스 GPS 관제 시스템 정상 가동 중입니다.`;
+      } else {
         liveTag.innerText = 'LIVE 운행';
         liveTag.className = 'live-tag';
         barText.innerHTML = `현재 운행 중인 차량이 없습니다. (현재 시각 ${now.toTimeString().substring(0,5)})`;
-      } else {
-        if (isAnyWaiting && activeList.every(i => i.statusDesc.includes('대기'))) {
-          liveTag.innerText = '출발 대기';
-          liveTag.className = 'live-tag waiting';
-        } else {
-          liveTag.innerText = 'LIVE 운행';
-          liveTag.className = 'live-tag';
-        }
-
-        barText.innerHTML = '';
-        activeList.forEach(item => {
-          const span = document.createElement('span');
-          span.className = 'live-item';
-          span.innerHTML = `🚌 <b>[${item.courseName} ${item.roundName}]</b> ${item.statusDesc}`;
-          span.onclick = () => switchToCourseAndStop(item.courseName, item.stopIndex);
-          barText.appendChild(span);
-        });
       }
     }
 
