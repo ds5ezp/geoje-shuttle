@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <!-- 모바일 브라우저 캐시 방지 메타태그 -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -33,6 +34,59 @@
     window.realtimeBusMarkers = {};
     window.hasGpsData = {};
 
+    // 맵 매칭: 실제 GPS를 도로 경로선 위로 자석처럼 안착시키는 함수
+    window.snapGpsToRoute = function(courseName, rawLatLng) {
+      const cleanKey = (courseName || '').trim();
+      const cached = window.routeCache ? window.routeCache[cleanKey] : null;
+
+      if (!cached || !cached.path || cached.path.length < 2) {
+        return { latLng: rawLatLng, headingOffset: null };
+      }
+
+      const path = cached.path;
+      const pLat = rawLatLng.getLat();
+      const pLng = rawLatLng.getLng();
+
+      let closestPoint = rawLatLng;
+      let minDistanceMeters = Infinity;
+      let matchedSegmentHeading = 0;
+
+      for (let i = 0; i < path.length - 1; i++) {
+        const a = path[i];
+        const b = path[i + 1];
+
+        const aLat = a.getLat(), aLng = a.getLng();
+        const bLat = b.getLat(), bLng = b.getLng();
+
+        const dx = bLng - aLng;
+        const dy = bLat - aLat;
+
+        let t = 0;
+        if (dx !== 0 || dy !== 0) {
+          t = ((pLng - aLng) * dx + (pLat - aLat) * dy) / (dx * dx + dy * dy);
+          t = Math.max(0, Math.min(1, t));
+        }
+
+        const snapLat = aLat + t * dy;
+        const snapLng = aLng + t * dx;
+
+        const d = window.calcHaversineMeters ? window.calcHaversineMeters(pLat, pLng, snapLat, snapLng) : 0;
+        if (d < minDistanceMeters) {
+          minDistanceMeters = d;
+          closestPoint = new kakao.maps.LatLng(snapLat, snapLng);
+          if (window.calculateBearing) {
+            matchedSegmentHeading = window.calculateBearing(aLat, aLng, bLat, bLng);
+          }
+        }
+      }
+
+      // 도로선과의 오차가 45m 이내면 도로선에 강제 밀착 및 도로 방향 적용
+      if (minDistanceMeters <= 45) {
+        return { latLng: closestPoint, headingOffset: matchedSegmentHeading };
+      }
+      return { latLng: rawLatLng, headingOffset: null };
+    };
+
     window.initRealtimeBusTracking = function() {
       const liveBusRef = ref(db, 'liveBuses/');
       onValue(liveBusRef, (snapshot) => {
@@ -45,29 +99,36 @@
           const pos = data[courseName];
           if (!pos || !pos.lat || !pos.lng) return;
 
-          // isOperating이 true이면 실시간 운행 중으로 즉시 인식
-          if (pos.isOperating === true || pos.isOperating === "true") {
+          const isOperating = (pos.isOperating === true || pos.isOperating === "true");
+          const isFresh = (Date.now() - (pos.updatedAt || 0)) < 300000; // 5분 이내 최신 데이터
+
+          if (isOperating && isFresh) {
             window.hasGpsData[courseName] = true;
             hasAnyLiveBus = true;
 
-            const busLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
+            const rawLatLng = new kakao.maps.LatLng(pos.lat, pos.lng);
             const busNum = pos.busNumber || '운행차량';
-            const heading = pos.heading || 0;
+            let heading = pos.heading || 0;
             const speed = Math.round(pos.speed || 0);
 
-            // 1. 지도 위 마커 표시
+            // 맵 매칭 적용 (도로선 밀착 보정)
+            const snapResult = window.snapGpsToRoute(courseName, rawLatLng);
+            const busLatLng = snapResult.latLng;
+            if (speed > 3 && snapResult.headingOffset !== null) {
+              heading = snapResult.headingOffset;
+            }
+
+            // 지도 위 버스 마커 갱신
             if (window.map && (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === courseName)) {
               updateRealtimeBusMarker(courseName, busNum, busLatLng, heading, speed, false);
             }
 
-            // 2. 상단 LIVE 상태 바 즉시 갱신
+            // 상단 LIVE 상태 바 즉시 실시간 GPS 모드로 갱신
             const liveTag = document.getElementById('liveTag');
             const barText = document.getElementById('liveStatusText');
             if (liveTag && barText) {
               liveTag.innerText = 'LIVE GPS';
               liveTag.className = 'live-tag';
-              
-              // 기존 내용 대체 또는 추가
               barText.innerHTML = `
                 <span class="live-item" onclick="switchToCourseAndStop('${courseName}', 0)">
                   🚌 <b>[${courseName} ${busNum}]</b> 실시간 GPS 주행 중 (${speed} km/h)
@@ -142,7 +203,6 @@
       const tLat = latLng.getLat();
       const tLng = latLng.getLng();
 
-      // 라벨 텍스트: 예) 수월·연초(오후) (70바5678 · 28km/h)
       const labelText = isEstimated 
         ? `${courseName} (${busNum})` 
         : `${courseName} (${busNum} · ${speed}km/h)`;
@@ -717,6 +777,7 @@
     let currentTimetableCourseKey = null;
 
     const routeCache = {};
+    window.routeCache = routeCache;
     const COURSE_COLORS = ["#2563eb", "#16a34a", "#ea580c", "#9333ea", "#0891b2", "#db2777", "#ca8a04", "#4f46e5"];
 
     function getCourseColor(courseName) {
@@ -760,12 +821,14 @@
       const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
       return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 1.25;
     }
+    window.calcHaversineMeters = calcHaversineMeters;
 
     function calculateBearing(lat1, lon1, lat2, lon2) {
       const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
       const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
       return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
     }
+    window.calculateBearing = calculateBearing;
 
     function timeToMinutes(tStr) {
       if (!tStr) return -1;
@@ -1776,6 +1839,10 @@
     }
 
     function checkActiveBuses() {
+      // 만약 Firebase에서 실시간 GPS가 1개라도 전송 중이면 가상 시간표 루프는 대기
+      const activeGpsCourses = Object.keys(window.hasGpsData || {}).filter(k => window.hasGpsData[k] === true);
+      if (activeGpsCourses.length > 0) return;
+
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes() + (now.getSeconds() / 60);
       const barText = document.getElementById('liveStatusText'), liveTag = document.getElementById('liveTag');
