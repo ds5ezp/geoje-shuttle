@@ -385,18 +385,63 @@
     }
 
     #header { padding: 12px 18px; display: flex; flex-direction: column; gap: 10px; background: #ffffff; }
-    .header-top-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .header-info h1 { font-size: 1.15rem; font-weight: 800; color: #0f172a; line-height: 1.35; max-width: 280px; word-break: keep-all; }
-    .company-info { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: #475569; white-space: nowrap; }
+    
+    /* 1. 상단 업체 및 연락처 세로 3줄 정렬 스타일 */
+    .header-top-row { 
+      display: flex; 
+      align-items: flex-start; 
+      justify-content: space-between; 
+      gap: 10px; 
+    }
+    .header-info h1 { 
+      font-size: 1.15rem; 
+      font-weight: 800; 
+      color: #0f172a; 
+      line-height: 1.3; 
+      word-break: keep-all; 
+    }
+    .company-info { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: flex-end; 
+      gap: 3px; 
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .company-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #64748b;
+      line-height: 1.1;
+    }
     .call-btn {
-      background: #10b981; color: #ffffff; text-decoration: none; font-size: 0.8rem; font-weight: 700; padding: 5px 12px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 1px 3px rgba(16,185,129,0.3); white-space: nowrap;
+      background: #10b981; 
+      color: #ffffff; 
+      text-decoration: none; 
+      font-size: 0.78rem; 
+      font-weight: 800; 
+      padding: 3px 8px; 
+      border-radius: 6px; 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 3px; 
+      box-shadow: 0 1px 3px rgba(16,185,129,0.3); 
+      white-space: nowrap;
+      margin: 1px 0;
     }
     .call-btn:hover { background: #059669; }
+    .company-name {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #1e293b;
+      line-height: 1.1;
+    }
 
-    .header-middle-row { display: flex; align-items: center; gap: 8px; }
-    .stop-search-box { position: relative; display: flex; align-items: center; width: 100%; }
+    /* 2. 검색창 + 노선표/공유/접기 버튼 라인 */
+    .header-middle-row { display: flex; align-items: center; gap: 6px; position: relative; }
+    .stop-search-box { position: relative; display: flex; align-items: center; flex: 1; min-width: 100px; }
     .stop-search-box input {
-      width: 100%; height: 42px; padding: 0 34px 0 14px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; font-weight: 700; color: #0f172a; outline: none; background: #f8fafc;
+      width: 100%; height: 42px; padding: 0 34px 0 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; font-weight: 700; color: #0f172a; outline: none; background: #f8fafc;
     }
     .stop-search-box input:focus { border-color: #2563eb; background: #fff; }
     .search-clear-btn { position: absolute; right: 10px; background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; display: none; }
@@ -413,13 +458,14 @@
     .search-time-chip { background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; font-size: 0.78rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
     .search-time-chip b { color: #2563eb; }
 
+    /* 3. 노선선택 + 홈/운행기록/주변 버튼 라인 */
     .header-bottom-row { display: flex; align-items: center; gap: 6px; }
-    .course-select-wrapper { flex: 1.4; position: relative; display: flex; align-items: center; min-width: 140px; }
+    .course-select-wrapper { flex: 1.4; position: relative; display: flex; align-items: center; min-width: 130px; }
     .course-select-wrapper select {
-      width: 100%; height: 42px; padding: 0 26px 0 12px; background: #f8fafc; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; font-weight: 800; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+      width: 100%; height: 42px; padding: 0 24px 0 10px; background: #f8fafc; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 0.92rem; font-weight: 800; cursor: pointer; appearance: none; -webkit-appearance: none; outline: none; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
     }
     .course-select-wrapper select:focus { border-color: #2563eb; background: #ffffff; }
-    .course-select-wrapper::after { content: '▼'; font-size: 10px; color: #64748b; position: absolute; right: 12px; pointer-events: none; }
+    .course-select-wrapper::after { content: '▼'; font-size: 10px; color: #64748b; position: absolute; right: 10px; pointer-events: none; }
 
     .header-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
     .action-btn {
@@ -730,17 +776,19 @@
 
     <div id="topCollapsibleArea">
       <div id="header">
+        <!-- 1. 업체 및 연락처 3줄 세로 정렬 라인 -->
         <div class="header-top-row">
           <div class="header-info">
-            <h1>거제시종합사회복지관 셔틀버스</h1>
+            <h1>거제시종합사회복지관<br>셔틀버스</h1>
           </div>
           <div class="company-info">
-            <span>2026년 운행업체 : (주)여행과 사람</span>
+            <span class="company-title">2026년 운행업체</span>
             <a href="tel:055-687-4000" class="call-btn" title="전화걸기">📞 055-687-4000</a>
+            <span class="company-name">(주)여행과 사람</span>
           </div>
         </div>
 
-        <!-- 1. 정류장 검색창 + 표, 링크, 접기 버튼 라인 -->
+        <!-- 2. 정류장 검색창 + 노선표, 공유, 접기 버튼 라인 -->
         <div class="header-middle-row">
           <div class="stop-search-box">
             <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색" oninput="handleStopSearch(this.value)">
@@ -749,13 +797,13 @@
           <div id="searchDropdownList"></div>
 
           <div class="header-actions">
-            <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="표">📋표</button>
+            <button class="action-btn table-view-btn" onclick="openTimetableModal()" title="노선표">📋노선표</button>
             <button class="action-btn qr-share-btn" onclick="openQrModal()" title="공유">🔗</button>
             <button class="action-btn fold-btn" onclick="collapseTopArea()" title="상단 접기">▲접기</button>
           </div>
         </div>
 
-        <!-- 2. 노선 선택 드롭다운 + 홈, 기록, 주변 버튼 라인 -->
+        <!-- 3. 노선 선택 드롭다운 + 홈, 운행기록, 주변 버튼 라인 -->
         <div class="header-bottom-row">
           <div class="course-select-wrapper">
             <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
@@ -765,7 +813,7 @@
 
           <div class="header-actions">
             <button class="action-btn pwa-btn" onclick="openPwaModal()" title="홈">📲홈</button>
-            <button class="action-btn history-btn" onclick="openHistoryModal()" title="통과기록">📅기록</button>
+            <button class="action-btn history-btn" onclick="openHistoryModal()" title="운행기록">📅운행기록</button>
             <button class="action-btn nearby-btn" onclick="findNearestStop()" title="주변">📍주변</button>
           </div>
         </div>
@@ -1175,7 +1223,7 @@
       }
 
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
-      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLat()) * ratio;
+      const lng = stopA.coords.getLng() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
       const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
       return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
     }
