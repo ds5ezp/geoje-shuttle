@@ -54,18 +54,29 @@
       });
     };
 
-    window.updateRealtimeBusMarker = function(courseName, busNum, latLng, isEstimated = false) {
+    // 버스별 회전 각도 누적값 관리 (360도 스핀 방지용)
+    window.busHeadingState = {};
+
+    window.updateRealtimeBusMarker = function(courseName, busNum, latLng, rawHeading = 0, isEstimated = false) {
       const targetMap = window.map || window.kakaoMapInstance;
       if (!targetMap || !latLng) return;
 
       const themeColor = getCourseColor(courseName);
+
+      // 최단 회전각 보정: 0 <-> 360 경계에서 뱅글 도는 것 방지
+      let prevHeading = window.busHeadingState[courseName] !== undefined ? window.busHeadingState[courseName] : rawHeading;
+      let diff = (rawHeading - (prevHeading % 360) + 540) % 360 - 180;
+      let smoothHeading = prevHeading + diff;
+      window.busHeadingState[courseName] = smoothHeading;
 
       if (window.realtimeBusMarkers[courseName]) {
         window.realtimeBusMarkers[courseName].setPosition(latLng);
         window.realtimeBusMarkers[courseName].setMap(targetMap);
         const markerElem = window.realtimeBusMarkers[courseName].getContent();
         if (markerElem) {
+          const bodyElem = markerElem.querySelector('.seocho-bus-body');
           const textElem = markerElem.querySelector('.seocho-bus-title');
+          if (bodyElem) bodyElem.style.transform = `rotate(${smoothHeading}deg)`;
           if (textElem) textElem.innerText = `${courseName} (${busNum})`;
         }
       } else {
@@ -82,7 +93,7 @@
         `;
 
         const busRoofSvg = `
-          <div class="seocho-bus-body" style="width: 32px; height: 50px; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.45));">
+          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${smoothHeading}deg); transform-origin: 16px 25px; transition: transform 0.3s ease-out; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5));">
             <svg width="32" height="50" viewBox="0 0 32 50" fill="none">
               <rect x="2" y="2" width="28" height="46" rx="9" fill="${themeColor}" stroke="#0f172a" stroke-width="2.8"/>
               <rect x="5.5" y="7" width="21" height="9" rx="3" fill="#ffffff" stroke="#0f172a" stroke-width="1.8"/>
@@ -591,6 +602,18 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
+    function calcHaversineMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371e3, φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180, Δφ = (lat2 - lat1) * Math.PI / 180, Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 1.25;
+    }
+
+    function calculateBearing(lat1, lon1, lat2, lon2) {
+      const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
+      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    }
+
     function timeToMinutes(tStr) {
       if (!tStr) return -1;
       const m = tStr.match(/(\d{1,2}):(\d{2})/);
@@ -602,6 +625,58 @@
       if (!str) return 999;
       const numMatch = str.match(/\d+/);
       return numMatch ? parseInt(numMatch[0], 10) : 999;
+    }
+
+    // 도로선 기반 정확한 위치 및 진행 방향(Heading) 추출
+    function interpolateAlongPathWithHeading(courseKey, stopA, stopB, ratio) {
+      ratio = Math.max(0, Math.min(1, isNaN(ratio) ? 0 : ratio));
+      const cleanKey = courseKey.trim();
+      const cached = routeCache[cleanKey];
+
+      if (cached && cached.path && cached.path.length > 1) {
+        const path = cached.path;
+        
+        let idxA = 0, minDistA = Infinity;
+        for (let i = 0; i < path.length; i++) {
+          const dA = calcHaversineMeters(stopA.coords.getLat(), stopA.coords.getLng(), path[i].getLat(), path[i].getLng());
+          if (dA < minDistA) { minDistA = dA; idxA = i; }
+        }
+
+        let idxB = idxA, minDistB = Infinity;
+        for (let i = idxA; i < path.length; i++) {
+          const dB = calcHaversineMeters(stopB.coords.getLat(), stopB.coords.getLng(), path[i].getLat(), path[i].getLng());
+          if (dB < minDistB) { minDistB = dB; idxB = i; }
+        }
+
+        if (idxB > idxA) {
+          const segDistances = [0];
+          let totalSegDist = 0;
+          for (let k = idxA; k < idxB; k++) {
+            const d = calcHaversineMeters(path[k].getLat(), path[k].getLng(), path[k + 1].getLat(), path[k + 1].getLng());
+            totalSegDist += d;
+            segDistances.push(totalSegDist);
+          }
+
+          const targetDist = totalSegDist * ratio;
+          for (let k = 0; k < segDistances.length - 1; k++) {
+            if (targetDist >= segDistances[k] && targetDist <= segDistances[k + 1]) {
+              const subRatio = (segDistances[k + 1] === segDistances[k]) ? 0 : (targetDist - segDistances[k]) / (segDistances[k + 1] - segDistances[k]);
+              const p1 = path[idxA + k];
+              const p2 = path[idxA + k + 1];
+              const lat = p1.getLat() + (p2.getLat() - p1.getLat()) * subRatio;
+              const lng = p1.getLng() + (p2.getLng() - p1.getLng()) * subRatio;
+              const heading = calculateBearing(p1.getLat(), p1.getLng(), p2.getLat(), p2.getLng());
+              return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
+            }
+          }
+        }
+      }
+
+      // 도로선이 없을 경우 정류장 간 직선 보간
+      const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
+      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLng()) * ratio;
+      const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
+      return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
     }
 
     // 드롭다운 초기화 및 현재 운행/대기 노선 자동 선택
@@ -1024,18 +1099,6 @@
         if (!s.time || s.time.includes('미운행')) return `<span class="round-pill none"><b>${s.round}</b> 미운행</span>`;
         return `<span class="round-pill"><b>${s.round}</b> ${s.time}</span>`;
       }).join('');
-    }
-
-    function calcHaversineMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371e3, φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180, Δφ = (lat2 - lat1) * Math.PI / 180, Δλ = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))) * 1.25;
-    }
-
-    function calculateBearing(lat1, lon1, lat2, lon2) {
-      const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
-      const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) - Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
-      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
     }
 
     function getShareUrl() {
@@ -1531,7 +1594,7 @@
         const arrowDiv = document.createElement('div');
         arrowDiv.className = 'route-dir-arrow';
         arrowDiv.style.transform = `translate(-50%, -50%) rotate(${bearing - 90}deg)`;
-        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
+        arrowDiv.innerHTML = `<svg viewBox="0 0 24 24" fill="none"><path d="M3 12H19M19 12L12 5M19 12L12 5M19 12L12 19" stroke="#0f172a" stroke-width="5" stroke-linecap="round"/><path d="M3 12H19M19 12L12 5M19 12L12 19" stroke="#facc15" stroke-width="3" stroke-linecap="round"/></svg>`;
         const overlay = new kakao.maps.CustomOverlay({ position: p2, content: arrowDiv, yAnchor: 0.5, xAnchor: 0.5, zIndex: 8 });
         overlay.setMap(map); arrowOverlays.push(overlay);
       }
@@ -1555,54 +1618,6 @@
     function startRealtimeCheck() {
       checkActiveBuses();
       setInterval(checkActiveBuses, 1000);
-    }
-
-    function interpolateAlongPath(courseKey, stopA, stopB, ratio) {
-      ratio = Math.max(0, Math.min(1, isNaN(ratio) ? 0 : ratio));
-      const cleanKey = courseKey.trim();
-      const cached = routeCache[cleanKey];
-
-      if (cached && cached.path && cached.path.length > 1) {
-        const path = cached.path;
-        
-        let idxA = 0, minDistA = Infinity;
-        for (let i = 0; i < path.length; i++) {
-          const dA = calcHaversineMeters(stopA.coords.getLat(), stopA.coords.getLng(), path[i].getLat(), path[i].getLng());
-          if (dA < minDistA) { minDistA = dA; idxA = i; }
-        }
-
-        let idxB = idxA, minDistB = Infinity;
-        for (let i = idxA; i < path.length; i++) {
-          const dB = calcHaversineMeters(stopB.coords.getLat(), stopB.coords.getLng(), path[i].getLat(), path[i].getLng());
-          if (dB < minDistB) { minDistB = dB; idxB = i; }
-        }
-
-        if (idxB > idxA) {
-          const segDistances = [0];
-          let totalSegDist = 0;
-          for (let k = idxA; k < idxB; k++) {
-            const d = calcHaversineMeters(path[k].getLat(), path[k].getLng(), path[k + 1].getLat(), path[k + 1].getLng());
-            totalSegDist += d;
-            segDistances.push(totalSegDist);
-          }
-
-          const targetDist = totalSegDist * ratio;
-          for (let k = 0; k < segDistances.length - 1; k++) {
-            if (targetDist >= segDistances[k] && targetDist <= segDistances[k + 1]) {
-              const subRatio = (segDistances[k + 1] === segDistances[k]) ? 0 : (targetDist - segDistances[k]) / (segDistances[k + 1] - segDistances[k]);
-              const p1 = path[idxA + k];
-              const p2 = path[idxA + k + 1];
-              const lat = p1.getLat() + (p2.getLat() - p1.getLat()) * subRatio;
-              const lng = p1.getLng() + (p2.getLng() - p1.getLng()) * subRatio;
-              return new kakao.maps.LatLng(lat, lng);
-            }
-          }
-        }
-      }
-
-      const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
-      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLng()) * ratio;
-      return new kakao.maps.LatLng(lat, lng);
     }
 
     function checkActiveBuses() {
@@ -1658,10 +1673,13 @@
           const startMin = schedList[0].min;
           const endMin = schedList[schedList.length - 1].min;
 
+          // 1. 출발 10분 전 ~ 출발 시각 대기
           if (currentMinutes >= startMin - 10 && currentMinutes < startMin) {
             isAnyWaiting = true;
             const diffMin = Math.ceil(startMin - currentMinutes);
             const firstStop = schedList[0].stop;
+            const nextStop = schedList[1].stop;
+            const initialHeading = calculateBearing(firstStop.coords.getLat(), firstStop.coords.getLng(), nextStop.coords.getLat(), nextStop.coords.getLng());
 
             activeList.push({
               courseName: cName,
@@ -1672,10 +1690,11 @@
 
             if (!window.hasGpsData || !window.hasGpsData[cName]) {
               if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
-                window.updateRealtimeBusMarker(cName, `${roundName} 대기`, firstStop.coords, true);
+                window.updateRealtimeBusMarker(cName, `${roundName} 대기`, firstStop.coords, initialHeading, true);
               }
             }
           }
+          // 2. 실시간 주행 모드
           else if (currentMinutes >= startMin && currentMinutes <= endMin + 1) {
             let curStopItem = null;
             let nextStopItem = null;
@@ -1711,13 +1730,19 @@
 
             if (curStopItem) {
               let liveLatLng;
+              let heading = 0;
               let statusDesc = '';
 
               if (isAtStation || !nextStopItem) {
                 liveLatLng = curStopItem.stop.coords;
                 statusDesc = `${curStopItem.stop.name} 정차 중`;
+                if (nextStopItem) {
+                  heading = calculateBearing(curStopItem.stop.coords.getLat(), curStopItem.stop.coords.getLng(), nextStopItem.stop.coords.getLat(), nextStopItem.stop.coords.getLng());
+                }
               } else {
-                liveLatLng = interpolateAlongPath(cName, curStopItem.stop, nextStopItem.stop, ratio);
+                const res = interpolateAlongPathWithHeading(cName, curStopItem.stop, nextStopItem.stop, ratio);
+                liveLatLng = res.latLng;
+                heading = res.heading;
                 statusDesc = `${nextStopItem.stop.name} 향해 이동 중 (${Math.round(ratio * 100)}%)`;
               }
 
@@ -1730,7 +1755,7 @@
 
               if (!window.hasGpsData || !window.hasGpsData[cName]) {
                 if (currentSelectedCourseKey === 'ALL' || currentSelectedCourseKey === cName) {
-                  window.updateRealtimeBusMarker(cName, `${roundName}`, liveLatLng, true);
+                  window.updateRealtimeBusMarker(cName, `${roundName}`, liveLatLng, heading, true);
                 }
               }
             }
