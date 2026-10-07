@@ -62,14 +62,12 @@
       });
     };
 
+    // 정류장명(stopName) 기반 정확한 뱃지 부착 로직
     window.applyPassingBadgesToSidebar = function() {
       if (!currentSelectedCourseKey || currentSelectedCourseKey === 'ALL') return;
       const courseLogs = window.todayStationLogs[currentSelectedCourseKey] || {};
 
-      // 기존 통과 뱃지 전체 초기화
       document.querySelectorAll('.passed-time-badge').forEach(el => el.remove());
-
-      // 현재 화면에 렌더링된 정류장 엘리먼트들 (이름 매핑용)
       const stopElements = document.querySelectorAll('.stop-item-box');
 
       Object.keys(courseLogs).forEach(roundKey => {
@@ -78,17 +76,14 @@
           const item = roundData[stopKey];
           if (!item || !item.time) return;
 
-          // 정류장 이름 또는 인덱스를 기준으로 매칭 대상 탐색
           const targetName = (item.stopName || '').replace(/[·.\s\-_()]/g, '');
 
           stopElements.forEach(box => {
             const titleElem = box.querySelector('.stop-item-title');
             if (!titleElem) return;
 
-            // 웹 목록의 정류장 이름 추출
             const currentName = titleElem.innerText.replace(/^\d+\.\s*/, '').replace(/[·.\s\-_()]/g, '');
 
-            // 이름이 일치하는 정류장 박스의 뱃지 영역에 부착
             if (targetName && currentName && targetName === currentName) {
               const badgeRow = box.querySelector('.stop-badges-row');
               if (badgeRow) {
@@ -384,7 +379,7 @@
         window.realtimeBusMarkers[markerKey] = realBusOverlay;
       }
 
-      // [실시간 버스 자동 추적 로직]
+      // 실시간 버스 자동 추적
       window.lastActiveBusLatLng = latLng;
       if (window.isTrackingBus && targetMap && currentSelectedCourseKey !== 'ALL') {
         targetMap.panTo(latLng);
@@ -805,7 +800,7 @@
       #topExpandTab { display: flex; }
 
       #busFollowBtn {
-        bottom: 290px !important; /* 바텀시트 상단 위 */
+        bottom: 290px !important;
       }
 
       #sidebar {
@@ -893,7 +888,7 @@
         <button class="notice-close-btn" onclick="closeNoticeBanner()">&times;</button>
       </div>
 
-      <!-- 상단 LIVE 상태 바 (실시간 위치 칩 표기) -->
+      <!-- 상단 LIVE 상태 바 -->
       <div id="liveStatusBar">
         <span class="live-tag" id="liveTag">LIVE 운행</span>
         <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
@@ -1329,7 +1324,7 @@
       }
 
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
-      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLat()) * ratio;
+      const lng = stopA.coords.getLng() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
       const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
       return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
     }
@@ -1891,10 +1886,16 @@
       });
     }
 
+    // 비동기 중복 렌더링 방지용 고유 요청 ID
+    let currentRenderRequestId = 0;
+
     async function selectCourse(courseName, colorIdx) {
       currentSelectedCourseKey = courseName;
       document.getElementById('courseSelect').value = courseName;
       clearMapLayers();
+
+      // 현재 실행 건에 대한 고유 ID 발급 (이전 루프 즉시 무효화)
+      const thisRequestId = ++currentRenderRequestId;
 
       // 노선 변경 시 자동 추적 모드 재활성화
       window.isTrackingBus = true;
@@ -1918,6 +1919,9 @@
       let displayCounter = 0;
 
       for (let i = 0; i < stops.length; i++) {
+        // 비동기 작업 도중 새로운 호출이 발생했으면 현재 루프 즉시 탈출
+        if (thisRequestId !== currentRenderRequestId) return;
+
         const stop = stops[i];
         const isBokji = stop.name.includes('복지관');
         let displayNum = null, itemBox = null;
@@ -1977,6 +1981,8 @@
         }
 
         let coords = await resolveStopCoordinates(stop);
+        if (thisRequestId !== currentRenderRequestId) return;
+
         if (coords) {
           stop.coords = coords;
           stop.arrayIndex = i;
@@ -2023,6 +2029,8 @@
         const b = document.getElementById('routeBadge');
         b.style.display = 'block'; b.innerText = '경로선 계산 중...';
         const res = await drawSingleRoadLine(courseName, validStopsForRouting, color);
+        if (thisRequestId !== currentRenderRequestId) return;
+
         b.style.display = 'none';
         if (res) {
           document.getElementById('totalDistBadge').innerText = `총 ${(res.totalDistance / 1000).toFixed(1)} km`;
