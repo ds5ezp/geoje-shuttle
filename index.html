@@ -2061,6 +2061,7 @@
       }
     }
 
+    // 전체 노선망 거리 정상 갱신 버전
     async function selectAllCourses() {
       currentSelectedCourseKey = 'ALL';
       document.getElementById('courseSelect').value = 'ALL';
@@ -2091,7 +2092,7 @@
         const secHeader = document.createElement('div');
         secHeader.className = 'course-section-title';
         secHeader.style.cssText = `background:${color}18; color:${color};`;
-        secHeader.innerHTML = `<span>🚌 <b>${cName}</b></span><span id="course-dist-${cIdx}" style="font-size:0.8rem;">계산 중...</span>`;
+        secHeader.innerHTML = `<span>🚌 <b>${cName}</b></span><span id="course-dist-${cIdx}" style="font-size:0.8rem; font-weight:800;">계산 중...</span>`;
         list.appendChild(secHeader);
 
         let cCount = 0;
@@ -2175,7 +2176,24 @@
 
         if (courseValid.length > 1) {
           const res = await drawSingleRoadLine(cName, courseValid, color);
-          if (res) totalDist += res.totalDistance;
+          if (res) {
+            totalDist += res.totalDistance;
+            // 코스 소제목 우측 "계산 중..."을 실제 계산된 거리(km)로 갱신
+            const distSpan = document.getElementById(`course-dist-${cIdx}`);
+            if (distSpan) {
+              distSpan.innerText = `${(res.totalDistance / 1000).toFixed(1)} km`;
+            }
+
+            // 개별 정류장 구간 거리 갱신
+            (res.legs || []).forEach((legDist, legIdx) => {
+              const curStop = courseValid[legIdx + 1];
+              if (curStop) {
+                curStop.distanceText = `구간 ${formatDistance(legDist)}`;
+                const tag = document.getElementById(`dist-all-card-${cIdx}-${curStop.arrayIndex}`);
+                if (tag) tag.innerText = curStop.distanceText;
+              }
+            });
+          }
         }
       }
 
