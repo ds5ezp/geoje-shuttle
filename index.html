@@ -66,30 +66,45 @@
       if (!currentSelectedCourseKey || currentSelectedCourseKey === 'ALL') return;
       const courseLogs = window.todayStationLogs[currentSelectedCourseKey] || {};
 
+      // 기존 통과 뱃지 전체 초기화
       document.querySelectorAll('.passed-time-badge').forEach(el => el.remove());
+
+      // 현재 화면에 렌더링된 정류장 엘리먼트들 (이름 매핑용)
+      const stopElements = document.querySelectorAll('.stop-item-box');
 
       Object.keys(courseLogs).forEach(roundKey => {
         const roundData = courseLogs[roundKey] || {};
         Object.keys(roundData).forEach(stopKey => {
           const item = roundData[stopKey];
-          if (!item || item.stopIndex === undefined || !item.time) return;
+          if (!item || !item.time) return;
 
-          // displayNum과 일치하는 badge row에 정확히 부착
-          const targetIndex = parseInt(item.stopIndex, 10);
-          const badgeRow = document.getElementById(`badge-row-${targetIndex - 1}`);
-          if (badgeRow) {
-            // 중복 부착 방지
-            const alreadyExists = Array.from(badgeRow.querySelectorAll('.passed-time-badge'))
-              .some(b => b.innerText.includes(roundKey));
+          // 정류장 이름 또는 인덱스를 기준으로 매칭 대상 탐색
+          const targetName = (item.stopName || '').replace(/[·.\s\-_()]/g, '');
 
-            if (!alreadyExists) {
-              const span = document.createElement('span');
-              span.className = 'badge-tag passed-time-badge';
-              span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
-              span.innerText = `✔ ${roundKey} ${item.time} 통과`;
-              badgeRow.appendChild(span);
+          stopElements.forEach(box => {
+            const titleElem = box.querySelector('.stop-item-title');
+            if (!titleElem) return;
+
+            // 웹 목록의 정류장 이름 추출
+            const currentName = titleElem.innerText.replace(/^\d+\.\s*/, '').replace(/[·.\s\-_()]/g, '');
+
+            // 이름이 일치하는 정류장 박스의 뱃지 영역에 부착
+            if (targetName && currentName && targetName === currentName) {
+              const badgeRow = box.querySelector('.stop-badges-row');
+              if (badgeRow) {
+                const alreadyExists = Array.from(badgeRow.querySelectorAll('.passed-time-badge'))
+                  .some(b => b.innerText.includes(roundKey));
+
+                if (!alreadyExists) {
+                  const span = document.createElement('span');
+                  span.className = 'badge-tag passed-time-badge';
+                  span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
+                  span.innerText = `✔ ${roundKey} ${item.time} 통과`;
+                  badgeRow.appendChild(span);
+                }
+              }
             }
-          }
+          });
         });
       });
     };
