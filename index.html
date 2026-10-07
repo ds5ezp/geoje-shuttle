@@ -62,44 +62,53 @@
       });
     };
 
-    // 정류장명(stopName) 기반 정확한 뱃지 부착 로직
+    // 순번(stopIndex) 및 정류장명 2중 검증 뱃지 매칭 (갈 때/올 때 역전 방지)
     window.applyPassingBadgesToSidebar = function() {
       if (!currentSelectedCourseKey || currentSelectedCourseKey === 'ALL') return;
       const courseLogs = window.todayStationLogs[currentSelectedCourseKey] || {};
 
       document.querySelectorAll('.passed-time-badge').forEach(el => el.remove());
-      const stopElements = document.querySelectorAll('.stop-item-box');
 
       Object.keys(courseLogs).forEach(roundKey => {
         const roundData = courseLogs[roundKey] || {};
         Object.keys(roundData).forEach(stopKey => {
           const item = roundData[stopKey];
-          if (!item || !item.time) return;
+          if (!item || !item.time || item.stopIndex === undefined) return;
 
-          const targetName = (item.stopName || '').replace(/[·.\s\-_()]/g, '');
+          const sIdx = parseInt(item.stopIndex, 10);
+          let targetBadgeRow = document.getElementById(`badge-row-${sIdx - 1}`);
 
-          stopElements.forEach(box => {
-            const titleElem = box.querySelector('.stop-item-title');
-            if (!titleElem) return;
+          if (targetBadgeRow && item.stopName) {
+            const parentBox = targetBadgeRow.closest('.stop-item-box');
+            const titleElem = parentBox?.querySelector('.stop-item-title');
+            if (titleElem) {
+              const currentName = titleElem.innerText.replace(/^\d+\.\s*/, '').replace(/[·.\s\-_()]/g, '');
+              const targetName = item.stopName.replace(/[·.\s\-_()]/g, '');
 
-            const currentName = titleElem.innerText.replace(/^\d+\.\s*/, '').replace(/[·.\s\-_()]/g, '');
-
-            if (targetName && currentName && targetName === currentName) {
-              const badgeRow = box.querySelector('.stop-badges-row');
-              if (badgeRow) {
-                const alreadyExists = Array.from(badgeRow.querySelectorAll('.passed-time-badge'))
-                  .some(b => b.innerText.includes(roundKey));
-
-                if (!alreadyExists) {
-                  const span = document.createElement('span');
-                  span.className = 'badge-tag passed-time-badge';
-                  span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
-                  span.innerText = `✔ ${roundKey} ${item.time} 통과`;
-                  badgeRow.appendChild(span);
+              if (currentName !== targetName) {
+                const matchedBoxes = Array.from(document.querySelectorAll('.stop-item-box')).filter(b => {
+                  const t = b.querySelector('.stop-item-title')?.innerText.replace(/^\d+\.\s*/, '').replace(/[·.\s\-_()]/g, '');
+                  return t === targetName;
+                });
+                if (matchedBoxes.length > 0) {
+                  targetBadgeRow = matchedBoxes[0].querySelector('.stop-badges-row');
                 }
               }
             }
-          });
+          }
+
+          if (targetBadgeRow) {
+            const alreadyExists = Array.from(targetBadgeRow.querySelectorAll('.passed-time-badge'))
+              .some(b => b.innerText.includes(roundKey));
+
+            if (!alreadyExists) {
+              const span = document.createElement('span');
+              span.className = 'badge-tag passed-time-badge';
+              span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
+              span.innerText = `✔ ${roundKey} ${item.time} 통과`;
+              targetBadgeRow.appendChild(span);
+            }
+          }
         });
       });
     };
@@ -914,7 +923,7 @@
             </div>
           </div>
 
-          <!-- 서초구 스타일 실시간 차량 카드 컨테이너 -->
+          <!-- 실시간 차량 카드 컨테이너 -->
           <div id="sidebarCardsContainer">
             <div class="seocho-live-card waiting">
               <div class="seocho-live-left">
@@ -1103,7 +1112,7 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // 모바일 바텀시트 제스처(스와이프/클릭) 통합 리스너 등록
+    // 모바일 바텀시트 제스처(스와이프/클릭) 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
       const sidebar = document.getElementById('sidebar');
       const handle = document.getElementById('sheetHandle');
@@ -1324,7 +1333,7 @@
       }
 
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
-      const lng = stopA.coords.getLng() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
+      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLat()) * ratio;
       const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
       return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
     }
