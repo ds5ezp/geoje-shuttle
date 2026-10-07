@@ -72,15 +72,23 @@
         const roundData = courseLogs[roundKey] || {};
         Object.keys(roundData).forEach(stopKey => {
           const item = roundData[stopKey];
-          if (!item || !item.stopIndex || !item.time) return;
+          if (!item || item.stopIndex === undefined || !item.time) return;
 
-          const badgeRow = document.getElementById(`badge-row-${item.stopIndex - 1}`);
+          // displayNum과 일치하는 badge row에 정확히 부착
+          const targetIndex = parseInt(item.stopIndex, 10);
+          const badgeRow = document.getElementById(`badge-row-${targetIndex - 1}`);
           if (badgeRow) {
-            const span = document.createElement('span');
-            span.className = 'badge-tag passed-time-badge';
-            span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
-            span.innerText = `✔ ${roundKey} ${item.time} 통과`;
-            badgeRow.appendChild(span);
+            // 중복 부착 방지
+            const alreadyExists = Array.from(badgeRow.querySelectorAll('.passed-time-badge'))
+              .some(b => b.innerText.includes(roundKey));
+
+            if (!alreadyExists) {
+              const span = document.createElement('span');
+              span.className = 'badge-tag passed-time-badge';
+              span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
+              span.innerText = `✔ ${roundKey} ${item.time} 통과`;
+              badgeRow.appendChild(span);
+            }
           }
         });
       });
