@@ -248,7 +248,7 @@
 
     window.busAnimStates = {};
 
-    // 시간 기반 선형 보간 애니메이션 루프 (매끄러운 이동)
+    // 시간 기반 선형 보간 애니메이션 루프 (등속 미끄러짐 이동)
     function startSmoothBusLoop() {
       function step(now) {
         const targetMap = window.map || window.kakaoMapInstance;
@@ -267,7 +267,7 @@
             const elapsed = now - st.startTime;
             const progress = Math.min(elapsed / st.duration, 1.0);
 
-            // 위치 선형 보간 (등속 미끄러짐)
+            // 위치 선형 보간
             st.currLat = st.startLat + (st.targetLat - st.startLat) * progress;
             st.currLng = st.startLng + (st.targetLng - st.startLng) * progress;
 
@@ -324,7 +324,7 @@
           startHeading: rawHeading,
           targetHeading: rawHeading,
           startTime: now,
-          duration: 2500, // 기본 2.5초 보간
+          duration: 2500,
           lastUpdate: now
         };
       } else {
@@ -340,7 +340,7 @@
         st.targetHeading = rawHeading;
 
         st.startTime = now;
-        st.duration = Math.min(timeDiff, 4000); // 최대 4초 한도
+        st.duration = Math.min(timeDiff, 4000);
         st.lastUpdate = now;
       }
 
@@ -783,8 +783,22 @@
     }
     @keyframes myLocPulse { 0% { box-shadow: 0 0 0 2px rgba(2,132,199,0.4); } 70% { box-shadow: 0 0 0 14px rgba(2,132,199,0); } 100% { box-shadow: 0 0 0 2px rgba(2,132,199,0); } }
 
-    .route-dir-arrow { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; pointer-events: none; transform-origin: center center; filter: drop-shadow(0px 1px 3px rgba(0,0,0,0.65)); }
-    .route-dir-arrow svg { width: 100%; height: 100%; overflow: visible; }
+    /* 도로 위 경로 진행방향 삼각형 화살표 스타일 */
+    .route-dir-arrow {
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transform-origin: center center;
+      filter: drop-shadow(0px 1px 3px rgba(0,0,0,0.5));
+    }
+    .route-dir-arrow svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
 
     #loadingModal {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.7); color: #fff; z-index: 2000; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.15rem;
@@ -818,7 +832,7 @@
     .history-table tr:hover { background: #f8fafc; }
     .history-pass-time { color: #047857; font-weight: 800; background: #ecfdf5; padding: 3px 8px; border-radius: 6px; }
 
-    /* 모바일 바텀시트 제스처 스타일 */
+    /* 모바일 바텀시트 스타일 */
     @media (max-width: 850px) {
       #sidebarToggleBtn { display: none !important; }
       #main-container { display: block; position: relative; }
@@ -864,7 +878,6 @@
 
     <div id="topCollapsibleArea">
       <div id="header">
-        <!-- 1. 업체 및 연락처 3줄 세로 정렬 라인 -->
         <div class="header-top-row">
           <div class="header-info">
             <h1>거제시종합사회복지관<br>셔틀버스</h1>
@@ -876,7 +889,6 @@
           </div>
         </div>
 
-        <!-- 2. 정류장 검색창 + 노선표, 공유, 접기 버튼 라인 -->
         <div class="header-middle-row">
           <div class="stop-search-box">
             <input type="text" id="stopSearchInput" placeholder="🔎 정류장 검색" oninput="handleStopSearch(this.value)">
@@ -891,7 +903,6 @@
           </div>
         </div>
 
-        <!-- 3. 노선 선택 드롭다운 + 홈, 운행기록, 주변 버튼 라인 -->
         <div class="header-bottom-row">
           <div class="course-select-wrapper">
             <select id="courseSelect" onchange="handleCourseSelectChange(this.value)">
@@ -915,7 +926,6 @@
         <button class="notice-close-btn" onclick="closeNoticeBanner()">&times;</button>
       </div>
 
-      <!-- 상단 LIVE 상태 바 -->
       <div id="liveStatusBar">
         <span class="live-tag" id="liveTag">LIVE 운행</span>
         <span id="liveStatusText">차량 운행 정보를 확인하고 있습니다...</span>
@@ -926,7 +936,6 @@
       <div id="sidebarToggleBtn" onclick="toggleSidebarWeb()" title="목록 접기/열기">◀</div>
 
       <div id="sidebar">
-        <!-- 모바일 제스처용 핸들 바 -->
         <div class="sheet-handle-bar" id="sheetHandle"></div>
         
         <div class="sidebar-header-box" id="sidebarHeaderElem">
@@ -941,7 +950,6 @@
             </div>
           </div>
 
-          <!-- 실시간 차량 카드 컨테이너 -->
           <div id="sidebarCardsContainer">
             <div class="seocho-live-card waiting">
               <div class="seocho-live-left">
@@ -959,7 +967,6 @@
       <div id="map">
         <div id="routeBadge">실제 도로 경로선 계산 중...</div>
         
-        <!-- 실시간 버스 추적 토글 플로팅 버튼 -->
         <button id="busFollowBtn" onclick="toggleBusTracking(true)">
           🎯 <span>버스 따라가기</span>
         </button>
@@ -967,7 +974,6 @@
     </div>
   </div>
 
-  <!-- 날짜별 정류소 통과 이력 조회 모달 -->
   <div id="historyModal" onclick="closeHistoryModal(event)">
     <div class="history-card" onclick="event.stopPropagation()">
       <div class="tt-header" style="background:#7c3aed;">
@@ -1088,7 +1094,6 @@
     let polylines = [];
     let myLocationOverlay = null;
 
-    // 실시간 버스 추적 상태 변수
     window.isTrackingBus = true;
     window.lastActiveBusLatLng = null;
 
@@ -1130,7 +1135,6 @@
       new kakao.maps.LatLng(35.0500, 128.7800)
     );
 
-    // 모바일 바텀시트 제스처(스와이프/클릭) 리스너 등록
     document.addEventListener('DOMContentLoaded', () => {
       const sidebar = document.getElementById('sidebar');
       const handle = document.getElementById('sheetHandle');
@@ -1194,14 +1198,12 @@
       });
     });
 
-    // 사이드바 차량 카드 렌더링
     window.renderSidebarBusCards = function(courseKey) {
       const container = document.getElementById('sidebarCardsContainer');
       if (!container) return;
 
       const store = window.latestGpsStore || {};
       const activeCardsHtml = [];
-
       const cleanTarget = (courseKey || '').replace(/[·.\s\-_()]/g, '');
 
       Object.keys(store).forEach(cName => {
@@ -1888,7 +1890,6 @@
       kakao.maps.event.addListener(map, 'zoom_changed', () => setTimeout(() => map?.relayout(), 100));
       window.addEventListener('resize', () => map?.relayout());
 
-      // 사용자가 지도를 직접 드래그하면 자동 추적을 끄고 플로팅 버튼 활성화
       kakao.maps.event.addListener(map, 'dragstart', function() {
         window.isTrackingBus = false;
         updateFollowButtonUI();
@@ -1913,7 +1914,54 @@
       });
     }
 
-    // 비동기 중복 렌더링 방지용 고유 요청 ID
+    // 경로선 위에 350m 간격으로 주행 방향 화살표(삼각형) 오버레이 배치
+    function drawDirectionArrowsOnPath(path, color) {
+      if (!path || path.length < 2) return;
+
+      let accumulatedDist = 0;
+      const stepDistanceMeters = 350; // 화살표 간격
+
+      for (let i = 0; i < path.length - 1; i++) {
+        const p1 = path[i];
+        const p2 = path[i + 1];
+
+        const lat1 = p1.getLat(), lng1 = p1.getLng();
+        const lat2 = p2.getLat(), lng2 = p2.getLng();
+        const segDist = calcHaversineMeters(lat1, lng1, lat2, lng2);
+
+        accumulatedDist += segDist;
+
+        if (accumulatedDist >= stepDistanceMeters) {
+          accumulatedDist = 0;
+
+          // 두 좌표 사이의 주행 각도(방위각) 계산
+          const angle = calculateBearing(lat1, lng1, lat2, lng2);
+          const midLat = (lat1 + lat2) / 2;
+          const midLng = (lng1 + lng2) / 2;
+
+          const arrowDiv = document.createElement('div');
+          arrowDiv.className = 'route-dir-arrow';
+          arrowDiv.style.transform = `rotate(${angle}deg)`;
+          arrowDiv.innerHTML = `
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="${color}">
+              <path d="M5 3l14 9-14 9V3z" />
+            </svg>
+          `;
+
+          const arrowOverlay = new kakao.maps.CustomOverlay({
+            position: new kakao.maps.LatLng(midLat, midLng),
+            content: arrowDiv,
+            yAnchor: 0.5,
+            xAnchor: 0.5,
+            zIndex: 2
+          });
+
+          arrowOverlay.setMap(map);
+          arrowOverlays.push(arrowOverlay);
+        }
+      }
+    }
+
     let currentRenderRequestId = 0;
 
     async function selectCourse(courseName, colorIdx) {
@@ -2085,7 +2133,6 @@
       }
     }
 
-    // 전체 노선망 거리 정상 갱신 버전
     async function selectAllCourses() {
       currentSelectedCourseKey = 'ALL';
       document.getElementById('courseSelect').value = 'ALL';
@@ -2202,13 +2249,11 @@
           const res = await drawSingleRoadLine(cName, courseValid, color);
           if (res) {
             totalDist += res.totalDistance;
-            // 코스 소제목 우측 실제 거리 갱신
             const distSpan = document.getElementById(`course-dist-${cIdx}`);
             if (distSpan) {
               distSpan.innerText = `${(res.totalDistance / 1000).toFixed(1)} km`;
             }
 
-            // 개별 정류장 구간 거리 갱신
             (res.legs || []).forEach((legDist, legIdx) => {
               const curStop = courseValid[legIdx + 1];
               if (curStop) {
@@ -2234,8 +2279,10 @@
       const cleanKey = courseKey.trim();
       if (routeCache[cleanKey]) {
         const cached = routeCache[cleanKey];
-        const line = new kakao.maps.Polyline({ path: cached.path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85, endArrow: true });
+        const line = new kakao.maps.Polyline({ path: cached.path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85 });
         line.setMap(map); polylines.push(line);
+        // 캐시된 경로선에 방향 화살표 생성
+        drawDirectionArrowsOnPath(cached.path, color);
         return { totalDistance: cached.totalDistance, legs: cached.legs };
       }
 
@@ -2251,8 +2298,11 @@
         if (data.code === 'Ok' && data.routes?.[0]) {
           const route = data.routes[0];
           const path = route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
-          const line = new kakao.maps.Polyline({ path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85, endArrow: true });
+          const line = new kakao.maps.Polyline({ path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85 });
           line.setMap(map); polylines.push(line);
+
+          // 계산된 실제 도로선 위에 진행 방향 화살표 생성
+          drawDirectionArrowsOnPath(path, color);
 
           const legs = (route.legs || []).map(l => l.distance);
           routeCache[cleanKey] = { path, totalDistance: route.distance, legs };
@@ -2264,8 +2314,11 @@
 
     function fallbackHaversineLine(cleanKey, stops, color) {
       const path = stops.map(s => s.coords);
-      const line = new kakao.maps.Polyline({ path, strokeWeight: 5, strokeColor: color, strokeOpacity: 0.8, endArrow: true });
+      const line = new kakao.maps.Polyline({ path, strokeWeight: 5, strokeColor: color, strokeOpacity: 0.8 });
       line.setMap(map); polylines.push(line);
+
+      // 직선 대체선 위에 진행 방향 화살표 생성
+      drawDirectionArrowsOnPath(path, color);
 
       let total = 0; const legs = [];
       for (let i = 1; i < stops.length; i++) {
