@@ -51,6 +51,28 @@
       return `${yr}-${mo}-${day}`;
     }
 
+    // [3단계 신규 기능] Firebase 실시간 긴급 공지 감시 리스너
+    window.initUrgentNoticeWatcher = function() {
+      const noticeRef = ref(db, 'urgentNotice');
+      onValue(noticeRef, (snapshot) => {
+        const data = snapshot.val();
+        const banner = document.getElementById('urgentNoticeBanner');
+        const textElem = document.getElementById('urgentNoticeText');
+        if (!banner || !textElem) return;
+
+        if (data && (data.isActive === true || data.isActive === "true") && data.message) {
+          textElem.innerText = data.message;
+          banner.style.display = 'flex';
+        } else {
+          banner.style.display = 'none';
+        }
+
+        setTimeout(() => {
+          if (window.map) window.map.relayout();
+        }, 200);
+      });
+    };
+
     // 당일 통과 기록 실시간 감시 -> 사이드바 뱃지
     window.initStationLogWatcher = function() {
       const todayStr = getTodayString();
@@ -178,7 +200,6 @@
           badgeRow.appendChild(etaSpan);
         }
 
-        // [2단계 신규 기능] 사용자가 알림을 켜둔 정류소에 접근했을 때 알림 발송
         if (window.checkAndTriggerArrivalNotification) {
           window.checkAndTriggerArrivalNotification(currentSelectedCourseKey, i, curStop.name, accumulatedDist, estMinutes, activeBus.round);
         }
@@ -606,6 +627,12 @@
     .qr-share-btn { background: #475569; color: #ffffff; }
     .fold-btn { background: #64748b; color: #ffffff; }
 
+    /* [3단계] 실시간 긴급 공지 배너 스타일 */
+    #urgentNoticeBanner {
+      display: none; width: 100%; background: #fee2e2; color: #991b1b; border-bottom: 2px solid #ef4444; padding: 10px 18px; font-size: 0.9rem; font-weight: 800; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box; z-index: 110;
+    }
+    .urgent-badge { background: #ef4444; color: #ffffff; font-size: 0.75rem; font-weight: 900; padding: 3px 8px; border-radius: 6px; flex-shrink: 0; animation: pulse 1.2s infinite; }
+
     #noticeBanner {
       display: none; width: 100%; background: #fffbeb; color: #b45309; border-top: 1px solid #fef3c7; border-bottom: 1px solid #fde68a; padding: 9px 18px; font-size: 0.9rem; font-weight: 700; align-items: center; justify-content: space-between; gap: 10px; box-sizing: border-box;
     }
@@ -633,7 +660,6 @@
     #main-container { flex: 1; display: flex; width: 100%; height: 100%; position: relative; overflow: hidden; }
     #map { flex: 1; height: 100%; position: relative; background: #e5e7eb; transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
 
-    /* 실시간 차량 자동 추적 플로팅 버튼 */
     #busFollowBtn {
       position: absolute;
       bottom: 24px;
@@ -791,7 +817,6 @@
     }
     .tts-speak-btn:hover { background: #bae6fd; }
 
-    /* [2단계] 정류소 승차 알림 토글 버튼 */
     .stop-alarm-btn {
       background: #f1f5f9; color: #475569; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 5px 10px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; transition: all 0.2s;
     }
@@ -865,7 +890,6 @@
     }
     @keyframes myLocPulse { 0% { box-shadow: 0 0 0 2px rgba(2,132,199,0.4); } 70% { box-shadow: 0 0 0 14px rgba(2,132,199,0); } 100% { box-shadow: 0 0 0 2px rgba(2,132,199,0); } }
 
-    /* 도로 위 경로 진행방향 삼각형 화살표 스타일 */
     .route-dir-arrow {
       width: 14px;
       height: 14px;
@@ -913,7 +937,6 @@
     .history-table tr:hover { background: #f8fafc; }
     .history-pass-time { color: #047857; font-weight: 800; background: #ecfdf5; padding: 3px 8px; border-radius: 6px; }
 
-    /* 모바일 바텀시트 스타일 */
     @media (max-width: 850px) {
       #sidebarToggleBtn { display: none !important; }
       #main-container { display: block; position: relative; }
@@ -996,6 +1019,14 @@
             <button class="action-btn history-btn" onclick="openHistoryModal()" title="운행기록">📅운행기록</button>
             <button class="action-btn nearby-btn" onclick="findNearestStop()" title="주변">📍주변</button>
           </div>
+        </div>
+      </div>
+
+      <!-- [3단계] 실시간 긴급 공지 배너 -->
+      <div id="urgentNoticeBanner">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="urgent-badge">🚨 긴급 공지</span>
+          <span id="urgentNoticeText"></span>
         </div>
       </div>
 
@@ -1178,11 +1209,9 @@
     window.isTrackingBus = true;
     window.lastActiveBusLatLng = null;
 
-    // [2단계 신규 기능] 정류소 승차 알림 상태 및 오디오 시스템
-    window.stopAlarms = {}; // { "노선명_정류소번호": true }
-    window.triggeredAlarms = new Set(); // 중복 알림 방지 키 Set
+    window.stopAlarms = {};
+    window.triggeredAlarms = new Set();
 
-    // 챠임벨 사운드 생성 (Web Audio API)
     function playChimeSound() {
       try {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -1193,8 +1222,8 @@
         const gain = ctx.createGain();
 
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.15); // A5
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.15);
 
         gain.gain.setValueAtTime(0.3, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
@@ -1207,7 +1236,6 @@
       } catch (e) {}
     }
 
-    // 알림 토글 핸들러
     window.toggleStopAlarm = function(courseName, stopIndex, stopName) {
       const alarmKey = `${courseName}_${stopIndex}`;
       const btn = document.getElementById(`alarm-btn-${stopIndex}`);
@@ -1220,7 +1248,6 @@
         }
         alert(`[${stopName}] 승차 알림이 해제되었습니다.`);
       } else {
-        // 알림 권한 확인
         if ("Notification" in window) {
           Notification.requestPermission().then(permission => {
             if (permission === "granted") {
@@ -1246,7 +1273,6 @@
       }
     };
 
-    // 실시간 접근 검사 및 알림 발송
     window.checkAndTriggerArrivalNotification = function(courseName, stopIndex, stopName, distMeters, estMinutes, roundName) {
       const alarmKey = `${courseName}_${stopIndex}`;
       if (!window.stopAlarms[alarmKey]) return;
@@ -1254,17 +1280,14 @@
       const triggerKey = `${courseName}_${roundName || 'round'}_${stopIndex}`;
       if (window.triggeredAlarms.has(triggerKey)) return;
 
-      // 700m 이내 또는 잔여 시간 2분 이내 진입 시 알림 발생
       if (distMeters <= 700 || estMinutes <= 2) {
         window.triggeredAlarms.add(triggerKey);
 
-        // 1. 소리 및 진동
         playChimeSound();
         if (navigator.vibrate) {
           navigator.vibrate([300, 150, 300]);
         }
 
-        // 2. 브라우저 푸시 알림 창
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("🚌 셔틀버스 곧 도착 알림", {
             body: `[${courseName}] 셔틀버스가 '${stopName}' 정류소에 약 ${estMinutes}분 후 도착 예정입니다. 탑승을 준비해 주세요.`,
@@ -2049,6 +2072,7 @@
         startRealtimeCheck();
         if (window.initRealtimeBusTracking) window.initRealtimeBusTracking();
         if (window.initStationLogWatcher) window.initStationLogWatcher();
+        if (window.initUrgentNoticeWatcher) window.initUrgentNoticeWatcher();
       } catch (err) {
         alert("데이터 변환 오류: " + err.message);
       } finally {
@@ -2211,7 +2235,6 @@
           const nodeContent = displayNum;
           const nodeClass = isBokji ? 'timeline-node bokji' : 'timeline-node';
 
-          // [2단계] 알림 버튼 및 음성듣기 버튼 구성
           const alarmKey = `${courseName}_${i}`;
           const isAlarmOn = window.stopAlarms[alarmKey] === true;
 
