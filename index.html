@@ -62,7 +62,7 @@
       });
     };
 
-    // 순번(stopIndex) 및 정류장명 2중 검증 뱃지 매칭 (갈 때/올 때 역전 방지)
+    // 순번(stopIndex) 및 정류장명 2중 검증 뱃지 매칭
     window.applyPassingBadgesToSidebar = function() {
       if (!currentSelectedCourseKey || currentSelectedCourseKey === 'ALL') return;
       const courseLogs = window.todayStationLogs[currentSelectedCourseKey] || {};
@@ -111,6 +111,76 @@
           }
         });
       });
+
+      // 통과 뱃지 갱신 후 잔여 정류장 ETA 재계산
+      if (window.calculateAndRenderETA) {
+        window.calculateAndRenderETA();
+      }
+    };
+
+    // [1단계 신규 기능] 실시간 도착 예정 시간(ETA) 계산 및 표출
+    window.calculateAndRenderETA = function() {
+      document.querySelectorAll('.eta-badge').forEach(el => el.remove());
+
+      if (!currentSelectedCourseKey || currentSelectedCourseKey === 'ALL') return;
+      if (!window.latestGpsStore || !window.lastActiveBusLatLng) return;
+
+      const normCourse = window.normKey(currentSelectedCourseKey);
+      let activeBus = null;
+
+      Object.keys(window.latestGpsStore).forEach(cName => {
+        if (window.normKey(cName) === normCourse) {
+          const sub = window.latestGpsStore[cName];
+          const firstKey = Object.keys(sub)[0];
+          if (firstKey) activeBus = sub[firstKey];
+        }
+      });
+
+      if (!activeBus) return;
+
+      const stops = (routeData[currentSelectedCourseKey] || []).filter(s => !s.isWaypoint && s.coords);
+      const courseLogs = window.todayStationLogs[currentSelectedCourseKey] || {};
+
+      let maxPassedIdx = 0;
+      Object.keys(courseLogs).forEach(r => {
+        Object.keys(courseLogs[r]).forEach(k => {
+          const item = courseLogs[r][k];
+          if (item && item.stopIndex && item.stopIndex > maxPassedIdx) {
+            maxPassedIdx = parseInt(item.stopIndex, 10);
+          }
+        });
+      });
+
+      let accumulatedDist = 0;
+      let prevLatLng = window.lastActiveBusLatLng;
+
+      // 아직 통과하지 않은 다음 3개 정류장까지 ETA 산출
+      for (let i = maxPassedIdx; i < Math.min(maxPassedIdx + 3, stops.length); i++) {
+        const curStop = stops[i];
+        if (!curStop.coords) continue;
+
+        const d = calcHaversineMeters(prevLatLng.getLat(), prevLatLng.getLng(), curStop.coords.getLat(), curStop.coords.getLng());
+        accumulatedDist += d;
+        prevLatLng = curStop.coords;
+
+        // 평균 주행속도 22km/h (초당 약 6.1m) + 정류소 정차시간
+        const estSeconds = Math.round(accumulatedDist / 6.1);
+        const estMinutes = Math.max(1, Math.round(estSeconds / 60));
+
+        const badgeRow = document.getElementById(`badge-row-${i}`);
+        if (badgeRow) {
+          const etaSpan = document.createElement('span');
+          etaSpan.className = 'badge-tag eta-badge';
+          if (estMinutes <= 1) {
+            etaSpan.style.cssText = 'background:#ef4444; color:#fff; font-weight:900; animation:pulse 1.2s infinite;';
+            etaSpan.innerText = '⚡ 곧 도착';
+          } else {
+            etaSpan.style.cssText = 'background:#2563eb; color:#fff; font-weight:800;';
+            etaSpan.innerText = `⏱ 약 ${estMinutes}분 후 도착`;
+          }
+          badgeRow.appendChild(etaSpan);
+        }
+      }
     };
 
     // 맵 매칭: 실제 GPS를 도로 경로선 위로 안착
@@ -243,12 +313,15 @@
         if (window.renderSidebarBusCards) {
           window.renderSidebarBusCards(currentSelectedCourseKey);
         }
+        if (window.calculateAndRenderETA) {
+          window.calculateAndRenderETA();
+        }
       });
     };
 
     window.busAnimStates = {};
 
-    // 시간 기반 선형 보간 애니메이션 루프 (등속 미끄러짐 이동)
+    // 시간 기반 선형 보간 애니메이션 루프
     function startSmoothBusLoop() {
       function step(now) {
         const targetMap = window.map || window.kakaoMapInstance;
@@ -1929,7 +2002,6 @@
         if (accumulatedDist >= stepDistanceMeters) {
           accumulatedDist = 0;
 
-          // 도로의 방위각 계산 (0도: 북쪽 기준)
           const angle = calculateBearing(lat1, lng1, lat2, lng2);
           const midLat = (lat1 + lat2) / 2;
           const midLng = (lng1 + lng2) / 2;
@@ -1947,7 +2019,6 @@
             transform-origin: center center;
           `;
 
-          // 북쪽(0도)을 정면으로 하는 삼각형 도형 (진행 방위각과 1:1 일치)
           arrowDiv.innerHTML = `
             <svg width="14" height="14" viewBox="0 0 24 24" style="overflow: visible;">
               <polygon points="12,2 22,22 12,17 2,22" fill="${color}" />
@@ -2127,6 +2198,7 @@
       checkActiveBuses();
       if (window.renderSidebarBusCards) window.renderSidebarBusCards(courseName);
       if (window.applyPassingBadgesToSidebar) window.applyPassingBadgesToSidebar();
+      if (window.calculateAndRenderETA) window.calculateAndRenderETA();
     }
 
     function toggleStopCard(innerElem) {
