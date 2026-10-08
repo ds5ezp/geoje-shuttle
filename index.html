@@ -112,13 +112,12 @@
         });
       });
 
-      // 통과 뱃지 갱신 후 잔여 정류장 ETA 재계산
       if (window.calculateAndRenderETA) {
         window.calculateAndRenderETA();
       }
     };
 
-    // [1단계 신규 기능] 실시간 도착 예정 시간(ETA) 계산 및 표출
+    // 실시간 도착 예정 시간(ETA) 계산 및 승차 접근 알림 감시
     window.calculateAndRenderETA = function() {
       document.querySelectorAll('.eta-badge').forEach(el => el.remove());
 
@@ -154,7 +153,6 @@
       let accumulatedDist = 0;
       let prevLatLng = window.lastActiveBusLatLng;
 
-      // 아직 통과하지 않은 다음 3개 정류장까지 ETA 산출
       for (let i = maxPassedIdx; i < Math.min(maxPassedIdx + 3, stops.length); i++) {
         const curStop = stops[i];
         if (!curStop.coords) continue;
@@ -163,7 +161,6 @@
         accumulatedDist += d;
         prevLatLng = curStop.coords;
 
-        // 평균 주행속도 22km/h (초당 약 6.1m) + 정류소 정차시간
         const estSeconds = Math.round(accumulatedDist / 6.1);
         const estMinutes = Math.max(1, Math.round(estSeconds / 60));
 
@@ -179,6 +176,11 @@
             etaSpan.innerText = `⏱ 약 ${estMinutes}분 후 도착`;
           }
           badgeRow.appendChild(etaSpan);
+        }
+
+        // [2단계 신규 기능] 사용자가 알림을 켜둔 정류소에 접근했을 때 알림 발송
+        if (window.checkAndTriggerArrivalNotification) {
+          window.checkAndTriggerArrivalNotification(currentSelectedCourseKey, i, curStop.name, accumulatedDist, estMinutes, activeBus.round);
         }
       }
     };
@@ -321,7 +323,6 @@
 
     window.busAnimStates = {};
 
-    // 시간 기반 선형 보간 애니메이션 루프
     function startSmoothBusLoop() {
       function step(now) {
         const targetMap = window.map || window.kakaoMapInstance;
@@ -781,10 +782,22 @@
     .stop-expand-panel { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1; flex-direction: column; gap: 10px; font-size: 0.92rem; }
     .stop-item-box.active .stop-expand-panel { display: flex; }
 
+    .btn-action-group {
+      display: flex; gap: 6px; align-items: center;
+    }
+
     .tts-speak-btn {
-      background: #e0f2fe; color: #0284c7; border: 1.5px solid #bae6fd; border-radius: 8px; padding: 5px 12px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+      background: #e0f2fe; color: #0284c7; border: 1.5px solid #bae6fd; border-radius: 8px; padding: 5px 10px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
     }
     .tts-speak-btn:hover { background: #bae6fd; }
+
+    /* [2단계] 정류소 승차 알림 토글 버튼 */
+    .stop-alarm-btn {
+      background: #f1f5f9; color: #475569; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 5px 10px; font-size: 0.8rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px; transition: all 0.2s;
+    }
+    .stop-alarm-btn.active {
+      background: #10b981; color: #ffffff; border-color: #059669; box-shadow: 0 2px 6px rgba(16,185,129,0.3);
+    }
 
     .schedule-rounds-box { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
     .round-pill {
@@ -1164,6 +1177,102 @@
 
     window.isTrackingBus = true;
     window.lastActiveBusLatLng = null;
+
+    // [2단계 신규 기능] 정류소 승차 알림 상태 및 오디오 시스템
+    window.stopAlarms = {}; // { "노선명_정류소번호": true }
+    window.triggeredAlarms = new Set(); // 중복 알림 방지 키 Set
+
+    // 챠임벨 사운드 생성 (Web Audio API)
+    function playChimeSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.15); // A5
+
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.8);
+      } catch (e) {}
+    }
+
+    // 알림 토글 핸들러
+    window.toggleStopAlarm = function(courseName, stopIndex, stopName) {
+      const alarmKey = `${courseName}_${stopIndex}`;
+      const btn = document.getElementById(`alarm-btn-${stopIndex}`);
+
+      if (window.stopAlarms[alarmKey]) {
+        delete window.stopAlarms[alarmKey];
+        if (btn) {
+          btn.className = 'stop-alarm-btn';
+          btn.innerHTML = '🔔 알림';
+        }
+        alert(`[${stopName}] 승차 알림이 해제되었습니다.`);
+      } else {
+        // 알림 권한 확인
+        if ("Notification" in window) {
+          Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+              window.stopAlarms[alarmKey] = true;
+              if (btn) {
+                btn.className = 'stop-alarm-btn active';
+                btn.innerHTML = '🔔 알림켜짐';
+              }
+              playChimeSound();
+              alert(`[${stopName}] 승차 알림이 켜졌습니다.\n버스가 약 2분 전(700m 이내) 도달하면 소리와 진동으로 알려드립니다.`);
+            } else {
+              alert("브라우저 알림 권한이 차단되어 있습니다. 브라우저 설정에서 알림을 허용해 주세요.");
+            }
+          });
+        } else {
+          window.stopAlarms[alarmKey] = true;
+          if (btn) {
+            btn.className = 'stop-alarm-btn active';
+            btn.innerHTML = '🔔 알림켜짐';
+          }
+          alert(`[${stopName}] 승차 알림이 켜졌습니다.`);
+        }
+      }
+    };
+
+    // 실시간 접근 검사 및 알림 발송
+    window.checkAndTriggerArrivalNotification = function(courseName, stopIndex, stopName, distMeters, estMinutes, roundName) {
+      const alarmKey = `${courseName}_${stopIndex}`;
+      if (!window.stopAlarms[alarmKey]) return;
+
+      const triggerKey = `${courseName}_${roundName || 'round'}_${stopIndex}`;
+      if (window.triggeredAlarms.has(triggerKey)) return;
+
+      // 700m 이내 또는 잔여 시간 2분 이내 진입 시 알림 발생
+      if (distMeters <= 700 || estMinutes <= 2) {
+        window.triggeredAlarms.add(triggerKey);
+
+        // 1. 소리 및 진동
+        playChimeSound();
+        if (navigator.vibrate) {
+          navigator.vibrate([300, 150, 300]);
+        }
+
+        // 2. 브라우저 푸시 알림 창
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("🚌 셔틀버스 곧 도착 알림", {
+            body: `[${courseName}] 셔틀버스가 '${stopName}' 정류소에 약 ${estMinutes}분 후 도착 예정입니다. 탑승을 준비해 주세요.`,
+            icon: "https://ds5ezp.github.io/geoje-sh/icon-192.png"
+          });
+        }
+      }
+    };
 
     window.toggleBusTracking = function(forceOn = false) {
       if (forceOn) {
@@ -1982,7 +2091,6 @@
       });
     }
 
-    // 도로 실제 진행 방위각에 맞춰 정확하게 안착되는 삼각형 화살표 오버레이
     function drawDirectionArrowsOnPath(path, color) {
       if (!path || path.length < 2) return;
 
@@ -2103,6 +2211,10 @@
           const nodeContent = displayNum;
           const nodeClass = isBokji ? 'timeline-node bokji' : 'timeline-node';
 
+          // [2단계] 알림 버튼 및 음성듣기 버튼 구성
+          const alarmKey = `${courseName}_${i}`;
+          const isAlarmOn = window.stopAlarms[alarmKey] === true;
+
           itemBox.innerHTML = `
             <div class="${nodeClass}" id="node-badge-${i}">${nodeContent}</div>
             <div class="stop-item-inner" onclick="toggleStopCard(this)">
@@ -2114,7 +2226,12 @@
               <div class="stop-expand-panel">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <span style="font-size:0.85rem; font-weight:700; color:#475569;">회차별 시간표</span>
-                  <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
+                  <div class="btn-action-group">
+                    <button class="stop-alarm-btn ${isAlarmOn ? 'active' : ''}" id="alarm-btn-${i}" onclick="event.stopPropagation(); toggleStopAlarm('${courseName}', ${i}, '${stop.name}');">
+                      ${isAlarmOn ? '🔔 알림켜짐' : '🔔 알림'}
+                    </button>
+                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
+                  </div>
                 </div>
                 ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
                 <div class="meta-tags"><span class="dist-tag" id="dist-card-${i}">${stop.distanceText}</span></div>
