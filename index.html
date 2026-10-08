@@ -246,11 +246,11 @@
       });
     };
 
-    window.busHeadingState = {};
     window.busAnimStates = {};
 
+    // 시간 기반 선형 보간 애니메이션 루프 (매끄러운 이동)
     function startSmoothBusLoop() {
-      function step() {
+      function step(now) {
         const targetMap = window.map || window.kakaoMapInstance;
         if (targetMap) {
           Object.keys(window.busAnimStates).forEach(markerKey => {
@@ -263,21 +263,25 @@
               return;
             }
 
-            const dLat = st.targetLat - st.currLat;
-            const dLng = st.targetLng - st.currLng;
-            if (Math.abs(dLat) > 0.0000001 || Math.abs(dLng) > 0.0000001) {
-              st.currLat += dLat * 0.08;
-              st.currLng += dLng * 0.08;
-              overlay.setPosition(new kakao.maps.LatLng(st.currLat, st.currLng));
-            }
+            // 경과 시간 비율 계산 (0.0 ~ 1.0)
+            const elapsed = now - st.startTime;
+            const progress = Math.min(elapsed / st.duration, 1.0);
 
-            const dHead = st.targetHeading - st.currHeading;
-            if (Math.abs(dHead) > 0.05) {
-              st.currHeading += dHead * 0.1;
-              const markerElem = overlay.getContent();
-              if (markerElem) {
-                const bodyElem = markerElem.querySelector('.seocho-bus-body');
-                if (bodyElem) bodyElem.style.transform = `rotate(${st.currHeading}deg)`;
+            // 위치 선형 보간 (등속 미끄러짐)
+            st.currLat = st.startLat + (st.targetLat - st.startLat) * progress;
+            st.currLng = st.startLng + (st.targetLng - st.startLng) * progress;
+
+            overlay.setPosition(new kakao.maps.LatLng(st.currLat, st.currLng));
+
+            // 헤딩(회전 각도) 보간
+            const headingDiff = (st.targetHeading - st.startHeading + 540) % 360 - 180;
+            const currHeading = st.startHeading + headingDiff * progress;
+
+            const markerElem = overlay.getContent();
+            if (markerElem) {
+              const bodyElem = markerElem.querySelector('.seocho-bus-body');
+              if (bodyElem) {
+                bodyElem.style.transform = `rotate(${currHeading}deg)`;
               }
             }
           });
@@ -302,6 +306,7 @@
       const themeColor = getCourseColor(courseName);
       const tLat = latLng.getLat();
       const tLng = latLng.getLng();
+      const now = performance.now();
 
       const labelText = isGpsMode 
         ? `<span class="live-gps-pill">LIVE GPS</span> ${courseName} (${busNum})` 
@@ -310,20 +315,33 @@
       if (!window.busAnimStates[markerKey]) {
         window.busAnimStates[markerKey] = {
           courseName: courseName,
+          startLat: tLat,
+          startLng: tLng,
           currLat: tLat,
           currLng: tLng,
           targetLat: tLat,
           targetLng: tLng,
-          currHeading: rawHeading,
-          targetHeading: rawHeading
+          startHeading: rawHeading,
+          targetHeading: rawHeading,
+          startTime: now,
+          duration: 2500, // 기본 2.5초 보간
+          lastUpdate: now
         };
       } else {
         const st = window.busAnimStates[markerKey];
+        const timeDiff = Math.max(now - st.lastUpdate, 1500);
+
+        st.startLat = st.currLat;
+        st.startLng = st.currLng;
         st.targetLat = tLat;
         st.targetLng = tLng;
 
-        let diff = (rawHeading - (st.targetHeading % 360) + 540) % 360 - 180;
-        st.targetHeading = st.targetHeading + diff;
+        st.startHeading = (st.startHeading + ((st.targetHeading - st.startHeading + 540) % 360 - 180));
+        st.targetHeading = rawHeading;
+
+        st.startTime = now;
+        st.duration = Math.min(timeDiff, 4000); // 최대 4초 한도
+        st.lastUpdate = now;
       }
 
       if (window.realtimeBusMarkers[markerKey]) {
@@ -347,7 +365,7 @@
         `;
 
         const busRoofSvg = `
-          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${rawHeading}deg); transform-origin: 16px 25px; will-change: transform; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5));">
+          <div class="seocho-bus-body" style="width: 32px; height: 50px; transform: rotate(${rawHeading}deg); transform-origin: 16px 25px; will-change: transform; filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.5)); transition: transform 0.1s linear;">
             <svg width="32" height="50" viewBox="0 0 32 50" fill="none">
               <rect x="2" y="2" width="28" height="46" rx="9" fill="${themeColor}" stroke="#0f172a" stroke-width="2.8"/>
               <rect x="5.5" y="7" width="21" height="9" rx="3" fill="#ffffff" stroke="#0f172a" stroke-width="1.8"/>
@@ -1903,10 +1921,8 @@
       document.getElementById('courseSelect').value = courseName;
       clearMapLayers();
 
-      // 현재 실행 건에 대한 고유 ID 발급 (이전 루프 즉시 무효화)
       const thisRequestId = ++currentRenderRequestId;
 
-      // 노선 변경 시 자동 추적 모드 재활성화
       window.isTrackingBus = true;
       updateFollowButtonUI();
 
@@ -1928,7 +1944,6 @@
       let displayCounter = 0;
 
       for (let i = 0; i < stops.length; i++) {
-        // 비동기 작업 도중 새로운 호출이 발생했으면 현재 루프 즉시 탈출
         if (thisRequestId !== currentRenderRequestId) return;
 
         const stop = stops[i];
@@ -2187,7 +2202,7 @@
           const res = await drawSingleRoadLine(cName, courseValid, color);
           if (res) {
             totalDist += res.totalDistance;
-            // 코스 소제목 우측 "계산 중..."을 실제 계산된 거리(km)로 갱신
+            // 코스 소제목 우측 실제 거리 갱신
             const distSpan = document.getElementById(`course-dist-${cIdx}`);
             if (distSpan) {
               distSpan.innerText = `${(res.totalDistance / 1000).toFixed(1)} km`;
