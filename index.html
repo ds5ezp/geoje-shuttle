@@ -20,7 +20,7 @@
       apiKey: "AIzaSyDIOaN5jLCjjjK-xKUi4Bb-f4597panqDo",
       authDomain: "gjcwbus.firebaseapp.com",
       databaseURL: "https://gjcwbus-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "gjcwbus-default-rtdb",
+      projectId: "gjcwbus",
       storageBucket: "gjcwbus.firebasestorage.app",
       messagingSenderId: "427511689115",
       appId: "1:427511689115:web:f409857185be5668d1fb3e",
@@ -1378,6 +1378,10 @@
     .seocho-bus-num { color: #191f28; font-weight: 750; }
     .stop-item-inner { border-color: #e9edf2; border-radius: 13px; box-shadow: 0 1px 3px rgba(16,30,50,.025); }
     .stop-item-title { color: #191f28; font-weight: 740; letter-spacing: -.035em; }
+    .stop-item-inner, .stop-expand-panel, .stop-item-header { min-width: 0; }
+    .stop-expand-panel { width: 100%; }
+    .tts-speak-btn, .stop-alarm-btn { min-height: 38px; white-space: nowrap; flex-shrink: 0; }
+    .tts-speak-btn.speaking { background: #dff7ec; border-color: #9de4c5; color: #087b5c; }
     .badge-tag, .header-badges span, .dist-tag { letter-spacing: -.01em; }
     .sidebar-bus-progress-label { font-weight: 800; }
     #busFollowBtn { border-radius: 13px; background: #191f28; box-shadow: 0 6px 18px rgba(25,31,40,.2); }
@@ -1388,6 +1392,17 @@
     @media (max-width: 850px) {
       #header { padding-top: 10px; padding-bottom: 9px; }
       .sidebar-header-box { padding-top: 8px; padding-bottom: 9px; }
+    }
+    @media (max-width: 430px) {
+      .stop-expand-panel > div:first-child {
+        flex-direction: column !important; align-items: stretch !important; gap: 8px;
+      }
+      .stop-expand-panel > div:first-child > span { white-space: nowrap; }
+      .btn-action-group { width: 100%; gap: 7px; }
+      .btn-action-group .tts-speak-btn, .btn-action-group .stop-alarm-btn {
+        flex: 1 1 0; min-width: 0; padding: 7px 6px; justify-content: center; font-size: .74rem;
+      }
+      .stop-expand-panel .schedule-rounds-box { width: 100%; }
     }
   </style>
 </head>
@@ -2820,7 +2835,7 @@
                     <button class="stop-alarm-btn ${isAlarmOn ? 'active' : ''}" id="alarm-btn-${i}" onclick="event.stopPropagation(); toggleStopAlarm('${courseName}', ${i}, '${stop.name}');">
                       ${isAlarmOn ? '🔔 알림켜짐' : '🔔 알림'}
                     </button>
-                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
+                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival(this, '${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
                   </div>
                 </div>
                 ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
@@ -2920,6 +2935,66 @@
       if (window.renderSidebarBusProgress) setTimeout(() => window.renderSidebarBusProgress(currentSelectedCourseKey), 250);
     }
 
+    window.speakStopArrival = function(button, stopName, schedules) {
+      const synth = window.speechSynthesis;
+      if (!synth || typeof window.SpeechSynthesisUtterance !== 'function') {
+        alert('현재 브라우저에서 음성 읽기를 지원하지 않습니다. Chrome 또는 삼성 인터넷에서 다시 시도해 주세요.');
+        return;
+      }
+
+      if (window.activeStopSpeechButton) {
+        const previousButton = window.activeStopSpeechButton;
+        previousButton.textContent = previousButton.dataset.defaultText || '🔊 음성듣기';
+        previousButton.classList.remove('speaking');
+        window.activeStopSpeechButton = null;
+      }
+      synth.cancel();
+
+      const scheduleParts = (Array.isArray(schedules) ? schedules : []).map(item => {
+        if (!item || !item.round || !item.time) return '';
+        if (String(item.time).includes('미운행')) return `${item.round} 운행하지 않습니다`;
+        const match = String(item.time).match(/(\d{1,2}):(\d{2})/);
+        if (!match) return '';
+        return `${item.round} ${Number(match[1])}시 ${Number(match[2])}분`;
+      }).filter(Boolean);
+      const message = `${stopName} 정류장입니다.${scheduleParts.length ? ` 시간표는 ${scheduleParts.join(', ')}입니다.` : ''}`;
+      const utterance = new SpeechSynthesisUtterance(message);
+      utterance.lang = 'ko-KR';
+      utterance.rate = 0.92;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      const koreanVoice = synth.getVoices().find(voice => /^ko([_-]|$)/i.test(voice.lang || ''));
+      if (koreanVoice) utterance.voice = koreanVoice;
+
+      const restoreButton = () => {
+        if (window.activeStopSpeechButton !== button) return;
+        button.textContent = button.dataset.defaultText || '🔊 음성듣기';
+        button.classList.remove('speaking');
+        window.activeStopSpeechButton = null;
+      };
+      if (button) {
+        button.dataset.defaultText = button.dataset.defaultText || button.textContent.trim();
+        button.textContent = '🔊 재생 중';
+        button.classList.add('speaking');
+        window.activeStopSpeechButton = button;
+      }
+      utterance.onend = restoreButton;
+      utterance.onerror = event => {
+        restoreButton();
+        if (event.error && !['canceled', 'interrupted'].includes(event.error)) {
+          alert('음성 재생에 실패했습니다. 휴대폰 미디어 음량과 음성 서비스가 켜져 있는지 확인해 주세요.');
+        }
+      };
+
+      try {
+        synth.speak(utterance);
+      } catch (error) {
+        restoreButton();
+        alert('음성 재생을 시작하지 못했습니다. 브라우저를 새로고침한 뒤 다시 시도해 주세요.');
+      }
+    };
+
     async function selectAllCourses() {
       currentSelectedCourseKey = 'ALL';
       document.getElementById('courseSelect').value = 'ALL';
@@ -3000,7 +3075,7 @@
                 <div class="stop-expand-panel">
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="font-size:0.85rem; font-weight:700; color:#475569;">회차별 시간표</span>
-                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성듣기</button>
+                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival(this, '${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성듣기</button>
                   </div>
                   ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
                   <div class="meta-tags"><span class="dist-tag" id="dist-all-card-${cIdx}-${i}">${stop.distanceText}</span></div>
