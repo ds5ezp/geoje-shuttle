@@ -206,14 +206,13 @@
           if (atStop) firstTarget++;
         }
 
-        // GPS 속도가 충분히 잡힐 때는 실제 속도, 정차·저속 구간에는 보수적인 기준 속도를 사용합니다.
+        // 이동 중 속도가 충분히 잡힐 때는 GPS 속도, 정차·저속 구간에는 보수적 기준 속도를 사용합니다.
         const speedKmh = activeBus.speed >= 8 && activeBus.speed <= 55 ? activeBus.speed : 22;
         const speedMps = speedKmh / 3.6;
 
         for (let i = firstTarget; i < Math.min(firstTarget + 3, stops.length); i++) {
           const curStop = stops[i];
           if (!curStop.coords) continue;
-
           const routeDistance = getForwardRouteDistance(courseName, prevLatLng, curStop.coords);
           const d = routeDistance !== null
             ? routeDistance
@@ -373,6 +372,7 @@
               }
             }
           });
+
         });
 
         if (window.renderSidebarBusCards) {
