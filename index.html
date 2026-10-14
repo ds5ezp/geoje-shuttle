@@ -322,11 +322,12 @@
             const lastUpdated = Number(pos.updatedAt);
             const ageMs = nowMs - lastUpdated;
             const isOperating = pos.isOperating === true || pos.isOperating === "true";
-            const isFresh = ageMs >= -60000 && ageMs < 60000;
+            // 지도상의 차량 위치는 마지막 GPS가 45초 이내인 경우에만 실시간으로 취급합니다.
+            const isFresh = ageMs >= -60000 && ageMs < 45000;
             const busNum = pos.busNumber || '운행차량';
             const round = pos.round || (subKey !== '단일' ? subKey : '');
 
-            if (isOperating && ageMs >= -60000 && ageMs < 600000) {
+            if (isOperating && ageMs >= -60000 && ageMs < 1800000) {
               if (!window.gpsStatusStore[courseName]) window.gpsStatusStore[courseName] = {};
               window.gpsStatusStore[courseName][subKey] = {
                 busNum, round, speed: Math.round(Number(pos.speed) || 0), updatedAt: lastUpdated
@@ -394,8 +395,8 @@
         Object.keys(statuses).forEach(subKey => {
           const item = statuses[subKey];
           const age = now - item.updatedAt;
-          if (age >= 600000) delete statuses[subKey];
-          if (age >= 60000) {
+          if (age >= 1800000) delete statuses[subKey];
+          if (age >= 45000) {
             if (window.latestGpsStore[courseName]) delete window.latestGpsStore[courseName][subKey];
             const markerKey = `${courseName}_${item.busNum}`;
             if (window.realtimeBusMarkers[markerKey]) {
@@ -1446,6 +1447,14 @@
       }
       .stop-expand-panel .schedule-rounds-box { width: 100%; }
     }
+    .seocho-live-card.gps-fresh { border-left-color:#12b886; }
+    .seocho-live-card.gps-delayed { border-left-color:#f0a43a; background:#fffaf1; }
+    .seocho-live-card.gps-offline { border-left-color:#e35d5b; background:#fff7f6; }
+    .gps-last-seen { color:#7b8797; font-size:.7rem; font-weight:600; }
+    @media (max-width:430px) {
+      .gps-last-seen { font-size:.66rem; }
+      .seocho-live-speed { line-height:1.5; }
+    }
   </style>
 </head>
 <body>
@@ -1910,19 +1919,23 @@
             const roundsArr = Array.from(vInfo.rounds);
             const roundsBadge = roundsArr.length > 0 ? `<span class="seocho-bus-round">${roundsArr.join(',')}</span>` : '';
             const ageSec = Math.max(0, Math.floor((Date.now() - vInfo.updatedAt) / 1000));
-            const gpsLabel = ageSec < 15 ? 'GPS 실시간' : ageSec < 60 ? '위치 지연' : 'GPS 연결 끊김';
-            const gpsColor = ageSec < 15 ? '#059669' : ageSec < 60 ? '#d97706' : '#dc2626';
+            const gpsState = ageSec < 15 ? 'fresh' : ageSec < 45 ? 'delayed' : 'offline';
+            const gpsLabel = gpsState === 'fresh' ? 'GPS 실시간' : gpsState === 'delayed' ? '위치 수신 지연' : '위치 업데이트 끊김';
+            const gpsColor = gpsState === 'fresh' ? '#059669' : gpsState === 'delayed' ? '#d97706' : '#dc2626';
+            const ageLabel = ageSec < 60 ? `${ageSec}초 전` : `${Math.floor(ageSec / 60)}분 전`;
+            const receivedAt = new Intl.DateTimeFormat('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(vInfo.updatedAt));
 
             activeCardsHtml.push(`
-              <div class="seocho-live-card">
+              <div class="seocho-live-card gps-${gpsState}">
                 <div class="seocho-live-left">
                   <span class="seocho-bus-icon">🚌</span>
                   <span class="seocho-bus-num">${courseKey === 'ALL' ? `[${cName}] ` : ''}${vInfo.busNum}</span>
                   ${roundsBadge}
                 </div>
                 <div class="seocho-live-speed">
-                  <span style="color:${gpsColor};font-weight:800;">${gpsLabel} · ${ageSec}초 전</span><br>
-                  속도: <b>${ageSec < 60 ? `${vInfo.speed} km/h` : '-'}</b>
+                  <span class="gps-freshness" style="color:${gpsColor};font-weight:800;">${gpsLabel}</span><br>
+                  <span class="gps-last-seen">마지막 수신 ${receivedAt} · ${ageLabel}</span><br>
+                  속도: <b>${ageSec < 45 ? `${vInfo.speed} km/h` : '-'}</b>
                 </div>
               </div>
             `);
