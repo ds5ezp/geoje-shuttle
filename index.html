@@ -20,7 +20,7 @@
       apiKey: "AIzaSyDIOaN5jLCjjjK-xKUi4Bb-f4597panqDo",
       authDomain: "gjcwbus.firebaseapp.com",
       databaseURL: "https://gjcwbus-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "gjcwbus",
+      projectId: "gjcwbus-default-rtdb",
       storageBucket: "gjcwbus.firebasestorage.app",
       messagingSenderId: "427511689115",
       appId: "1:427511689115:web:f409857185be5668d1fb3e",
@@ -982,11 +982,8 @@
     .tt-close-action-btn { background: #1e293b; box-shadow: 0 2px 6px rgba(30,41,59,0.3); }
 
     .bus-marker-badge {
-      width: 32px; height: 32px; border-radius: 50%; background: #2563eb; color: #ffffff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; border: 2px solid #ffffff; box-shadow: 0 3px 8px rgba(0,0,0,0.35); cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s ease;
       width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: #ffffff; font-weight: 800; font-size: 12px; display: flex; align-items: center; justify-content: center; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(15,23,42,0.24); cursor: pointer; transform: translate(-50%, -50%); transition: all 0.2s ease;
     }
-    .bus-marker-badge:hover { transform: translate(-50%, -50%) scale(1.15); }
-    .bus-marker-badge.복지관 { background: #dc2626 !important; width: 36px; height: 36px; font-size: 15px; }
     .bus-marker-badge:hover { transform: translate(-50%, -50%) scale(1.12); box-shadow: 0 0 0 4px rgba(49,130,246,.18), 0 3px 8px rgba(15,23,42,.25); }
     .bus-marker-badge.복지관 { background: #dc4b4b !important; width: 32px; height: 32px; font-size: 13px; box-shadow: 0 0 0 3px rgba(255,255,255,.92), 0 3px 9px rgba(150,30,30,.24); }
 
@@ -1011,9 +1008,6 @@
     }
     .route-dir-arrow svg polygon { filter: drop-shadow(0 1px 1px rgba(255,255,255,.98)); }
 
-    #loadingModal {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15,23,42,0.7); color: #fff; z-index: 2000; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.15rem;
-    }
     #loadingModal { position:fixed; inset:0; background:rgba(15,23,42,.68); color:#fff; z-index:2000; display:flex; align-items:center; justify-content:center; padding:20px; font-weight:700; font-size:1rem; }
     .loading-panel { width:min(440px,100%); padding:24px; border-radius:18px; background:#17263c; box-shadow:0 18px 60px rgba(0,0,0,.28); text-align:center; line-height:1.6; }
     #loadingMessage { display:block; }
@@ -1298,7 +1292,6 @@
     .stop-item-box { padding-bottom: 7px; }
     .stop-item-box::before {
       left: -19px; top: 25px; bottom: -7px; width: 4px; border-radius: 5px;
-      background: #e95ac8;
       background: var(--course-color, var(--route-accent, #e95ac8));
     }
     .stop-item-inner {
@@ -1309,14 +1302,11 @@
       background: #fffafd; border-color: #f0b1e2; box-shadow: 0 4px 13px rgba(213,63,177,.09); transform: none;
     }
     .timeline-node {
-      left: -35px; top: 13px; width: 32px; height: 32px; border: 3px solid #e95ac8;
-      background: #fff; color: #b6359b; font-size: .75rem; font-weight: 900;
       left: -35px; top: 13px; width: 32px; height: 32px;
       border: 3px solid var(--course-color, var(--route-accent, #e95ac8));
       background: #fff; color: var(--course-color, var(--route-accent, #b6359b)); font-size: .75rem; font-weight: 900;
       box-shadow: 0 2px 7px rgba(65,35,65,.17);
     }
-    .timeline-node.bokji { background: #fff; border-color: #de4c55; color: #c0323b; }
     .timeline-node.bokji { background: #fff; border-color: var(--course-color, var(--route-accent, #de4c55)); color: var(--course-color, var(--route-accent, #c0323b)); }
     .sidebar-bus-progress {
       position: absolute; left: 1px; z-index: 12; display: inline-flex; align-items: center; gap: 5px;
@@ -1331,7 +1321,6 @@
     }
     .sidebar-bus-progress-label {
       display: block; overflow: hidden; text-overflow: ellipsis; max-width: 52px;
-      padding: 4px 8px; border-radius: 999px; background: #1475e0; color: #fff;
       padding: 4px 8px; border-radius: 999px; background: var(--route-accent, #1475e0); color: #fff;
       font-size: .68rem; line-height: 1; font-weight: 900; letter-spacing: .01em;
     }
@@ -1461,7 +1450,6 @@
 </head>
 <body>
 
-  <div id="loadingModal">구글 시트에서 최신 노선 데이터 연동 중...</div>
   <div id="loadingModal"><div class="loading-panel"><span id="loadingMessage">구글 시트에서 최신 노선 데이터 연동 중...</span><button id="loadingRetry" onclick="window.location.reload()">다시 시도</button></div></div>
 
   <div id="app-wrapper">
@@ -1819,10 +1807,6 @@
       }
     }
 
-    const GEOJE_BOUNDS = new kakao.maps.LatLngBounds(
-      new kakao.maps.LatLng(34.7000, 128.4500),
-      new kakao.maps.LatLng(35.0500, 128.7800)
-    );
     let GEOJE_BOUNDS = null;
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -2518,11 +2502,6 @@
         return;
       }
 
-      container.innerHTML = stops.map((s, idx) => {
-        const activeTimes = (s.schedules || []).filter(sc => sc.time && !sc.time.includes('미운행'));
-        const badgesHtml = activeTimes.length > 0 
-          ? activeTimes.map(sc => `<span class="tt-time-badge">${sc.time}</span>`).join('')
-          : `<span style="font-size:0.85rem; color:#94a3b8;">운행 시간 없음</span>`;
       const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
       const rounds = [...new Map(stops.flatMap(stop => stop.schedules || [])
         .filter(sc => sc.round)
@@ -2535,17 +2514,6 @@
         return [round, stopIndex >= 0 ? { stop: stops[stopIndex], stopIndex, time: scheduleFor(stops[stopIndex], round).time } : null];
       }));
 
-        return `
-          <div class="tt-stop-row">
-            <div class="tt-stop-name">
-              <span style="color:#2563eb; font-weight:900;">${idx + 1}.</span> ${s.name}
-              ${s.stopNo ? `<span style="font-size:0.8rem; color:#64748b; font-weight:normal;">(No.${s.stopNo})</span>` : ''}
-            </div>
-            <div class="tt-badges-container">
-              ${badgesHtml}
-            </div>
-          </div>
-        `;
       const departureCards = rounds.map(round => {
         const departure = departures[round];
         return `<div class="tt-departure-card"><span class="tt-departure-round">${escapeHtml(round)} 출발</span><span class="tt-departure-stop">${departure ? `${escapeHtml(departure.stop.name)} <span class="tt-departure-time">${escapeHtml(departure.time)}</span>` : '시간표 정보 없음'}</span></div>`;
@@ -2595,7 +2563,6 @@
       const rounds = [...new Map(stops.flatMap(stop => stop.schedules || []).filter(sc => sc.round).map(sc => [String(sc.round), String(sc.round)])).values()]
         .sort((a, b) => parseRoundNumber(a) - parseRoundNumber(b));
       const getTime = (stop, round) => (stop.schedules || []).find(sc => String(sc.round) === round && sc.time && !String(sc.time).includes('미운행'));
-      let msg = `🚌 [거제시종합사회복지관 시간표]\n📍 노선: ${currentTimetableCourseKey}\n--------------------------------\n`;
       let msg = `🚌 [거제시종합사회복지관 시간표]\n📍 노선: ${currentTimetableCourseKey}\n`;
       rounds.forEach(round => {
         const idx = stops.findIndex(stop => getTime(stop, round));
@@ -2603,7 +2570,6 @@
       });
       msg += `--------------------------------\n`;
       stops.forEach((s, idx) => {
-        const times = (s.schedules || []).filter(sc => sc.time && !sc.time.includes('미운행')).map(sc => sc.time).join(', ');
         const times = rounds.map(round => `${round} ${getTime(s, round)?.time || '—'}`).join(' / ');
         msg += `${idx + 1}. ${s.name}: ${times || '운행 없음'}\n`;
       });
@@ -2674,11 +2640,9 @@
       const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent("설정")}&tqx=responseHandler:handleSettings&_t=${Date.now()}`;
       const s = document.createElement('script');
       s.src = url;
-      s.onerror = () => loadStationList();
       const fallback = () => { if (!settingsRequestDone) { settingsRequestDone = true; loadStationList(); } };
       s.onerror = fallback;
       document.body.appendChild(s);
-      setTimeout(() => { if (!routeData || Object.keys(routeData).length === 0) loadStationList(); }, 3000);
       setTimeout(fallback, 4500);
     }
 
@@ -2703,7 +2667,6 @@
       const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent("정류소목록")}&tqx=responseHandler:handleStationList&_t=${Date.now()}`;
       const s = document.createElement('script');
       s.src = url;
-      s.onerror = () => loadRouteData();
       const fallback = () => { if (!stationRequestDone) { stationRequestDone = true; loadRouteData(); } };
       s.onerror = fallback;
       document.body.appendChild(s);
@@ -2735,7 +2698,6 @@
       const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?sheet=${encodeURIComponent("노선데이터")}&tqx=responseHandler:handleRouteData&_t=${Date.now()}`;
       const s = document.createElement('script');
       s.src = url;
-      s.onerror = () => { document.getElementById('loadingModal').style.display = 'none'; alert("시트 연동 실패"); };
       const fail = () => {
         if (routeRequestDone) return;
         routeRequestDone = true;
@@ -2806,9 +2768,6 @@
         if (window.initUrgentNoticeWatcher) window.initUrgentNoticeWatcher();
         finishLoading();
       } catch (err) {
-        alert("데이터 변환 오류: " + err.message);
-      } finally {
-        document.getElementById('loadingModal').style.display = 'none';
         console.error('노선 데이터 처리 오류:', err);
         showLoadingFailure(`노선 데이터를 처리하지 못했습니다. ${err.message}`);
       }
@@ -2861,7 +2820,6 @@
       if (!path || path.length < 2) return;
 
       let accumulatedDist = 0;
-      const stepDistanceMeters = 300;
       const stepDistanceMeters = 450;
 
       for (let i = 0; i < path.length - 1; i++) {
@@ -2884,8 +2842,6 @@
           const arrowDiv = document.createElement('div');
           arrowDiv.className = 'route-dir-arrow';
           arrowDiv.style.cssText = `
-            width: 14px;
-            height: 14px;
             width: 11px;
             height: 11px;
             display: flex;
@@ -2897,8 +2853,6 @@
           `;
 
           arrowDiv.innerHTML = `
-            <svg width="14" height="14" viewBox="0 0 24 24" style="overflow: visible;">
-              <polygon points="12,2 22,22 12,17 2,22" fill="${color}" />
             <svg width="11" height="11" viewBox="0 0 24 24" style="overflow: visible;">
               <polygon points="12,2 21,22 12,17 3,22" fill="${color}" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round" />
             </svg>
@@ -3002,7 +2956,6 @@
                     <button class="stop-alarm-btn ${isAlarmOn ? 'active' : ''}" id="alarm-btn-${i}" onclick="event.stopPropagation(); toggleStopAlarm('${courseName}', ${i}, '${stop.name}');">
                       ${isAlarmOn ? '🔔 알림켜짐' : '🔔 알림'}
                     </button>
-                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
                     <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival(this, '${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
                   </div>
                 </div>
@@ -3243,7 +3196,6 @@
                 <div class="stop-expand-panel">
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="font-size:0.85rem; font-weight:700; color:#475569;">회차별 시간표</span>
-                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성듣기</button>
                     <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival(this, '${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성듣기</button>
                   </div>
                   ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
@@ -3322,8 +3274,6 @@
       const cleanKey = courseKey.trim();
       if (routeCache[cleanKey]) {
         const cached = routeCache[cleanKey];
-        const line = new kakao.maps.Polyline({ path: cached.path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85 });
-        line.setMap(map); polylines.push(line);
         drawRouteLine(cached.path, color);
         drawDirectionArrowsOnPath(cached.path, color);
         return { totalDistance: cached.totalDistance, legs: cached.legs };
@@ -3341,8 +3291,6 @@
         if (data.code === 'Ok' && data.routes?.[0]) {
           const route = data.routes[0];
           const path = route.geometry.coordinates.map(c => new kakao.maps.LatLng(c[1], c[0]));
-          const line = new kakao.maps.Polyline({ path, strokeWeight: 6, strokeColor: color, strokeOpacity: 0.85 });
-          line.setMap(map); polylines.push(line);
           drawRouteLine(path, color);
 
           drawDirectionArrowsOnPath(path, color);
@@ -3357,8 +3305,6 @@
 
     function fallbackHaversineLine(cleanKey, stops, color) {
       const path = stops.map(s => s.coords);
-      const line = new kakao.maps.Polyline({ path, strokeWeight: 5, strokeColor: color, strokeOpacity: 0.8 });
-      line.setMap(map); polylines.push(line);
       drawRouteLine(path, color, 0.78);
 
       drawDirectionArrowsOnPath(path, color);
