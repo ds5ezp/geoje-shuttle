@@ -20,7 +20,7 @@
       apiKey: "AIzaSyDIOaN5jLCjjjK-xKUi4Bb-f4597panqDo",
       authDomain: "gjcwbus.firebaseapp.com",
       databaseURL: "https://gjcwbus-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "gjcwbus-default-rtdb",
+      projectId: "gjcwbus",
       storageBucket: "gjcwbus.firebasestorage.app",
       messagingSenderId: "427511689115",
       appId: "1:427511689115:web:f409857185be5668d1fb3e",
@@ -36,6 +36,7 @@
     window.realtimeBusMarkers = {};
     window.hasGpsData = {};
     window.latestGpsStore = {};
+    window.gpsStatusStore = {};
     window.todayStationLogs = {};
 
     window.normKey = function(str) {
@@ -139,71 +140,107 @@
       }
     };
 
-    // 실시간 도착 예정 시간(ETA) 계산 및 승차 접근 알림 감시
+    // GPS 위치에서 노선 경로를 따라 정류장까지의 거리를 계산합니다.
+    function getForwardRouteDistance(courseName, fromLatLng, toLatLng) {
+      const cached = window.routeCache && window.routeCache[courseName];
+      if (!cached || !cached.path || cached.path.length < 2) return null;
+
+      const path = cached.path;
+      const exactDistance = (a, b) => calcHaversineMeters(a.getLat(), a.getLng(), b.getLat(), b.getLng()) / 1.25;
+      const nearestIndex = (point) => {
+        let bestIndex = -1;
+        let bestDistance = Infinity;
+        for (let i = 0; i < path.length; i++) {
+          const d = exactDistance(point, path[i]);
+          if (d < bestDistance) { bestDistance = d; bestIndex = i; }
+        }
+        return { index: bestIndex, distance: bestDistance };
+      };
+
+      const from = nearestIndex(fromLatLng);
+      const to = nearestIndex(toLatLng);
+      if (from.index < 0 || to.index < from.index || from.distance > 250 || to.distance > 250) return null;
+
+      let distance = from.distance + to.distance;
+      for (let i = from.index + 1; i <= to.index; i++) {
+        distance += exactDistance(path[i - 1], path[i]);
+      }
+      return distance;
+    }
+
+    // 회차별 GPS와 통과 기록을 짝지어 ETA 및 승차 접근 알림을 계산합니다.
     window.calculateAndRenderETA = function() {
       document.querySelectorAll('.eta-badge').forEach(el => el.remove());
 
       if (!currentSelectedCourseKey || currentSelectedCourseKey === 'ALL') return;
-      if (!window.latestGpsStore || !window.lastActiveBusLatLng) return;
-
       const normCourse = window.normKey(currentSelectedCourseKey);
-      let activeBus = null;
+      const courseName = Object.keys(window.latestGpsStore || {}).find(k => window.normKey(k) === normCourse);
+      if (!courseName) return;
 
-      Object.keys(window.latestGpsStore).forEach(cName => {
-        if (window.normKey(cName) === normCourse) {
-          const sub = window.latestGpsStore[cName];
-          const firstKey = Object.keys(sub)[0];
-          if (firstKey) activeBus = sub[firstKey];
-        }
-      });
-
-      if (!activeBus) return;
+      const now = Date.now();
+      const candidates = Object.values(window.latestGpsStore[courseName] || {})
+        .filter(bus => bus && bus.updatedAt && now - bus.updatedAt >= -60000 && now - bus.updatedAt < 45000 && Number.isFinite(bus.lat) && Number.isFinite(bus.lng));
+      if (!candidates.length) return;
 
       const stops = (routeData[currentSelectedCourseKey] || []).filter(s => !s.isWaypoint && s.coords);
-      const courseLogs = window.todayStationLogs[currentSelectedCourseKey] || {};
+      const courseLogs = window.todayStationLogs[courseName] || {};
 
-      let maxPassedIdx = 0;
-      Object.keys(courseLogs).forEach(r => {
-        Object.keys(courseLogs[r]).forEach(k => {
-          const item = courseLogs[r][k];
-          if (item && item.stopIndex && item.stopIndex > maxPassedIdx) {
-            maxPassedIdx = parseInt(item.stopIndex, 10);
-          }
+      candidates.forEach(activeBus => {
+        const busRoundKey = Object.keys(courseLogs).find(r => window.normKey(r) === window.normKey(activeBus.round));
+        const roundLogs = busRoundKey ? courseLogs[busRoundKey] : {};
+        let maxPassedIdx = 0;
+        Object.keys(roundLogs).forEach(k => {
+          const idx = parseInt(roundLogs[k]?.stopIndex, 10);
+          if (Number.isFinite(idx) && idx > maxPassedIdx) maxPassedIdx = idx;
         });
-      });
 
-      let accumulatedDist = 0;
-      let prevLatLng = window.lastActiveBusLatLng;
+        const rawLatLng = new kakao.maps.LatLng(activeBus.lat, activeBus.lng);
+        const snapped = window.snapGpsToRoute(courseName, rawLatLng).latLng;
+        let prevLatLng = snapped;
+        let accumulatedDist = 0;
+        let firstTarget = maxPassedIdx;
 
-      for (let i = maxPassedIdx; i < Math.min(maxPassedIdx + 3, stops.length); i++) {
-        const curStop = stops[i];
-        if (!curStop.coords) continue;
+        // 출발점/현재 정차 정류장을 ETA 목적지로 다시 표시하지 않습니다.
+        if (firstTarget < stops.length) {
+          const atStop = calcHaversineMeters(snapped.getLat(), snapped.getLng(), stops[firstTarget].coords.getLat(), stops[firstTarget].coords.getLng()) < 120;
+          if (atStop) firstTarget++;
+        }
 
-        const d = calcHaversineMeters(prevLatLng.getLat(), prevLatLng.getLng(), curStop.coords.getLat(), curStop.coords.getLng());
-        accumulatedDist += d;
-        prevLatLng = curStop.coords;
+        // GPS 속도가 충분히 잡힐 때는 실제 속도, 정차·저속 구간에는 보수적인 기준 속도를 사용합니다.
+        const speedKmh = activeBus.speed >= 8 && activeBus.speed <= 55 ? activeBus.speed : 22;
+        const speedMps = speedKmh / 3.6;
 
-        const estSeconds = Math.round(accumulatedDist / 6.1);
-        const estMinutes = Math.max(1, Math.round(estSeconds / 60));
+        for (let i = firstTarget; i < Math.min(firstTarget + 3, stops.length); i++) {
+          const curStop = stops[i];
+          if (!curStop.coords) continue;
 
-        const badgeRow = document.getElementById(`badge-row-${i}`);
-        if (badgeRow) {
-          const etaSpan = document.createElement('span');
-          etaSpan.className = 'badge-tag eta-badge';
-          if (estMinutes <= 1) {
-            etaSpan.style.cssText = 'background:#ef4444; color:#fff; font-weight:900; animation:pulse 1.2s infinite;';
-            etaSpan.innerText = '⚡ 곧 도착';
-          } else {
-            etaSpan.style.cssText = 'background:#2563eb; color:#fff; font-weight:800;';
-            etaSpan.innerText = `⏱ 약 ${estMinutes}분 후 도착`;
+          const routeDistance = getForwardRouteDistance(courseName, prevLatLng, curStop.coords);
+          const d = routeDistance !== null
+            ? routeDistance
+            : calcHaversineMeters(prevLatLng.getLat(), prevLatLng.getLng(), curStop.coords.getLat(), curStop.coords.getLng());
+          accumulatedDist += d;
+          prevLatLng = curStop.coords;
+
+          const estMinutes = Math.max(1, Math.round(accumulatedDist / speedMps / 60));
+          const badgeRow = document.getElementById(`badge-row-${i}`);
+          if (badgeRow) {
+            const etaSpan = document.createElement('span');
+            etaSpan.className = 'badge-tag eta-badge';
+            etaSpan.style.cssText = estMinutes <= 1
+              ? 'background:#ef4444; color:#fff; font-weight:900; animation:pulse 1.2s infinite;'
+              : 'background:#2563eb; color:#fff; font-weight:800;';
+            const busLabel = candidates.length > 1 ? `${activeBus.busNum} ${activeBus.round || ''} · ` : '';
+            etaSpan.innerText = estMinutes <= 1
+              ? `⚡ ${busLabel}곧 도착`
+              : `⏱ ${busLabel}약 ${estMinutes}분 후 도착`;
+            badgeRow.appendChild(etaSpan);
           }
-          badgeRow.appendChild(etaSpan);
-        }
 
-        if (window.checkAndTriggerArrivalNotification) {
-          window.checkAndTriggerArrivalNotification(currentSelectedCourseKey, i, curStop.name, accumulatedDist, estMinutes, activeBus.round);
+          if (window.checkAndTriggerArrivalNotification) {
+            window.checkAndTriggerArrivalNotification(courseName, i, curStop.name, accumulatedDist, estMinutes, activeBus.round);
+          }
         }
-      }
+      });
     };
 
     // 맵 매칭: 실제 GPS를 도로 경로선 위로 안착
@@ -258,14 +295,14 @@
       return { latLng: rawLatLng, headingOffset: null };
     };
 
-    // Firebase 실시간 수신 리스너 (3분 초과 데이터 필터 적용)
+    // Firebase 실시간 수신 리스너 (1분 이상 갱신되지 않은 GPS는 지도에서 숨김)
     window.initRealtimeBusTracking = function() {
       const liveBusRef = ref(db, 'liveBuses/');
       onValue(liveBusRef, (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
+        const data = snapshot.val() || {};
         window.latestGpsStore = {};
+        window.gpsStatusStore = {};
+        window.hasGpsData = {};
         const nowMs = Date.now();
 
         Object.keys(data).forEach(courseName => {
@@ -280,27 +317,38 @@
             if (!pos || typeof pos !== 'object') return;
             if (pos.lat === undefined || pos.lng === undefined) return;
 
-            const lastUpdated = pos.updatedAt || 0;
-            const isFresh = (nowMs - lastUpdated) < (180 * 1000);
-            const isOperating = (pos.isOperating === true || pos.isOperating === "true") && isFresh;
+            const lat = Number(pos.lat), lng = Number(pos.lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng) || !pos.updatedAt) return;
+            const lastUpdated = Number(pos.updatedAt);
+            const ageMs = nowMs - lastUpdated;
+            const isOperating = pos.isOperating === true || pos.isOperating === "true";
+            const isFresh = ageMs >= -60000 && ageMs < 60000;
+            const busNum = pos.busNumber || '운행차량';
+            const round = pos.round || (subKey !== '단일' ? subKey : '');
 
-            if (isOperating) {
-              window.hasGpsData[courseName] = true;
+            if (isOperating && ageMs >= -60000 && ageMs < 600000) {
+              if (!window.gpsStatusStore[courseName]) window.gpsStatusStore[courseName] = {};
+              window.gpsStatusStore[courseName][subKey] = {
+                busNum, round, speed: Math.round(Number(pos.speed) || 0), updatedAt: lastUpdated
+              };
+            }
+
+            if (isOperating && isFresh) {
+              if (!window.hasGpsData[courseName]) window.hasGpsData[courseName] = true;
 
               if (!window.latestGpsStore[courseName]) window.latestGpsStore[courseName] = {};
               window.latestGpsStore[courseName][subKey] = {
-                busNum: pos.busNumber || '운행차량',
-                round: pos.round || (subKey !== '단일' ? subKey : ''),
+                busNum,
+                round,
                 speed: Math.round(pos.speed || 0),
-                lat: parseFloat(pos.lat),
-                lng: parseFloat(pos.lng),
+                lat,
+                lng,
                 heading: pos.heading || 0,
-                updatedAt: pos.updatedAt
+                updatedAt: lastUpdated
               };
 
-              const markerKey = `${courseName}_${pos.busNumber || subKey}`;
-              const rawLatLng = new kakao.maps.LatLng(parseFloat(pos.lat), parseFloat(pos.lng));
-              const busNum = pos.busNumber || '운행차량';
+              const markerKey = `${courseName}_${busNum}`;
+              const rawLatLng = new kakao.maps.LatLng(lat, lng);
               let heading = pos.heading || 0;
               const speed = Math.round(pos.speed || 0);
               const roundLabel = pos.round || (subKey !== '단일' ? subKey : '');
@@ -318,19 +366,13 @@
                 updateRealtimeBusMarker(markerKey, courseName, busNum, roundLabel, busLatLng, heading, speed, true);
               }
             } else {
-              const markerKey = `${courseName}_${pos.busNumber || subKey}`;
+              const markerKey = `${courseName}_${busNum}`;
               if (window.realtimeBusMarkers[markerKey]) {
                 window.realtimeBusMarkers[markerKey].setMap(null);
                 delete window.realtimeBusMarkers[markerKey];
               }
             }
           });
-
-          if (window.latestGpsStore[courseName] && Object.keys(window.latestGpsStore[courseName]).length > 0) {
-            window.hasGpsData[courseName] = true;
-          } else {
-            window.hasGpsData[courseName] = false;
-          }
         });
 
         if (window.renderSidebarBusCards) {
@@ -340,6 +382,33 @@
           window.calculateAndRenderETA();
         }
       });
+    };
+
+    window.pruneExpiredGps = function() {
+      const now = Date.now();
+      Object.keys(window.gpsStatusStore || {}).forEach(courseName => {
+        const statuses = window.gpsStatusStore[courseName] || {};
+        Object.keys(statuses).forEach(subKey => {
+          const item = statuses[subKey];
+          const age = now - item.updatedAt;
+          if (age >= 600000) delete statuses[subKey];
+          if (age >= 60000) {
+            if (window.latestGpsStore[courseName]) delete window.latestGpsStore[courseName][subKey];
+            const markerKey = `${courseName}_${item.busNum}`;
+            if (window.realtimeBusMarkers[markerKey]) {
+              window.realtimeBusMarkers[markerKey].setMap(null);
+              delete window.realtimeBusMarkers[markerKey];
+            }
+          }
+        });
+        if (!Object.keys(statuses).length) delete window.gpsStatusStore[courseName];
+      });
+      window.hasGpsData = {};
+      Object.keys(window.latestGpsStore || {}).forEach(courseName => {
+        if (Object.keys(window.latestGpsStore[courseName] || {}).length) window.hasGpsData[courseName] = true;
+      });
+      if (window.renderSidebarBusCards) window.renderSidebarBusCards(currentSelectedCourseKey);
+      if (window.calculateAndRenderETA) window.calculateAndRenderETA();
     };
 
     window.busAnimStates = {};
@@ -1402,7 +1471,7 @@
       const container = document.getElementById('sidebarCardsContainer');
       if (!container) return;
 
-      const store = window.latestGpsStore || {};
+      const store = window.gpsStatusStore || {};
       const activeCardsHtml = [];
       const cleanTarget = (courseKey || '').replace(/[·.\s\-_()]/g, '');
 
@@ -1421,18 +1490,23 @@
               vehicleGroup[item.busNum] = {
                 busNum: item.busNum,
                 speed: item.speed,
-                rounds: new Set()
+                rounds: new Set(),
+                updatedAt: item.updatedAt
               };
             }
             if (item.round && item.round !== '단일' && item.round !== '기본') {
               vehicleGroup[item.busNum].rounds.add(item.round);
             }
             vehicleGroup[item.busNum].speed = item.speed;
+            vehicleGroup[item.busNum].updatedAt = Math.max(vehicleGroup[item.busNum].updatedAt || 0, item.updatedAt || 0);
           });
 
           Object.values(vehicleGroup).forEach(vInfo => {
             const roundsArr = Array.from(vInfo.rounds);
             const roundsBadge = roundsArr.length > 0 ? `<span class="seocho-bus-round">${roundsArr.join(',')}</span>` : '';
+            const ageSec = Math.max(0, Math.floor((Date.now() - vInfo.updatedAt) / 1000));
+            const gpsLabel = ageSec < 15 ? 'GPS 실시간' : ageSec < 60 ? '위치 지연' : 'GPS 연결 끊김';
+            const gpsColor = ageSec < 15 ? '#059669' : ageSec < 60 ? '#d97706' : '#dc2626';
 
             activeCardsHtml.push(`
               <div class="seocho-live-card">
@@ -1442,7 +1516,8 @@
                   ${roundsBadge}
                 </div>
                 <div class="seocho-live-speed">
-                  실시간 속도: <b>${vInfo.speed} km/h</b>
+                  <span style="color:${gpsColor};font-weight:800;">${gpsLabel} · ${ageSec}초 전</span><br>
+                  속도: <b>${ageSec < 60 ? `${vInfo.speed} km/h` : '-'}</b>
                 </div>
               </div>
             `);
@@ -1553,7 +1628,7 @@
       }
 
       const lat = stopA.coords.getLat() + (stopB.coords.getLat() - stopA.coords.getLat()) * ratio;
-      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLat()) * ratio;
+      const lng = stopA.coords.getLng() + (stopB.coords.getLng() - stopA.coords.getLng()) * ratio;
       const heading = calculateBearing(stopA.coords.getLat(), stopA.coords.getLng(), stopB.coords.getLat(), stopB.coords.getLng());
       return { latLng: new kakao.maps.LatLng(lat, lng), heading: heading };
     }
@@ -2547,6 +2622,9 @@
     function startRealtimeCheck() {
       checkActiveBuses();
       setInterval(checkActiveBuses, 1000);
+      setInterval(() => {
+        if (window.pruneExpiredGps) window.pruneExpiredGps();
+      }, 10000);
     }
 
     function isCourseRunningGps(courseName) {
