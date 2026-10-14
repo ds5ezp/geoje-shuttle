@@ -20,7 +20,7 @@
       apiKey: "AIzaSyDIOaN5jLCjjjK-xKUi4Bb-f4597panqDo",
       authDomain: "gjcwbus.firebaseapp.com",
       databaseURL: "https://gjcwbus-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "gjcwbus",
+      projectId: "gjcwbus-default-rtdb",
       storageBucket: "gjcwbus.firebasestorage.app",
       messagingSenderId: "427511689115",
       appId: "1:427511689115:web:f409857185be5668d1fb3e",
@@ -1250,7 +1250,6 @@
     .stop-item-box { padding-bottom: 7px; }
     .stop-item-box::before {
       left: -19px; top: 25px; bottom: -7px; width: 4px; border-radius: 5px;
-      background: #e95ac8;
       background: var(--course-color, var(--route-accent, #e95ac8));
     }
     .stop-item-inner {
@@ -1261,14 +1260,11 @@
       background: #fffafd; border-color: #f0b1e2; box-shadow: 0 4px 13px rgba(213,63,177,.09); transform: none;
     }
     .timeline-node {
-      left: -35px; top: 13px; width: 32px; height: 32px; border: 3px solid #e95ac8;
-      background: #fff; color: #b6359b; font-size: .75rem; font-weight: 900;
       left: -35px; top: 13px; width: 32px; height: 32px;
       border: 3px solid var(--course-color, var(--route-accent, #e95ac8));
       background: #fff; color: var(--course-color, var(--route-accent, #b6359b)); font-size: .75rem; font-weight: 900;
       box-shadow: 0 2px 7px rgba(65,35,65,.17);
     }
-    .timeline-node.bokji { background: #fff; border-color: #de4c55; color: #c0323b; }
     .timeline-node.bokji { background: #fff; border-color: var(--course-color, var(--route-accent, #de4c55)); color: var(--course-color, var(--route-accent, #c0323b)); }
     .sidebar-bus-progress {
       position: absolute; left: 1px; z-index: 12; display: inline-flex; align-items: center; gap: 5px;
@@ -1283,7 +1279,6 @@
     }
     .sidebar-bus-progress-label {
       display: block; overflow: hidden; text-overflow: ellipsis; max-width: 52px;
-      padding: 4px 8px; border-radius: 999px; background: #1475e0; color: #fff;
       padding: 4px 8px; border-radius: 999px; background: var(--route-accent, #1475e0); color: #fff;
       font-size: .68rem; line-height: 1; font-weight: 900; letter-spacing: .01em;
     }
@@ -1336,6 +1331,63 @@
       .stop-item-title { font-size: .93rem; }
       .timeline-node { left: -29px; width: 28px; height: 28px; }
       .stop-item-box::before { left: -15px; }
+    }
+    /* Clear, spacious typography and controls inspired by Korean finance apps */
+    *, button, input, select {
+      font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+        "Noto Sans KR", "Malgun Gothic", sans-serif;
+      letter-spacing: -.018em;
+    }
+    body { color: #191f28; background: #f2f4f6; }
+    #topCollapsibleArea { box-shadow: 0 1px 0 rgba(20,30,45,.06); border-bottom-color: #e9edf2; }
+    #header { padding-top: 16px; padding-bottom: 14px; gap: 12px; }
+    .header-info h1 { color: #191f28; font-size: 1.18rem; font-weight: 750; letter-spacing: -.045em; }
+    .company-title { color: #8b95a1; font-weight: 600; }
+    .company-name { color: #333d4b; font-weight: 700; }
+    .call-btn { background: #e8f7f1; color: #008a66; border-radius: 10px; font-weight: 750; }
+    .stop-search-box input, .course-select-wrapper select {
+      border: 1px solid #e5e9ef; border-radius: 13px; background: #f7f8fa;
+      color: #191f28; font-weight: 650; box-shadow: none;
+    }
+    .stop-search-box input:focus, .course-select-wrapper select:focus {
+      border-color: #79aef5; box-shadow: 0 0 0 3px rgba(49,130,246,.12);
+    }
+    .action-btn {
+      border-radius: 12px; box-shadow: none; font-weight: 750; letter-spacing: -.025em;
+    }
+    .action-btn:hover { box-shadow: 0 4px 12px rgba(30,55,85,.13); }
+    .pwa-btn, .nearby-btn { background: #3182f6; }
+    .history-btn { background: #6b62d9; }
+    .table-view-btn { background: #00a77b; }
+    .qr-share-btn, .fold-btn { background: #4e5968; }
+    #urgentNoticeBanner { background: #fff0ee; color: #b34436; }
+    #noticeBanner { background: #fff8e7; color: #8a5c00; }
+    #liveStatusBar { background: #f7f8fa; color: #344054; border-top: 1px solid #edf0f4; font-weight: 650; }
+    .live-tag { border-radius: 7px; background: #e5484d; }
+    .live-tag.waiting { background: #e99a1a !important; }
+    .live-tag.holiday, .live-tag.ended { background: #8993a1 !important; }
+    .live-item { color: #334155; background: #fff; border: 1px solid #e8edf3; border-radius: 9px; }
+    #sidebar { background: #fff; box-shadow: 2px 0 18px rgba(15,30,50,.06); }
+    .sidebar-header-box { padding-top: 20px; padding-bottom: 15px; }
+    .sidebar-header-left span#courseTitle { color: #191f28; font-weight: 780; letter-spacing: -.04em; }
+    #courseTitle::before { color: #8b95a1; font-weight: 650; letter-spacing: -.015em; }
+    .course-timetable-btn { background: #eaf3ff; color: #1769d2; font-weight: 750; }
+    .header-badges span { background: #edf4ff; color: #2563a8; font-weight: 700; }
+    .header-badges span.dist-badge { background: #e8f7f1; color: #008a66; }
+    .seocho-live-card { background: #f7f8fa; border-radius: 11px; }
+    .seocho-bus-num { color: #191f28; font-weight: 750; }
+    .stop-item-inner { border-color: #e9edf2; border-radius: 13px; box-shadow: 0 1px 3px rgba(16,30,50,.025); }
+    .stop-item-title { color: #191f28; font-weight: 740; letter-spacing: -.035em; }
+    .badge-tag, .header-badges span, .dist-tag { letter-spacing: -.01em; }
+    .sidebar-bus-progress-label { font-weight: 800; }
+    #busFollowBtn { border-radius: 13px; background: #191f28; box-shadow: 0 6px 18px rgba(25,31,40,.2); }
+    #busFollowBtn.active { background: #00a77b; }
+    #routeBadge { background: rgba(25,31,40,.88); }
+    .tt-header { background: #3182f6; }
+    .tt-tab-btn.active { background: #3182f6; border-color: #3182f6; }
+    @media (max-width: 850px) {
+      #header { padding-top: 10px; padding-bottom: 9px; }
+      .sidebar-header-box { padding-top: 8px; padding-bottom: 9px; }
     }
   </style>
 </head>
