@@ -1251,6 +1251,7 @@
     .stop-item-box::before {
       left: -19px; top: 25px; bottom: -7px; width: 4px; border-radius: 5px;
       background: #e95ac8;
+      background: var(--course-color, var(--route-accent, #e95ac8));
     }
     .stop-item-inner {
       padding: 13px 13px 12px 14px; border: 1px solid #e7ebf0; border-radius: 11px;
@@ -1262,9 +1263,13 @@
     .timeline-node {
       left: -35px; top: 13px; width: 32px; height: 32px; border: 3px solid #e95ac8;
       background: #fff; color: #b6359b; font-size: .75rem; font-weight: 900;
+      left: -35px; top: 13px; width: 32px; height: 32px;
+      border: 3px solid var(--course-color, var(--route-accent, #e95ac8));
+      background: #fff; color: var(--course-color, var(--route-accent, #b6359b)); font-size: .75rem; font-weight: 900;
       box-shadow: 0 2px 7px rgba(65,35,65,.17);
     }
     .timeline-node.bokji { background: #fff; border-color: #de4c55; color: #c0323b; }
+    .timeline-node.bokji { background: #fff; border-color: var(--course-color, var(--route-accent, #de4c55)); color: var(--course-color, var(--route-accent, #c0323b)); }
     .sidebar-bus-progress {
       position: absolute; left: 1px; z-index: 12; display: inline-flex; align-items: center; gap: 5px;
       transform: translateY(-50%); padding: 3px 7px 3px 2px; border-radius: 999px;
@@ -1279,6 +1284,7 @@
     .sidebar-bus-progress-label {
       display: block; overflow: hidden; text-overflow: ellipsis; max-width: 52px;
       padding: 4px 8px; border-radius: 999px; background: #1475e0; color: #fff;
+      padding: 4px 8px; border-radius: 999px; background: var(--route-accent, #1475e0); color: #fff;
       font-size: .68rem; line-height: 1; font-weight: 900; letter-spacing: .01em;
     }
     .sidebar-bus-progress.scheduled { background: rgba(255,255,255,.98); }
@@ -2698,6 +2704,7 @@
       document.getElementById('courseTitle').innerText = courseName;
       document.getElementById('totalDistBadge').innerText = '계산 중...';
       const list = document.getElementById('stopList');
+      list.style.setProperty('--route-accent', color);
       list.innerHTML = '';
 
       if (window.renderSidebarBusCards) {
@@ -2724,6 +2731,7 @@
 
           itemBox = document.createElement('div');
           itemBox.className = `stop-item-box`;
+          itemBox.style.setProperty('--course-color', color);
           itemBox.id = `card-${i}`;
 
           const photoHtml = stop.photoUrl ? `
@@ -2872,6 +2880,7 @@
       const totalBounds = new kakao.maps.LatLngBounds();
       const list = document.getElementById('stopList');
       list.innerHTML = '';
+      list.style.setProperty('--route-accent', '#1769d2');
       let totalStopsCount = 0, totalDist = 0;
 
       document.getElementById('courseTitle').innerText = "전체 노선망";
@@ -2910,6 +2919,7 @@
 
             itemBox = document.createElement('div');
             itemBox.className = `stop-item-box`;
+            itemBox.style.setProperty('--course-color', color);
             itemBox.id = `all-card-${cIdx}-${i}`;
 
             const photoHtml = stop.photoUrl ? `
