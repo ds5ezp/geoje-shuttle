@@ -17,7 +17,7 @@
       apiKey: "AIzaSyDIOaN5jLCjjjK-xKUi4Bb-f4597panqDo",
       authDomain: "gjcwbus.firebaseapp.com",
       databaseURL: "https://gjcwbus-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "gjcwbus-default-rtdb",
+      projectId: "gjcwbus",
       storageBucket: "gjcwbus.firebasestorage.app",
       messagingSenderId: "427511689115",
       appId: "1:427511689115:web:f409857185be5668d1fb3e",
@@ -65,6 +65,14 @@
         if (currentMsgElem) currentMsgElem.innerText = "현재 송출 중인 긴급 공지가 없습니다.";
         if (updatedTimeElem) updatedTimeElem.innerText = "-";
       }
+    }, (error) => {
+      const statusPill = document.getElementById('statusPill');
+      const currentMsgElem = document.getElementById('currentMsg');
+      if (statusPill) {
+        statusPill.className = 'status-pill inactive';
+        statusPill.innerText = '조회 오류';
+      }
+      if (currentMsgElem) currentMsgElem.innerText = `Firebase 공지 조회 실패: ${error.message}`;
     });
 
     // 2. 공지 즉시 등록
@@ -156,6 +164,40 @@
     }
     .summary-val { color: #2563eb; font-weight: 900; }
 
+    #playbackBar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 14px;
+      background: #eff6ff; border-bottom: 1px solid #bfdbfe; color: #1e3a8a; font-size: 0.82rem;
+    }
+    #playbackBar button, #playbackBar select {
+      border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; color: #0f172a;
+      padding: 6px 10px; font-weight: 800; cursor: pointer;
+    }
+    #playbackBar button:disabled, #playbackBar select:disabled { opacity: .5; cursor: not-allowed; }
+    #playbackSlider { flex: 1 1 180px; min-width: 120px; accent-color: #2563eb; }
+    #playbackTime { min-width: 145px; font-weight: 900; color: #0f172a; }
+    #playbackMeta { color: #475569; }
+    #stationEventPanel {
+      display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 14px;
+      background: #fff; border-bottom: 1px solid #e2e8f0; overflow-x: auto; white-space: nowrap;
+    }
+    #stationEventTitle { flex: 0 0 auto; color: #475569; font-size: .78rem; font-weight: 900; }
+    #stationEventList { display: flex; align-items: center; gap: 6px; }
+    .station-event-chip {
+      border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; border-radius: 999px;
+      padding: 5px 9px; font-size: .75rem; font-weight: 800; cursor: pointer;
+    }
+    .station-event-chip:hover { background: #dbeafe; border-color: #60a5fa; }
+    .station-event-marker {
+      width: 27px; height: 27px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      background: #7c3aed; color: #fff; border: 2px solid #fff; box-shadow: 0 2px 6px #0005;
+      font-size: 11px; font-weight: 900; cursor: pointer;
+    }
+    .playhead-marker {
+      width: 36px; height: 36px; border: 3px solid white; border-radius: 50%; background: #ea580c;
+      box-shadow: 0 2px 8px #0007; display: flex; align-items: center; justify-content: center; color: white; font-size: 19px;
+    }
+    .pin-gap { background: #475569; }
+
     /* 지도 영역 */
     #mapContainer { flex: 1; position: relative; width: 100%; height: 100%; }
     #map { width: 100%; height: 100%; }
@@ -203,6 +245,16 @@
     .btn:active { opacity: 0.8; }
     .btn-publish { background: #ef4444; color: #ffffff; }
     .btn-clear { background: #475569; color: #ffffff; }
+    .security-note { color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 8px; border-radius: 7px; font-size: .76rem; line-height: 1.4; }
+    @media (max-width: 700px) {
+      #topBar { align-items: stretch; }
+      .bar-left { justify-content: space-between; }
+      .filter-group { width: 100%; }
+      .filter-group label { flex: 0 0 auto; }
+      .filter-group input, .filter-group select { flex: 1 1 110px; min-width: 0; }
+      #summaryBar { gap: 8px 14px; padding: 8px 12px; font-size: .78rem; }
+      #playbackMeta { flex-basis: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -241,7 +293,27 @@
       <div>차량 번호: <span id="sumVehicle" class="summary-val">-</span></div>
       <div>노선/회차: <span id="sumRound" class="summary-val">-</span></div>
       <div>수집 포인트: <span id="sumPoints" class="summary-val">0</span>개</div>
+      <div>정류소 기록: <span id="sumEvents" class="summary-val">0</span>건</div>
       <div>운행 시간대: <span id="sumTime" class="summary-val">-</span></div>
+      <div>긴 GPS 공백: <span id="sumGaps" class="summary-val">0</span>회</div>
+    </div>
+
+    <div id="playbackBar">
+      <button id="playPauseBtn" onclick="togglePlayback()" disabled>▶ 재생</button>
+      <input id="playbackSlider" type="range" min="0" max="0" value="0" oninput="seekTrace(this.value)" disabled aria-label="운행 경로 재생 위치">
+      <select id="playbackSpeed" aria-label="재생 속도" onchange="changePlaybackSpeed()" disabled>
+        <option value="0.5">0.5배속</option>
+        <option value="1" selected>1배속</option>
+        <option value="2">2배속</option>
+        <option value="4">4배속</option>
+      </select>
+      <span id="playbackTime">운행 경로를 조회해 주세요</span>
+      <span id="playbackMeta"></span>
+    </div>
+
+    <div id="stationEventPanel">
+      <span id="stationEventTitle">정류소 기록</span>
+      <div id="stationEventList"><span style="color:#94a3b8;font-size:.75rem;">경로 조회 후 기록을 표시합니다.</span></div>
     </div>
 
     <div id="mapContainer">
@@ -271,6 +343,7 @@
         <label>관리자 PIN 번호</label>
         <input type="password" id="adminPin" placeholder="비밀번호 (기본: 1234)">
       </div>
+      <div class="security-note">페이지 코드에 들어 있는 PIN은 브라우저에서 확인할 수 있습니다. 공지 쓰기 권한은 Firebase 보안 규칙과 관리자 인증으로 제한해야 합니다.</div>
 
       <div class="form-group">
         <label>공지 문구 작성</label>
@@ -286,8 +359,295 @@
 
   <script>
     let map = null;
-    let tracePolyline = null;
+    let tracePolylines = [];
     let traceMarkers = [];
+    let playheadOverlay = null;
+    let activeInfoWindow = null;
+    let currentPoints = [];
+    let currentEvents = [];
+    let isPlaying = false;
+    let playbackFrame = null;
+    let playbackRealStart = 0;
+    let playbackGpsStart = 0;
+    let playbackCurrentTime = 0;
+    let accuracyCircle = null;
+
+    function localDateInputValue(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function formatClock(timestamp) {
+      if (!Number.isFinite(timestamp)) return '-';
+      return new Date(timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+
+    function parseClockForDate(dateStr, timeText, dayOffset = 0) {
+      const match = String(timeText || '').match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+      if (!match) return null;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(year, month - 1, day + dayOffset, Number(match[1]), Number(match[2]), Number(match[3] || 0)).getTime();
+    }
+
+    function buildTracePoints(rawPoints, dateStr) {
+      const entries = Object.entries(rawPoints || {}).sort(([a], [b]) => a.localeCompare(b));
+      let dayOffset = 0;
+      let previousClockSeconds = null;
+      const points = [];
+
+      entries.forEach(([key, point], index) => {
+        const lat = Number(point?.lat), lng = Number(point?.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
+
+        let timestamp = Number(point.timestampMs ?? point.fixTimeMs ?? point.updatedAt);
+        if (!Number.isFinite(timestamp) || timestamp <= 0) {
+          const match = String(point.time || '').match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+          if (match) {
+            const clockSeconds = Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3] || 0);
+            if (previousClockSeconds !== null && previousClockSeconds - clockSeconds > 6 * 3600) dayOffset++;
+            previousClockSeconds = clockSeconds;
+            timestamp = parseClockForDate(dateStr, point.time, dayOffset);
+          }
+        }
+        if (!Number.isFinite(timestamp) || timestamp <= 0) {
+          const [year, month, day] = dateStr.split('-').map(Number);
+          timestamp = new Date(year, month - 1, day, 0, 0, index).getTime();
+        }
+        points.push({ ...point, lat, lng, timestamp, key, originalIndex: index });
+      });
+
+      return points.sort((a, b) => a.timestamp - b.timestamp || a.key.localeCompare(b.key));
+    }
+
+    function formatEventDescription(event) {
+      const parts = [];
+      const arrivalAtMs = Number(event.arrivalAtMs);
+      const passedAtMs = Number(event.passedAtMs);
+      const dwellSeconds = Number(event.dwellSeconds);
+      if (Number.isFinite(arrivalAtMs)) parts.push(`도착 ${formatClock(arrivalAtMs)}`);
+      if (Number.isFinite(passedAtMs)) parts.push(`통과 ${formatClock(passedAtMs)}`);
+      if (Number.isFinite(dwellSeconds)) parts.push(`체류 ${Math.max(0, Math.round(dwellSeconds))}초`);
+      if (!parts.length && event.time) parts.push(`기록 ${event.time} (기존 형식)`);
+      if (event.passType) parts.push(event.passType === 'DRIVE_BY' ? '주행 통과' : event.passType === 'STOPPED' ? '정차 후 통과' : event.passType);
+      return parts.join(' · ') || '시각 정보 없음';
+    }
+
+    function inferEventTimestamp(event, dateStr) {
+      const value = Number(event.passedAtMs ?? event.arrivalAtMs ?? event.timestampMs ?? event.updatedAt);
+      if (Number.isFinite(value) && value > 0) return value;
+      return parseClockForDate(dateStr, event.time);
+    }
+
+    async function loadStationEvents(dateStr, traceKey, points) {
+      const snapshot = await window.dbGet(window.dbRef(window.db, `stationLogs/${dateStr}`));
+      const root = snapshot.val() || {};
+      const matchingCourses = Object.keys(root)
+        .filter(course => traceKey.startsWith(`${course}_`))
+        .sort((a, b) => b.length - a.length);
+      if (!matchingCourses.length) return [];
+
+      const course = matchingCourses[0];
+      const roundName = traceKey.slice(course.length + 1);
+      const rounds = root[course] || {};
+      const matchingRound = Object.keys(rounds).find(round => round === roundName)
+        || Object.keys(rounds).find(round => round.replace(/[·.\s\-_()]/g, '') === roundName.replace(/[·.\s\-_()]/g, ''));
+      if (!matchingRound) return [];
+
+      return Object.entries(rounds[matchingRound] || {}).map(([key, value]) => {
+        const event = { ...value, key };
+        const match = key.match(/(\d+)/);
+        if (!Number.isFinite(Number(event.stopIndex)) && match) event.stopIndex = Number(match[1]);
+        event.eventTimestamp = inferEventTimestamp(event, dateStr);
+
+        let lat = Number(event.stopLat ?? event.lat), lng = Number(event.stopLng ?? event.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+          lat = NaN; lng = NaN;
+          if (Number.isFinite(event.eventTimestamp) && points.length) {
+            let nearest = points[0], delta = Math.abs(points[0].timestamp - event.eventTimestamp);
+            for (const point of points) {
+              const currentDelta = Math.abs(point.timestamp - event.eventTimestamp);
+              if (currentDelta < delta) { nearest = point; delta = currentDelta; }
+            }
+            if (delta <= 120000) { lat = nearest.lat; lng = nearest.lng; }
+          }
+        }
+        event.lat = lat; event.lng = lng;
+        return event;
+      }).sort((a, b) => (a.stopIndex || 0) - (b.stopIndex || 0));
+    }
+
+    function eventPosition(event) {
+      if (!Number.isFinite(event.lat) || !Number.isFinite(event.lng)) return null;
+      return new kakao.maps.LatLng(event.lat, event.lng);
+    }
+
+    function renderStationEvents(events) {
+      const list = document.getElementById('stationEventList');
+      list.innerHTML = '';
+      if (!events.length) {
+        const empty = document.createElement('span');
+        empty.style.cssText = 'color:#94a3b8;font-size:.75rem;';
+        empty.textContent = '이 회차의 정류소 기록이 없거나, 현재 기록 형식과 회차명이 일치하지 않습니다.';
+        list.appendChild(empty);
+        return;
+      }
+
+      events.forEach(event => {
+        const chip = document.createElement('button');
+        chip.className = 'station-event-chip';
+        chip.type = 'button';
+        chip.textContent = `${event.stopIndex || '?'}번 ${event.stopName || '정류소'} · ${formatEventDescription(event)}`;
+        chip.onclick = () => {
+          const pos = eventPosition(event);
+          if (pos && map) map.panTo(pos);
+          if (event.markerElement) event.markerElement.click();
+        };
+        list.appendChild(chip);
+      });
+    }
+
+    function addStationEventMarkers(events) {
+      events.forEach(event => {
+        const position = eventPosition(event);
+        if (!position) return;
+        const badge = document.createElement('button');
+        badge.type = 'button';
+        badge.className = 'station-event-marker';
+        badge.textContent = String(event.stopIndex || '•');
+        badge.title = `${event.stopName || '정류소'} · ${formatEventDescription(event)}`;
+
+        const overlay = new kakao.maps.CustomOverlay({ position, content: badge, yAnchor: 0.5, xAnchor: 0.5, zIndex: 30 });
+        overlay.setMap(map);
+        event.markerOverlay = overlay;
+        event.markerElement = badge;
+        traceMarkers.push(overlay);
+        badge.addEventListener('click', () => {
+          if (activeInfoWindow) activeInfoWindow.close();
+          const content = document.createElement('div');
+          content.style.cssText = 'padding:10px;min-width:180px;font-size:13px;line-height:1.5;';
+          const title = document.createElement('strong');
+          title.textContent = `${event.stopIndex || '?'}번 ${event.stopName || '정류소'}`;
+          const detail = document.createElement('div');
+          detail.textContent = formatEventDescription(event);
+          content.append(title, detail);
+          activeInfoWindow = new kakao.maps.InfoWindow({ content, removable: true });
+          activeInfoWindow.open(map, overlay);
+        });
+      });
+    }
+
+    function createPlayhead() {
+      const element = document.createElement('div');
+      element.className = 'playhead-marker';
+      element.textContent = '🚌';
+      playheadOverlay = new kakao.maps.CustomOverlay({
+        position: new kakao.maps.LatLng(34.8872, 128.625), content: element, yAnchor: 0.5, xAnchor: 0.5, zIndex: 50
+      });
+      playheadOverlay.setMap(map);
+    }
+
+    function renderPlaybackAt(timestamp) {
+      if (!currentPoints.length || !playheadOverlay) return;
+      playbackCurrentTime = Math.max(currentPoints[0].timestamp, Math.min(timestamp, currentPoints[currentPoints.length - 1].timestamp));
+      let low = 0, high = currentPoints.length - 1;
+      while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        if (currentPoints[mid + 1].timestamp < playbackCurrentTime) low = mid + 1;
+        else high = mid;
+      }
+      const index = Math.min(low, currentPoints.length - 1);
+      const a = currentPoints[index], b = currentPoints[Math.min(index + 1, currentPoints.length - 1)];
+      const span = b.timestamp - a.timestamp;
+      const hasLongGap = span > 15000 && playbackCurrentTime < b.timestamp;
+      const ratio = hasLongGap ? 0 : span > 0 ? Math.max(0, Math.min(1, (playbackCurrentTime - a.timestamp) / span)) : 0;
+      const position = new kakao.maps.LatLng(a.lat + (b.lat - a.lat) * ratio, a.lng + (b.lng - a.lng) * ratio);
+      playheadOverlay.setPosition(position);
+
+      const accuracy = Number(a.accuracyMeters ?? a.accuracy);
+      if (Number.isFinite(accuracy) && accuracy > 0) {
+        if (!accuracyCircle) {
+          accuracyCircle = new kakao.maps.Circle({
+            center: position, radius: accuracy,
+            strokeWeight: 1, strokeColor: '#ea580c', strokeOpacity: 0.8,
+            fillColor: '#fb923c', fillOpacity: 0.15
+          });
+          accuracyCircle.setMap(map);
+        } else {
+          accuracyCircle.setPosition(position);
+          accuracyCircle.setRadius(Math.min(accuracy, 1000));
+          accuracyCircle.setMap(map);
+        }
+      } else if (accuracyCircle) {
+        accuracyCircle.setMap(null);
+      }
+
+      const slider = document.getElementById('playbackSlider');
+      slider.value = String(index);
+      document.getElementById('playbackTime').textContent = `${formatClock(playbackCurrentTime)} · ${index + 1}/${currentPoints.length}`;
+      const speed = Number(a.speed);
+      const meta = [];
+      meta.push(Number.isFinite(speed) ? `속도 ${Math.round(speed)} km/h` : '속도 정보 없음');
+      meta.push(Number.isFinite(accuracy) ? `정확도 ±${Math.round(accuracy)}m` : '정확도 정보 없음');
+      if (hasLongGap) meta.push(`GPS 공백 구간 ${Math.round(span / 1000)}초`);
+      document.getElementById('playbackMeta').textContent = meta.join(' · ');
+    }
+
+    function playbackTick(now) {
+      if (!isPlaying) return;
+      const multiplier = Number(document.getElementById('playbackSpeed').value) || 1;
+      const target = playbackGpsStart + (now - playbackRealStart) * multiplier;
+      renderPlaybackAt(target);
+      if (target >= currentPoints[currentPoints.length - 1].timestamp) {
+        isPlaying = false;
+        document.getElementById('playPauseBtn').textContent = '▶ 다시 재생';
+        return;
+      }
+      playbackFrame = requestAnimationFrame(playbackTick);
+    }
+
+    window.togglePlayback = function() {
+      if (!currentPoints.length) return;
+      const button = document.getElementById('playPauseBtn');
+      if (isPlaying) {
+        isPlaying = false;
+        if (playbackFrame) cancelAnimationFrame(playbackFrame);
+        button.textContent = '▶ 계속 재생';
+        return;
+      }
+      if (playbackCurrentTime >= currentPoints[currentPoints.length - 1].timestamp) playbackCurrentTime = currentPoints[0].timestamp;
+      isPlaying = true;
+      playbackRealStart = performance.now();
+      playbackGpsStart = playbackCurrentTime || currentPoints[0].timestamp;
+      button.textContent = '⏸ 일시정지';
+      playbackFrame = requestAnimationFrame(playbackTick);
+    };
+
+    window.seekTrace = function(value) {
+      if (!currentPoints.length) return;
+      isPlaying = false;
+      if (playbackFrame) cancelAnimationFrame(playbackFrame);
+      const index = Math.max(0, Math.min(currentPoints.length - 1, Number(value) || 0));
+      renderPlaybackAt(currentPoints[index].timestamp);
+      document.getElementById('playPauseBtn').textContent = '▶ 재생';
+    };
+
+    window.changePlaybackSpeed = function() {
+      if (!isPlaying) return;
+      playbackGpsStart = playbackCurrentTime;
+      playbackRealStart = performance.now();
+    };
+
+    function enablePlayback(enabled) {
+      ['playPauseBtn', 'playbackSlider', 'playbackSpeed'].forEach(id => {
+        document.getElementById(id).disabled = !enabled;
+      });
+    }
 
     window.onload = function() {
       map = new kakao.maps.Map(document.getElementById('map'), {
@@ -296,7 +656,7 @@
       });
 
       // 오늘 날짜를 기본값으로 설정
-      const today = new Date().toISOString().substring(0, 10);
+      const today = localDateInputValue();
       const dateEl = document.getElementById('inputDate');
       dateEl.value = today;
 
@@ -319,6 +679,9 @@
       const dateStr = document.getElementById('inputDate').value;
       const vSelect = document.getElementById('selectVehicle');
       const rSelect = document.getElementById('selectRound');
+      clearMapLayers();
+      ['sumDate', 'sumVehicle', 'sumRound', 'sumTime'].forEach(id => document.getElementById(id).innerText = '-');
+      ['sumPoints', 'sumEvents', 'sumGaps'].forEach(id => document.getElementById(id).innerText = '0');
       vSelect.innerHTML = '<option value="">차량 선택</option>';
       rSelect.innerHTML = '<option value="">회차 선택</option>';
 
@@ -352,6 +715,7 @@
       const dateStr = document.getElementById('inputDate').value;
       const vehicleNum = document.getElementById('selectVehicle').value;
       const rSelect = document.getElementById('selectRound');
+      clearMapLayers();
       rSelect.innerHTML = '<option value="">회차 선택</option>';
 
       if (!dateStr || !vehicleNum) return;
@@ -401,33 +765,42 @@
           return;
         }
 
-        const pointsArray = Object.values(rawPoints);
+        const pointsArray = buildTracePoints(rawPoints, dateStr);
         if (pointsArray.length === 0) return;
+        currentPoints = pointsArray;
 
-        const path = [];
         const bounds = new kakao.maps.LatLngBounds();
+        pointsArray.forEach(point => bounds.extend(new kakao.maps.LatLng(point.lat, point.lng)));
 
-        pointsArray.forEach(p => {
-          const latLng = new kakao.maps.LatLng(p.lat, p.lng);
-          path.push(latLng);
-          bounds.extend(latLng);
-        });
-
-        // 실제 이동 경로선 그리기 (붉은색/오렌지 실선)
-        tracePolyline = new kakao.maps.Polyline({
-          path: path,
-          strokeWeight: 6,
-          strokeColor: '#ea580c',
-          strokeOpacity: 0.9,
-          endArrow: true
-        });
-        tracePolyline.setMap(map);
+        // GPS 수집 간격이 긴 구간은 선으로 이어 붙이지 않아 실제 기록과 추정 구간을 구분합니다.
+        let segmentStart = 0;
+        let gapCount = 0;
+        const gapThresholdMs = 15000;
+        for (let i = 1; i <= pointsArray.length; i++) {
+          const isGap = i < pointsArray.length && pointsArray[i].timestamp - pointsArray[i - 1].timestamp > gapThresholdMs;
+          const isLast = i === pointsArray.length;
+          if (isGap || isLast) {
+            const segment = pointsArray.slice(segmentStart, i);
+            if (segment.length > 1) {
+              const line = new kakao.maps.Polyline({
+                path: segment.map(point => new kakao.maps.LatLng(point.lat, point.lng)),
+                strokeWeight: 6,
+                strokeColor: '#ea580c',
+                strokeOpacity: 0.9
+              });
+              line.setMap(map);
+              tracePolylines.push(line);
+            }
+            if (isGap) gapCount++;
+            segmentStart = i;
+          }
+        }
 
         // 출발 마커 (초록)
         const startPoint = pointsArray[0];
         const startDiv = document.createElement('div');
         startDiv.className = 'pin-badge pin-start';
-        startDiv.innerText = `🚩 출발 (${startPoint.time})`;
+        startDiv.innerText = `🚩 첫 GPS (${formatClock(startPoint.timestamp)})`;
         const startOverlay = new kakao.maps.CustomOverlay({
           position: new kakao.maps.LatLng(startPoint.lat, startPoint.lng),
           content: startDiv,
@@ -441,7 +814,7 @@
           const endPoint = pointsArray[pointsArray.length - 1];
           const endDiv = document.createElement('div');
           endDiv.className = 'pin-badge pin-end';
-          endDiv.innerText = `🏁 종료 (${endPoint.time})`;
+          endDiv.innerText = `🏁 마지막 GPS (${formatClock(endPoint.timestamp)})`;
           const endOverlay = new kakao.maps.CustomOverlay({
             position: new kakao.maps.LatLng(endPoint.lat, endPoint.lng),
             content: endDiv,
@@ -451,15 +824,34 @@
           traceMarkers.push(endOverlay);
         }
 
+        createPlayhead();
+        playbackCurrentTime = pointsArray[0].timestamp;
+        document.getElementById('playbackSlider').max = String(pointsArray.length - 1);
+        document.getElementById('playbackSlider').value = '0';
+        document.getElementById('playPauseBtn').textContent = '▶ 재생';
+        enablePlayback(pointsArray.length > 1);
+        renderPlaybackAt(playbackCurrentTime);
+
+        try {
+          currentEvents = await loadStationEvents(dateStr, roundKey, pointsArray);
+        } catch (eventError) {
+          currentEvents = [];
+          console.warn('정류소 통과 기록을 불러오지 못했습니다.', eventError);
+        }
+        renderStationEvents(currentEvents);
+        addStationEventMarkers(currentEvents);
+
         // 경로에 맞춰 화면 자동 줌/이동
-        map.setBounds(bounds);
+        map.setBounds(bounds, 60);
 
         // 요약 바 정보 갱신
         document.getElementById('sumDate').innerText = dateStr;
         document.getElementById('sumVehicle').innerText = vehicleNum;
-        document.getElementById('sumRound').innerText = roundKey.replace('_', ' ');
+        document.getElementById('sumRound').innerText = roundKey.replace(/_/g, ' ');
         document.getElementById('sumPoints').innerText = pointsArray.length;
-        document.getElementById('sumTime').innerText = `${pointsArray[0].time} ~ ${pointsArray[pointsArray.length - 1].time}`;
+        document.getElementById('sumEvents').innerText = currentEvents.length;
+        document.getElementById('sumTime').innerText = `${formatClock(pointsArray[0].timestamp)} ~ ${formatClock(pointsArray[pointsArray.length - 1].timestamp)}`;
+        document.getElementById('sumGaps').innerText = gapCount;
 
       } catch (e) {
         alert("경로 데이터 렌더링 실패: " + e.message);
@@ -469,12 +861,27 @@
     }
 
     function clearMapLayers() {
-      if (tracePolyline) {
-        tracePolyline.setMap(null);
-        tracePolyline = null;
-      }
+      isPlaying = false;
+      if (playbackFrame) cancelAnimationFrame(playbackFrame);
+      playbackFrame = null;
+      if (activeInfoWindow) activeInfoWindow.close();
+      activeInfoWindow = null;
+      tracePolylines.forEach(line => line.setMap(null));
+      tracePolylines = [];
       traceMarkers.forEach(m => m.setMap(null));
       traceMarkers = [];
+      if (playheadOverlay) playheadOverlay.setMap(null);
+      playheadOverlay = null;
+      if (accuracyCircle) accuracyCircle.setMap(null);
+      accuracyCircle = null;
+      currentPoints = [];
+      currentEvents = [];
+      renderStationEvents([]);
+      enablePlayback(false);
+      document.getElementById('playbackTime').textContent = '운행 경로를 조회해 주세요';
+      document.getElementById('playbackMeta').textContent = '';
+      document.getElementById('sumGaps').innerText = '0';
+      document.getElementById('sumEvents').innerText = '0';
     }
 
     function showLoading(show) {
