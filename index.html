@@ -138,6 +138,7 @@
       if (window.calculateAndRenderETA) {
         window.calculateAndRenderETA();
       }
+      if (window.renderSidebarBusProgress) window.renderSidebarBusProgress(currentSelectedCourseKey);
     };
 
     // GPS 위치에서 노선 경로를 따라 정류장까지의 거리를 계산합니다.
@@ -340,6 +341,7 @@
                 busNum,
                 round,
                 speed: Math.round(pos.speed || 0),
+                accuracyMeters: Number(pos.accuracyMeters) || null,
                 lat,
                 lng,
                 heading: pos.heading || 0,
@@ -378,6 +380,7 @@
         if (window.renderSidebarBusCards) {
           window.renderSidebarBusCards(currentSelectedCourseKey);
         }
+        if (window.renderSidebarBusProgress) window.renderSidebarBusProgress(currentSelectedCourseKey);
         if (window.calculateAndRenderETA) {
           window.calculateAndRenderETA();
         }
@@ -408,6 +411,7 @@
         if (Object.keys(window.latestGpsStore[courseName] || {}).length) window.hasGpsData[courseName] = true;
       });
       if (window.renderSidebarBusCards) window.renderSidebarBusCards(currentSelectedCourseKey);
+      if (window.renderSidebarBusProgress) window.renderSidebarBusProgress(currentSelectedCourseKey);
       if (window.calculateAndRenderETA) window.calculateAndRenderETA();
     };
 
@@ -1261,6 +1265,26 @@
       box-shadow: 0 2px 7px rgba(65,35,65,.17);
     }
     .timeline-node.bokji { background: #fff; border-color: #de4c55; color: #c0323b; }
+    .sidebar-bus-progress {
+      position: absolute; left: 1px; z-index: 12; display: inline-flex; align-items: center; gap: 5px;
+      transform: translateY(-50%); padding: 3px 7px 3px 2px; border-radius: 999px;
+      background: rgba(255,255,255,.96); box-shadow: 0 3px 10px rgba(19,39,70,.18);
+      pointer-events: none; white-space: nowrap; max-width: 112px;
+      animation: sidebarBusAppear .22s ease-out;
+    }
+    .sidebar-bus-progress-icon {
+      display: grid; place-items: center; width: 23px; height: 23px; flex: 0 0 23px;
+      border-radius: 50%; background: #e4f4ee; color: #087f68; font-size: 13px;
+    }
+    .sidebar-bus-progress-label {
+      display: block; overflow: hidden; text-overflow: ellipsis; max-width: 78px;
+      padding: 4px 8px; border-radius: 999px; background: #1475e0; color: #fff;
+      font-size: .68rem; line-height: 1; font-weight: 900; letter-spacing: .01em;
+    }
+    @keyframes sidebarBusAppear {
+      from { opacity: 0; transform: translateY(-50%) scale(.92); }
+      to { opacity: 1; transform: translateY(-50%) scale(1); }
+    }
     .stop-item-title { font-size: .99rem; line-height: 1.4; word-break: keep-all; }
     .badge-tag.gijum { background: #1769d2; color: #fff; }
     .badge-tag.jongjum { background: #e84e58; color: #fff; }
@@ -1805,6 +1829,112 @@
         `;
       }
       updateFollowButtonUI();
+    };
+
+    // 선택 노선의 실제 GPS 위치를 정류장 타임라인 사이에 표시합니다.
+    window.renderSidebarBusProgress = function(courseKey) {
+      const list = document.getElementById('stopList');
+      if (!list) return;
+      list.querySelectorAll('.sidebar-bus-progress').forEach(node => node.remove());
+      if (!courseKey || courseKey === 'ALL') return;
+
+      const targetKey = window.normKey(courseKey);
+      const matchedCourse = Object.keys(routeData || {}).find(key => window.normKey(key) === targetKey);
+      if (!matchedCourse) return;
+
+      const gpsCourse = Object.keys(window.latestGpsStore || {}).find(key => window.normKey(key) === targetKey);
+      const gpsEntries = Object.values((window.latestGpsStore || {})[gpsCourse] || {})
+        .filter(bus => bus && Number.isFinite(bus.lat) && Number.isFinite(bus.lng)
+          && bus.updatedAt && Date.now() - bus.updatedAt >= -60000 && Date.now() - bus.updatedAt < 45000);
+      if (!gpsEntries.length) return;
+
+      const orderedStops = [...(routeData[matchedCourse] || [])].sort((a, b) => a.rowIdx - b.rowIdx);
+      let cumulativeMeters = 0;
+      const routePoints = [];
+      orderedStops.forEach((stop, index) => {
+        if (!stop.coords) return;
+        if (routePoints.length) {
+          const prev = routePoints[routePoints.length - 1];
+          cumulativeMeters += calcHaversineMeters(prev.lat, prev.lng, stop.coords.getLat(), stop.coords.getLng());
+        }
+        routePoints.push({
+          stop, index, lat: stop.coords.getLat(), lng: stop.coords.getLng(),
+          chainage: cumulativeMeters
+        });
+      });
+      if (routePoints.length < 2) return;
+
+      const displayStops = routePoints.filter(point => !point.stop.isWaypoint)
+        .map(point => ({
+          ...point,
+          card: document.getElementById(`card-${point.index}`)
+        })).filter(point => point.card);
+      if (displayStops.length < 2) return;
+
+      const projectToRoute = (lat, lng) => {
+        let best = null;
+        for (let i = 0; i < routePoints.length - 1; i++) {
+          const a = routePoints[i], b = routePoints[i + 1];
+          const meanLat = (a.lat + b.lat + lat) / 3;
+          const scaleX = 111320 * Math.cos(meanLat * Math.PI / 180);
+          const scaleY = 111320;
+          const ax = (a.lng - lng) * scaleX, ay = (a.lat - lat) * scaleY;
+          const bx = (b.lng - lng) * scaleX, by = (b.lat - lat) * scaleY;
+          const dx = bx - ax, dy = by - ay;
+          const lenSq = dx * dx + dy * dy;
+          const t = lenSq > 0 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / lenSq)) : 0;
+          const x = ax + dx * t, y = ay + dy * t;
+          const distance = Math.hypot(x, y);
+          if (!best || distance < best.distance) {
+            const segmentLength = calcHaversineMeters(a.lat, a.lng, b.lat, b.lng);
+            best = { distance, chainage: a.chainage + segmentLength * t };
+          }
+        }
+        return best;
+      };
+
+      const positions = gpsEntries.map(bus => {
+        const projected = projectToRoute(bus.lat, bus.lng);
+        const allowedDistance = Math.max(220, Math.min(450, (bus.accuracyMeters || 0) * 2.5));
+        if (!projected || projected.distance > allowedDistance) return null;
+
+        let before = displayStops[0], after = displayStops[displayStops.length - 1];
+        if (projected.chainage <= before.chainage) {
+          after = displayStops[1];
+        } else if (projected.chainage >= after.chainage) {
+          before = displayStops[displayStops.length - 2];
+        } else {
+          for (let i = 0; i < displayStops.length - 1; i++) {
+            if (projected.chainage >= displayStops[i].chainage && projected.chainage <= displayStops[i + 1].chainage) {
+              before = displayStops[i]; after = displayStops[i + 1]; break;
+            }
+          }
+        }
+        const span = Math.max(1, after.chainage - before.chainage);
+        const ratio = Math.max(0, Math.min(1, (projected.chainage - before.chainage) / span));
+        const listRect = list.getBoundingClientRect();
+        const cardCenterY = point => {
+          const rect = point.card.getBoundingClientRect();
+          return rect.top - listRect.top + list.scrollTop + rect.height / 2;
+        };
+        return { bus, y: cardCenterY(before) + (cardCenterY(after) - cardCenterY(before)) * ratio };
+      }).filter(Boolean).sort((a, b) => a.y - b.y);
+
+      positions.forEach((entry, index) => {
+        const marker = document.createElement('div');
+        marker.className = 'sidebar-bus-progress';
+        marker.style.top = `${entry.y + (index ? (index % 2 ? -10 : 10) : 0)}px`;
+        marker.title = `${entry.bus.busNum || '운행 차량'}${entry.bus.round ? ` · ${entry.bus.round}` : ''} · ${entry.bus.speed || 0} km/h`;
+        marker.setAttribute('aria-label', marker.title);
+        const icon = document.createElement('span');
+        icon.className = 'sidebar-bus-progress-icon';
+        icon.textContent = '🚌';
+        const label = document.createElement('span');
+        label.className = 'sidebar-bus-progress-label';
+        label.textContent = entry.bus.busNum || '운행 중';
+        marker.append(icon, label);
+        list.appendChild(marker);
+      });
     };
 
     function toggleSidebarWeb() {
@@ -2678,6 +2808,7 @@
       setTimeout(() => map?.relayout(), 200);
       checkActiveBuses();
       if (window.renderSidebarBusCards) window.renderSidebarBusCards(courseName);
+      if (window.renderSidebarBusProgress) window.renderSidebarBusProgress(courseName);
       if (window.applyPassingBadgesToSidebar) window.applyPassingBadgesToSidebar();
       if (window.calculateAndRenderETA) window.calculateAndRenderETA();
     }
@@ -2690,6 +2821,7 @@
         box.classList.add('active');
         box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
+      if (window.renderSidebarBusProgress) setTimeout(() => window.renderSidebarBusProgress(currentSelectedCourseKey), 250);
     }
 
     async function selectAllCourses() {
@@ -2712,6 +2844,7 @@
       badge.style.display = 'block'; badge.innerText = "전체 노선망 계산 중...";
 
       if (window.renderSidebarBusCards) window.renderSidebarBusCards('ALL');
+      if (window.renderSidebarBusProgress) window.renderSidebarBusProgress('ALL');
 
       for (let cIdx = 0; cIdx < courses.length; cIdx++) {
         const cName = courses[cIdx];
