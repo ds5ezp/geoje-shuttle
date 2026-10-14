@@ -1245,11 +1245,11 @@
     .seocho-bus-num { font-size: .92rem; }
     .seocho-live-speed { font-size: .76rem; }
     #stopList {
-      padding: 13px 14px 20px 52px; margin: 0; gap: 0; background: #fff;
+      padding: 13px 14px 20px 96px; margin: 0; gap: 0; background: #fff;
     }
     .stop-item-box { padding-bottom: 7px; }
     .stop-item-box::before {
-      left: -21px; top: 25px; bottom: -7px; width: 4px; border-radius: 5px;
+      left: -19px; top: 25px; bottom: -7px; width: 4px; border-radius: 5px;
       background: #e95ac8;
     }
     .stop-item-inner {
@@ -1260,7 +1260,7 @@
       background: #fffafd; border-color: #f0b1e2; box-shadow: 0 4px 13px rgba(213,63,177,.09); transform: none;
     }
     .timeline-node {
-      left: -37px; top: 13px; width: 32px; height: 32px; border: 3px solid #e95ac8;
+      left: -35px; top: 13px; width: 32px; height: 32px; border: 3px solid #e95ac8;
       background: #fff; color: #b6359b; font-size: .75rem; font-weight: 900;
       box-shadow: 0 2px 7px rgba(65,35,65,.17);
     }
@@ -1277,10 +1277,13 @@
       border-radius: 50%; background: #e4f4ee; color: #087f68; font-size: 13px;
     }
     .sidebar-bus-progress-label {
-      display: block; overflow: hidden; text-overflow: ellipsis; max-width: 78px;
+      display: block; overflow: hidden; text-overflow: ellipsis; max-width: 52px;
       padding: 4px 8px; border-radius: 999px; background: #1475e0; color: #fff;
       font-size: .68rem; line-height: 1; font-weight: 900; letter-spacing: .01em;
     }
+    .sidebar-bus-progress.scheduled { background: rgba(255,255,255,.98); }
+    .sidebar-bus-progress.scheduled .sidebar-bus-progress-icon { background: #fff2d2; }
+    .sidebar-bus-progress.scheduled .sidebar-bus-progress-label { background: #d98b12; }
     @keyframes sidebarBusAppear {
       from { opacity: 0; transform: translateY(-50%) scale(.92); }
       to { opacity: 1; transform: translateY(-50%) scale(1); }
@@ -1313,20 +1316,20 @@
       .header-badges { padding-left: 47px; }
       #sidebarCardsContainer { gap: 5px; }
       .seocho-live-card { min-height: 43px; padding: 6px 8px; }
-      #stopList { padding: 10px 10px 17px 48px; }
-      .stop-item-box::before { left: -18px; }
-      .timeline-node { left: -34px; width: 30px; height: 30px; }
+      #stopList { padding: 10px 10px 17px 88px; }
+      .stop-item-box::before { left: -17px; }
+      .timeline-node { left: -32px; width: 30px; height: 30px; }
       .course-section-title { margin-left: -34px; }
     }
     @media (max-width: 430px) {
       .sidebar-header-box { padding-left: 11px; padding-right: 11px; }
       .sidebar-header-left span#courseTitle { font-size: .88rem; }
       .header-badges span { font-size: .7rem; }
-      #stopList { padding-left: 45px; padding-right: 8px; }
+      #stopList { padding-left: 82px; padding-right: 8px; }
       .stop-item-inner { padding-left: 11px; padding-right: 10px; }
       .stop-item-title { font-size: .93rem; }
-      .timeline-node { left: -31px; width: 28px; height: 28px; }
-      .stop-item-box::before { left: -16px; }
+      .timeline-node { left: -29px; width: 28px; height: 28px; }
+      .stop-item-box::before { left: -15px; }
     }
   </style>
 </head>
@@ -1832,21 +1835,38 @@
     };
 
     // 선택 노선의 실제 GPS 위치를 정류장 타임라인 사이에 표시합니다.
-    window.renderSidebarBusProgress = function(courseKey) {
+    window.renderSidebarBusProgress = function(courseKey, scheduleItems) {
       const list = document.getElementById('stopList');
       if (!list) return;
-      list.querySelectorAll('.sidebar-bus-progress').forEach(node => node.remove());
-      if (!courseKey || courseKey === 'ALL') return;
+      if (Array.isArray(scheduleItems)) window.lastScheduleSidebarPositions = scheduleItems;
+      else scheduleItems = window.lastScheduleSidebarPositions || [];
+      const clearProgressMarkers = () => list.querySelectorAll('.sidebar-bus-progress').forEach(node => node.remove());
+      if (!courseKey || courseKey === 'ALL') { clearProgressMarkers(); return; }
 
       const targetKey = window.normKey(courseKey);
       const matchedCourse = Object.keys(routeData || {}).find(key => window.normKey(key) === targetKey);
-      if (!matchedCourse) return;
+      if (!matchedCourse) { clearProgressMarkers(); return; }
 
       const gpsCourse = Object.keys(window.latestGpsStore || {}).find(key => window.normKey(key) === targetKey);
       const gpsEntries = Object.values((window.latestGpsStore || {})[gpsCourse] || {})
         .filter(bus => bus && Number.isFinite(bus.lat) && Number.isFinite(bus.lng)
           && bus.updatedAt && Date.now() - bus.updatedAt >= -60000 && Date.now() - bus.updatedAt < 45000);
-      if (!gpsEntries.length) return;
+      let movementEntries = gpsEntries.map(bus => ({ ...bus, isScheduled: false }));
+      if (!movementEntries.length) {
+        const staleVehicles = Object.values((window.gpsStatusStore || {})[gpsCourse] || {});
+        movementEntries = (scheduleItems || [])
+          .filter(item => item && window.normKey(item.courseName) === targetKey
+            && Number.isFinite(item.lat) && Number.isFinite(item.lng))
+          .map(item => {
+            const knownVehicle = staleVehicles.find(vehicle => window.normKey(vehicle.round) === window.normKey(item.roundName));
+            return {
+              lat: item.lat, lng: item.lng, speed: 0, isScheduled: true,
+              busNum: knownVehicle?.busNum || '', round: item.roundName,
+              statusDesc: item.statusDesc || '시간표 기준 위치'
+            };
+          });
+      }
+      if (!movementEntries.length) { clearProgressMarkers(); return; }
 
       const orderedStops = [...(routeData[matchedCourse] || [])].sort((a, b) => a.rowIdx - b.rowIdx);
       let cumulativeMeters = 0;
@@ -1862,14 +1882,14 @@
           chainage: cumulativeMeters
         });
       });
-      if (routePoints.length < 2) return;
+      if (routePoints.length < 2) { clearProgressMarkers(); return; }
 
       const displayStops = routePoints.filter(point => !point.stop.isWaypoint)
         .map(point => ({
           ...point,
           card: document.getElementById(`card-${point.index}`)
         })).filter(point => point.card);
-      if (displayStops.length < 2) return;
+      if (displayStops.length < 2) { clearProgressMarkers(); return; }
 
       const projectToRoute = (lat, lng) => {
         let best = null;
@@ -1893,7 +1913,7 @@
         return best;
       };
 
-      const positions = gpsEntries.map(bus => {
+      const positions = movementEntries.map(bus => {
         const projected = projectToRoute(bus.lat, bus.lng);
         const allowedDistance = Math.max(220, Math.min(450, (bus.accuracyMeters || 0) * 2.5));
         if (!projected || projected.distance > allowedDistance) return null;
@@ -1920,21 +1940,37 @@
         return { bus, y: cardCenterY(before) + (cardCenterY(after) - cardCenterY(before)) * ratio };
       }).filter(Boolean).sort((a, b) => a.y - b.y);
 
+      const existingMarkers = new Map(Array.from(list.querySelectorAll('.sidebar-bus-progress'))
+        .map(marker => [marker.dataset.progressKey, marker]));
+      const retainedKeys = new Set();
       positions.forEach((entry, index) => {
-        const marker = document.createElement('div');
-        marker.className = 'sidebar-bus-progress';
+        const progressKey = `${entry.bus.isScheduled ? 'schedule' : 'gps'}:${window.normKey(entry.bus.busNum || '')}:${window.normKey(entry.bus.round || '')}`;
+        retainedKeys.add(progressKey);
+        let marker = existingMarkers.get(progressKey);
+        if (!marker) {
+          marker = document.createElement('div');
+          marker.className = 'sidebar-bus-progress';
+          marker.dataset.progressKey = progressKey;
+          const icon = document.createElement('span');
+          icon.className = 'sidebar-bus-progress-icon';
+          icon.textContent = '🚌';
+          const label = document.createElement('span');
+          label.className = 'sidebar-bus-progress-label';
+          marker.append(icon, label);
+          list.appendChild(marker);
+        }
+        marker.classList.toggle('scheduled', !!entry.bus.isScheduled);
         marker.style.top = `${entry.y + (index ? (index % 2 ? -10 : 10) : 0)}px`;
-        marker.title = `${entry.bus.busNum || '운행 차량'}${entry.bus.round ? ` · ${entry.bus.round}` : ''} · ${entry.bus.speed || 0} km/h`;
+        marker.title = entry.bus.isScheduled
+          ? `시간표 기준 위치 · ${entry.bus.round || ''} · ${entry.bus.statusDesc || ''}`
+          : `${entry.bus.busNum || '운행 차량'}${entry.bus.round ? ` · ${entry.bus.round}` : ''} · ${entry.bus.speed || 0} km/h`;
         marker.setAttribute('aria-label', marker.title);
-        const icon = document.createElement('span');
-        icon.className = 'sidebar-bus-progress-icon';
-        icon.textContent = '🚌';
-        const label = document.createElement('span');
-        label.className = 'sidebar-bus-progress-label';
-        label.textContent = entry.bus.busNum || '운행 중';
-        marker.append(icon, label);
-        list.appendChild(marker);
+        const label = marker.querySelector('.sidebar-bus-progress-label');
+        label.textContent = entry.bus.isScheduled
+          ? '예정'
+          : (entry.bus.busNum || '운행 중');
       });
+      existingMarkers.forEach((marker, key) => { if (!retainedKeys.has(key)) marker.remove(); });
     };
 
     function toggleSidebarWeb() {
@@ -3040,6 +3076,7 @@
       const barText = document.getElementById('liveStatusText'), liveTag = document.getElementById('liveTag');
 
       if (isNonOperatingDay(now)) {
+        if (window.renderSidebarBusProgress) window.renderSidebarBusProgress(currentSelectedCourseKey, []);
         liveTag.innerText = '미운행일'; liveTag.className = 'live-tag holiday';
         barText.innerHTML = `오늘은 셔틀버스 미운행일(주말/공휴일)입니다.`;
         return;
@@ -3054,6 +3091,7 @@
       })));
 
       if (latest > 0 && currentMinutes > latest + 10) {
+        if (window.renderSidebarBusProgress) window.renderSidebarBusProgress(currentSelectedCourseKey, []);
         liveTag.innerText = '운행 마감'; liveTag.className = 'live-tag ended';
         barText.innerHTML = `오늘의 셔틀버스 운행이 모두 종료되었습니다.`;
         return;
@@ -3108,7 +3146,9 @@
               courseName: cName,
               roundName: roundName,
               statusDesc: `복지관 출발 대기 (${diffMin}분 뒤 출발)`,
-              stopIndex: schedList[0].stopIndex
+              stopIndex: schedList[0].stopIndex,
+              lat: firstStop.coords.getLat(),
+              lng: firstStop.coords.getLng()
             });
 
             if (!isLiveGpsActive) {
@@ -3174,7 +3214,9 @@
                 courseName: cName,
                 roundName: roundName,
                 statusDesc: statusDesc,
-                stopIndex: curStopItem.stopIndex
+                stopIndex: curStopItem.stopIndex,
+                lat: liveLatLng.getLat(),
+                lng: liveLatLng.getLng()
               });
 
               if (!isLiveGpsActive) {
@@ -3192,6 +3234,10 @@
           }
         });
       });
+
+      if (window.renderSidebarBusProgress) {
+        window.renderSidebarBusProgress(currentSelectedCourseKey, activeList);
+      }
 
       if (activeList.length === 0) {
         liveTag.innerText = 'LIVE 운행';
