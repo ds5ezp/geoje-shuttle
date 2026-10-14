@@ -940,6 +940,35 @@
     .tt-stop-name { font-size: 1.05rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 8px; }
     .tt-badges-container { display: flex; flex-wrap: wrap; gap: 6px; }
     .tt-time-badge { background: #2563eb; color: #ffffff; font-size: 0.88rem; font-weight: 800; padding: 5px 12px; border-radius: 16px; box-shadow: 0 1px 3px rgba(37,99,235,0.3); }
+    .tt-intro { color:#64748b; font-size:.82rem; line-height:1.5; padding:0 2px; }
+    .tt-departures { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px; }
+    .tt-departure-card { border:1px solid #dbe7f5; border-radius:12px; background:#f6f9fd; padding:10px 12px; }
+    .tt-departure-round { display:block; color:#1769d2; font-size:.76rem; font-weight:850; margin-bottom:4px; }
+    .tt-departure-stop { color:#24364f; font-size:.88rem; font-weight:750; line-height:1.4; }
+    .tt-departure-time { color:#087b5c; font-variant-numeric:tabular-nums; font-weight:850; margin-left:4px; white-space:nowrap; }
+    .tt-table-wrap { overflow:auto; border:1px solid #e1e8f0; border-radius:12px; background:#fff; }
+    .tt-table { width:100%; min-width:620px; border-collapse:separate; border-spacing:0; font-size:.86rem; }
+    .tt-table th,.tt-table td { padding:10px 9px; border-bottom:1px solid #edf1f6; text-align:center; }
+    .tt-table thead th { position:sticky; top:0; z-index:2; background:#f2f6fb; color:#344761; font-weight:800; }
+    .tt-table th:first-child,.tt-table td:first-child { position:sticky; left:0; z-index:1; text-align:left; min-width:200px; background:#fff; }
+    .tt-table thead th:first-child { z-index:3; background:#f2f6fb; }
+    .tt-table tbody tr:last-child td { border-bottom:0; }
+    .tt-table tbody tr:hover td { background:#f8fbff; }
+    .tt-table tbody tr:hover td:first-child { background:#f8fbff; }
+    .tt-th-round { display:block; color:#1769d2; font-size:.82rem; }
+    .tt-th-departure { display:block; max-width:150px; margin:4px auto 0; color:#748399; font-size:.68rem; line-height:1.35; font-weight:600; }
+    .tt-cell-time { color:#1f334e; font-variant-numeric:tabular-nums; font-weight:800; white-space:nowrap; }
+    .tt-cell-time.is-departure { color:#087b5c; }
+    .tt-cell-time small { display:block; color:#087b5c; font-size:.62rem; font-weight:800; margin-top:2px; }
+    .tt-no-service { color:#b0bac8; }
+    .tt-mobile-stops { display:none; }
+    .tt-mobile-stop { border:1px solid #e4eaf2; border-radius:12px; padding:12px; background:#fff; }
+    .tt-mobile-stop-name { color:#20334e; font-size:.92rem; font-weight:800; line-height:1.4; margin-bottom:9px; }
+    .tt-mobile-times { display:flex; flex-wrap:wrap; gap:6px; }
+    .tt-mobile-time { display:inline-flex; flex-direction:column; gap:2px; border-radius:9px; padding:6px 9px; background:#edf5ff; color:#1759aa; font-size:.74rem; font-weight:750; }
+    .tt-mobile-time b { font-size:.86rem; font-variant-numeric:tabular-nums; }
+    .tt-mobile-time.is-departure { background:#eaf7f1; color:#087b5c; }
+    .tt-mobile-time.none { background:#f3f5f8; color:#97a2b2; }
 
     .tt-footer {
       background: #f8fafc; padding: 12px 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0; align-items: center;
@@ -1202,6 +1231,17 @@
       .header-actions { gap: 4px; }
       #liveStatusBar { padding: 0 10px; }
     }
+    @media (max-width: 650px) {
+      .tt-body-seocho { padding:12px; gap:10px; }
+      .tt-table-wrap { display:none; }
+      .tt-mobile-stops { display:flex; flex-direction:column; gap:8px; }
+      .tt-departures { grid-template-columns:1fr; }
+      .tt-departure-card { padding:9px 11px; }
+      .tt-summary-bar { gap:8px; font-size:.78rem; }
+      .tt-header { padding:13px 15px; }
+      .tt-footer { padding:10px; gap:6px; }
+      .tt-action-btn { padding:9px 11px; font-size:.78rem; }
+    }
     /* Route panel inspired by the compact Seoul transit sidebar */
     #sidebar {
       width: 380px; padding: 0; gap: 0; background: #fff;
@@ -1250,6 +1290,7 @@
     .stop-item-box { padding-bottom: 7px; }
     .stop-item-box::before {
       left: -19px; top: 25px; bottom: -7px; width: 4px; border-radius: 5px;
+      background: #e95ac8;
       background: var(--course-color, var(--route-accent, #e95ac8));
     }
     .stop-item-inner {
@@ -1260,11 +1301,14 @@
       background: #fffafd; border-color: #f0b1e2; box-shadow: 0 4px 13px rgba(213,63,177,.09); transform: none;
     }
     .timeline-node {
+      left: -35px; top: 13px; width: 32px; height: 32px; border: 3px solid #e95ac8;
+      background: #fff; color: #b6359b; font-size: .75rem; font-weight: 900;
       left: -35px; top: 13px; width: 32px; height: 32px;
       border: 3px solid var(--course-color, var(--route-accent, #e95ac8));
       background: #fff; color: var(--course-color, var(--route-accent, #b6359b)); font-size: .75rem; font-weight: 900;
       box-shadow: 0 2px 7px rgba(65,35,65,.17);
     }
+    .timeline-node.bokji { background: #fff; border-color: #de4c55; color: #c0323b; }
     .timeline-node.bokji { background: #fff; border-color: var(--course-color, var(--route-accent, #de4c55)); color: var(--course-color, var(--route-accent, #c0323b)); }
     .sidebar-bus-progress {
       position: absolute; left: 1px; z-index: 12; display: inline-flex; align-items: center; gap: 5px;
@@ -1279,6 +1323,7 @@
     }
     .sidebar-bus-progress-label {
       display: block; overflow: hidden; text-overflow: ellipsis; max-width: 52px;
+      padding: 4px 8px; border-radius: 999px; background: #1475e0; color: #fff;
       padding: 4px 8px; border-radius: 999px; background: var(--route-accent, #1475e0); color: #fff;
       font-size: .68rem; line-height: 1; font-weight: 900; letter-spacing: .01em;
     }
@@ -2468,6 +2513,17 @@
         const badgesHtml = activeTimes.length > 0 
           ? activeTimes.map(sc => `<span class="tt-time-badge">${sc.time}</span>`).join('')
           : `<span style="font-size:0.85rem; color:#94a3b8;">운행 시간 없음</span>`;
+      const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+      const rounds = [...new Map(stops.flatMap(stop => stop.schedules || [])
+        .filter(sc => sc.round)
+        .map(sc => [String(sc.round), String(sc.round)])).values()]
+        .sort((a, b) => parseRoundNumber(a) - parseRoundNumber(b));
+      const scheduleFor = (stop, round) => (stop.schedules || []).find(sc => String(sc.round) === round && sc.time && !String(sc.time).includes('미운행'));
+      // 회차별로 노선 순서상 처음 시간이 등록된 정류장을 해당 회차의 출발지로 안내합니다.
+      const departures = Object.fromEntries(rounds.map(round => {
+        const stopIndex = stops.findIndex(stop => scheduleFor(stop, round));
+        return [round, stopIndex >= 0 ? { stop: stops[stopIndex], stopIndex, time: scheduleFor(stops[stopIndex], round).time } : null];
+      }));
 
         return `
           <div class="tt-stop-row">
@@ -2480,7 +2536,44 @@
             </div>
           </div>
         `;
+      const departureCards = rounds.map(round => {
+        const departure = departures[round];
+        return `<div class="tt-departure-card"><span class="tt-departure-round">${escapeHtml(round)} 출발</span><span class="tt-departure-stop">${departure ? `${escapeHtml(departure.stop.name)} <span class="tt-departure-time">${escapeHtml(departure.time)}</span>` : '시간표 정보 없음'}</span></div>`;
       }).join('');
+
+      const tableHead = rounds.map(round => {
+        const departure = departures[round];
+        const depText = departure ? `${departure.stop.name} · ${departure.time}` : '운행 정보 없음';
+        return `<th scope="col"><span class="tt-th-round">${escapeHtml(round)}</span><span class="tt-th-departure">${escapeHtml(depText)} 출발</span></th>`;
+      }).join('');
+
+      const tableRows = stops.map((stop, idx) => {
+        const cells = rounds.map(round => {
+          const schedule = scheduleFor(stop, round);
+          if (!schedule) return `<td><span class="tt-no-service">—</span></td>`;
+          const isDeparture = departures[round]?.stopIndex === idx;
+          return `<td><span class="tt-cell-time ${isDeparture ? 'is-departure' : ''}">${escapeHtml(schedule.time)}${isDeparture ? '<small>출발</small>' : ''}</span></td>`;
+        }).join('');
+        return `<tr><td><strong>${idx + 1}. ${escapeHtml(stop.name)}</strong>${stop.stopNo ? `<span style="display:block;color:#8491a3;font-size:.72rem;margin-top:3px;">정류장 No.${escapeHtml(stop.stopNo)}</span>` : ''}</td>${cells}</tr>`;
+      }).join('');
+
+      const mobileCards = stops.map((stop, idx) => {
+        const times = rounds.map(round => {
+          const schedule = scheduleFor(stop, round);
+          if (!schedule) return `<span class="tt-mobile-time none">${escapeHtml(round)}<b>—</b></span>`;
+          const isDeparture = departures[round]?.stopIndex === idx;
+          return `<span class="tt-mobile-time ${isDeparture ? 'is-departure' : ''}">${escapeHtml(round)}${isDeparture ? ' · 출발' : ''}<b>${escapeHtml(schedule.time)}</b></span>`;
+        }).join('');
+        return `<div class="tt-mobile-stop"><div class="tt-mobile-stop-name">${idx + 1}. ${escapeHtml(stop.name)}${stop.stopNo ? ` <span style="color:#8491a3;font-size:.72rem;font-weight:600;">No.${escapeHtml(stop.stopNo)}</span>` : ''}</div><div class="tt-mobile-times">${times || '<span class="tt-no-service">운행 시간 없음</span>'}</div></div>`;
+      }).join('');
+
+      container.innerHTML = `
+        <div class="tt-intro">회차별 첫 운행 정류장과 출발 시각을 표시합니다. 정류장별 도착 시각을 비교해 보세요.</div>
+        <div class="tt-departures" aria-label="회차별 출발 정보">${departureCards}</div>
+        <div class="tt-table-wrap" role="region" aria-label="정류장별 회차 시간표" tabindex="0">
+          <table class="tt-table"><thead><tr><th scope="col">정류장</th>${tableHead}</tr></thead><tbody>${tableRows}</tbody></table>
+        </div>
+        <div class="tt-mobile-stops">${mobileCards}</div>`;
     }
 
     function copyTimetableShareUrl() {
@@ -2489,9 +2582,19 @@
     }
     function copyTimetableText() {
       const stops = (routeData[currentTimetableCourseKey] || []).filter(s => !s.isWaypoint);
+      const rounds = [...new Map(stops.flatMap(stop => stop.schedules || []).filter(sc => sc.round).map(sc => [String(sc.round), String(sc.round)])).values()]
+        .sort((a, b) => parseRoundNumber(a) - parseRoundNumber(b));
+      const getTime = (stop, round) => (stop.schedules || []).find(sc => String(sc.round) === round && sc.time && !String(sc.time).includes('미운행'));
       let msg = `🚌 [거제시종합사회복지관 시간표]\n📍 노선: ${currentTimetableCourseKey}\n--------------------------------\n`;
+      let msg = `🚌 [거제시종합사회복지관 시간표]\n📍 노선: ${currentTimetableCourseKey}\n`;
+      rounds.forEach(round => {
+        const idx = stops.findIndex(stop => getTime(stop, round));
+        msg += `${round} 출발: ${idx >= 0 ? `${stops[idx].name} ${getTime(stops[idx], round).time}` : '정보 없음'}\n`;
+      });
+      msg += `--------------------------------\n`;
       stops.forEach((s, idx) => {
         const times = (s.schedules || []).filter(sc => sc.time && !sc.time.includes('미운행')).map(sc => sc.time).join(', ');
+        const times = rounds.map(round => `${round} ${getTime(s, round)?.time || '—'}`).join(' / ');
         msg += `${idx + 1}. ${s.name}: ${times || '운행 없음'}\n`;
       });
       navigator.clipboard?.writeText(msg).then(() => alert("텍스트 복사 완료!"));
@@ -2835,6 +2938,7 @@
                     <button class="stop-alarm-btn ${isAlarmOn ? 'active' : ''}" id="alarm-btn-${i}" onclick="event.stopPropagation(); toggleStopAlarm('${courseName}', ${i}, '${stop.name}');">
                       ${isAlarmOn ? '🔔 알림켜짐' : '🔔 알림'}
                     </button>
+                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
                     <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival(this, '${stop.name}', routeData['${courseName}'][${i}].schedules);">🔊 음성듣기</button>
                   </div>
                 </div>
@@ -3075,6 +3179,7 @@
                 <div class="stop-expand-panel">
                   <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span style="font-size:0.85rem; font-weight:700; color:#475569;">회차별 시간표</span>
+                    <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival('${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성듣기</button>
                     <button class="tts-speak-btn" onclick="event.stopPropagation(); speakStopArrival(this, '${stop.name}', routeData['${cName}'][${i}].schedules);">🔊 음성듣기</button>
                   </div>
                   ${scheduleHtml ? `<div class="schedule-rounds-box">${scheduleHtml}</div>` : ''}
