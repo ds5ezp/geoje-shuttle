@@ -74,7 +74,6 @@
       });
     };
 
-    // 당일 통과 기록 실시간 감시 -> 사이드바 뱃지
     // 당일 정차/통과 기록 실시간 감시 -> 사이드바 뱃지
     window.initStationLogWatcher = function() {
       const todayStr = getTodayString();
@@ -97,7 +96,6 @@
         const roundData = courseLogs[roundKey] || {};
         Object.keys(roundData).forEach(stopKey => {
           const item = roundData[stopKey];
-          if (!item || !item.time || item.stopIndex === undefined) return;
           if (!item || item.stopIndex === undefined) return;
 
           const sIdx = parseInt(item.stopIndex, 10);
@@ -146,8 +144,6 @@
                 span.style.cssText = 'background:#0f766e; color:#ffffff; font-weight:800;';
                 span.innerText = `● ${roundKey} ${eventTime} 정차${Number.isFinite(dwell) && dwell > 0 ? ` · ${dwell}초` : ''}`;
               } else if (isPass) {
-              span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
-              span.innerText = `✔ ${roundKey} ${item.time} 통과`;
                 span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
                 span.innerText = `✔ ${roundKey} ${eventTime} 통과`;
               } else {
@@ -264,7 +260,8 @@
           accumulatedDist += d;
           prevLatLng = curStop.coords;
 
-          const estMinutes = Math.max(1, Math.round(accumulatedDist / speedMps / 60));
+          const estSeconds = Math.max(0, Math.round(accumulatedDist / speedMps));
+          const estMinutes = Math.max(1, Math.round(estSeconds / 60));
           const badgeRow = document.getElementById(`badge-row-${i}`);
           if (badgeRow) {
             const etaSpan = document.createElement('span');
@@ -280,7 +277,7 @@
           }
 
           if (window.checkAndTriggerArrivalNotification) {
-            window.checkAndTriggerArrivalNotification(courseName, i, curStop.name, accumulatedDist, estMinutes, activeBus.round);
+            window.checkAndTriggerArrivalNotification(courseName, i, curStop.name, accumulatedDist, estMinutes, activeBus.round, estSeconds);
           }
         }
       });
@@ -1785,7 +1782,6 @@
                 btn.className = 'stop-alarm-btn active';
                 btn.innerHTML = '🔔 알림켜짐';
               }
-              playChimeSound();
               alert(`[${stopName}] 승차 알림이 켜졌습니다.\n버스가 약 2분 전(700m 이내) 도달하면 소리와 진동으로 알려드립니다.`);
             } else {
               alert("브라우저 알림 권한이 차단되어 있습니다. 브라우저 설정에서 알림을 허용해 주세요.");
@@ -1802,7 +1798,36 @@
       }
     };
 
-    window.checkAndTriggerArrivalNotification = function(courseName, stopIndex, stopName, distMeters, estMinutes, roundName) {
+    function formatEtaForSpeech(seconds) {
+      const safeSeconds = Math.max(0, Math.round(Number(seconds) || 0));
+      if (safeSeconds <= 20) return '곧 도착 예정입니다.';
+      if (safeSeconds < 60) return `약 ${safeSeconds}초 뒤 도착 예정입니다.`;
+      const minutes = Math.floor(safeSeconds / 60);
+      const remainingSeconds = safeSeconds % 60;
+      return remainingSeconds >= 10
+        ? `약 ${minutes}분 ${remainingSeconds}초 뒤 도착 예정입니다.`
+        : `약 ${minutes}분 뒤 도착 예정입니다.`;
+    }
+
+    function speakArrivalAlert(message) {
+      const synth = window.speechSynthesis;
+      if (!synth || typeof window.SpeechSynthesisUtterance !== 'function') return;
+      try {
+        synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'ko-KR';
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        const koreanVoice = synth.getVoices().find(voice => /^ko([_-]|$)/i.test(voice.lang || ''));
+        if (koreanVoice) utterance.voice = koreanVoice;
+        synth.speak(utterance);
+      } catch (error) {
+        console.warn('도착 예정 음성 안내를 재생하지 못했습니다.', error);
+      }
+    }
+
+    window.checkAndTriggerArrivalNotification = function(courseName, stopIndex, stopName, distMeters, estMinutes, roundName, estSeconds) {
       const alarmKey = `${courseName}_${stopIndex}`;
       if (!window.stopAlarms[alarmKey]) return;
 
@@ -1812,14 +1837,15 @@
       if (distMeters <= 700 || estMinutes <= 2) {
         window.triggeredAlarms.add(triggerKey);
 
-        playChimeSound();
+        const etaText = formatEtaForSpeech(estSeconds ?? estMinutes * 60);
+        speakArrivalAlert(`${stopName} 정류장, ${etaText}`);
         if (navigator.vibrate) {
           navigator.vibrate([300, 150, 300]);
         }
 
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("🚌 셔틀버스 곧 도착 알림", {
-            body: `[${courseName}] 셔틀버스가 '${stopName}' 정류소에 약 ${estMinutes}분 후 도착 예정입니다. 탑승을 준비해 주세요.`,
+            body: `[${courseName}] ${stopName} 정류장, ${etaText} 탑승을 준비해 주세요.`,
             icon: "https://ds5ezp.github.io/geoje-sh/icon-192.png"
           });
         }
