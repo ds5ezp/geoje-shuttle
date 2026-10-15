@@ -75,6 +75,7 @@
     };
 
     // 당일 통과 기록 실시간 감시 -> 사이드바 뱃지
+    // 당일 정차/통과 기록 실시간 감시 -> 사이드바 뱃지
     window.initStationLogWatcher = function() {
       const todayStr = getTodayString();
       const logRef = ref(db, `stationLogs/${todayStr}/`);
@@ -97,6 +98,7 @@
         Object.keys(roundData).forEach(stopKey => {
           const item = roundData[stopKey];
           if (!item || !item.time || item.stopIndex === undefined) return;
+          if (!item || item.stopIndex === undefined) return;
 
           const sIdx = parseInt(item.stopIndex, 10);
           let targetBadgeRow = document.getElementById(`badge-row-${sIdx - 1}`);
@@ -127,8 +129,32 @@
             if (!alreadyExists) {
               const span = document.createElement('span');
               span.className = 'badge-tag passed-time-badge';
+              const isArrival = String(item.passType || '').toLowerCase() === 'arrival';
+              const isPass = String(item.passType || '').toLowerCase() === 'pass';
+              const eventTime = isArrival && item.arrivalAtMs
+                ? new Intl.DateTimeFormat('ko-KR', {
+                    timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                  }).format(new Date(Number(item.arrivalAtMs)))
+                : (item.time || (item.passedAtMs
+                    ? new Intl.DateTimeFormat('ko-KR', {
+                        timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                      }).format(new Date(Number(item.passedAtMs)))
+                    : ''));
+
+              if (isArrival) {
+                const dwell = Number(item.dwellSeconds);
+                span.style.cssText = 'background:#0f766e; color:#ffffff; font-weight:800;';
+                span.innerText = `● ${roundKey} ${eventTime} 정차${Number.isFinite(dwell) && dwell > 0 ? ` · ${dwell}초` : ''}`;
+              } else if (isPass) {
               span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
               span.innerText = `✔ ${roundKey} ${item.time} 통과`;
+                span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
+                span.innerText = `✔ ${roundKey} ${eventTime} 통과`;
+              } else {
+                // 이전 APK가 저장한 passType 없는 기록은 기존처럼 통과로 표시합니다.
+                span.style.cssText = 'background:#10b981; color:#ffffff; font-weight:800;';
+                span.innerText = `✔ ${roundKey} ${eventTime || '기록'} 통과`;
+              }
               targetBadgeRow.appendChild(span);
             }
           }
