@@ -261,18 +261,25 @@
           prevLatLng = curStop.coords;
 
           const estSeconds = Math.max(0, Math.round(accumulatedDist / speedMps));
-          const estMinutes = Math.max(1, Math.round(estSeconds / 60));
+          // 화면 ETA는 분 단위로 올림해 과소 안내를 줄이고, 1분 이내는 초 단위로 표시합니다.
+          const estMinutes = Math.max(1, Math.ceil(estSeconds / 60));
           const badgeRow = document.getElementById(`badge-row-${i}`);
           if (badgeRow) {
             const etaSpan = document.createElement('span');
             etaSpan.className = 'badge-tag eta-badge';
-            etaSpan.style.cssText = estMinutes <= 1
+            etaSpan.style.cssText = estSeconds <= 20
               ? 'background:#ef4444; color:#fff; font-weight:900;'
-              : 'background:#2563eb; color:#fff; font-weight:800;';
+              : estSeconds <= 60
+                ? 'background:#d97706; color:#fff; font-weight:800;'
+                : 'background:#2563eb; color:#fff; font-weight:800;';
             const busLabel = candidates.length > 1 ? `${activeBus.busNum} ${activeBus.round || ''} · ` : '';
-            etaSpan.innerText = estMinutes <= 1
-              ? `⚡ ${busLabel}곧 도착`
-              : `⏱ ${busLabel}약 ${estMinutes}분 후 도착`;
+            const etaLabel = estSeconds <= 20
+              ? '곧 도착 예정'
+              : estSeconds < 60
+                ? `약 ${estSeconds}초 후 도착`
+                : `약 ${estMinutes}분 후 도착`;
+            etaSpan.innerText = `${estSeconds <= 20 ? '⚡' : '⏱'} ${busLabel}${etaLabel}`;
+            etaSpan.title = `실시간 GPS 위치와 노선 거리로 계산한 예상입니다. 현재 속도 ${speedKmh}km/h 기준`;
             badgeRow.appendChild(etaSpan);
           }
 
