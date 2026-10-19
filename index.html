@@ -86,12 +86,20 @@
     };
 
     // 당일 정차/통과 기록 실시간 감시 -> 사이드바 뱃지
+    // 승객 화면은 개인정보를 제외한 공개 경로의 정류장 기록만 구독합니다.
     window.initStationLogWatcher = function() {
-      const todayStr = getTodayString();
-      const logRef = ref(db, `stationLogs/${todayStr}/`);
-      onValue(logRef, (snapshot) => {
-        const data = snapshot.val() || {};
-        window.todayStationLogs = data;
+      const publicRef = ref(db, 'publicLiveStatus/');
+      onValue(publicRef, (snapshot) => {
+        const root = snapshot.val() || {};
+        const logs = {};
+        Object.entries(root).forEach(([course, rounds]) => {
+          if (!rounds || typeof rounds !== 'object') return;
+          logs[course] = {};
+          Object.entries(rounds).forEach(([round, payload]) => {
+            if (payload && payload.stationLogs) logs[course][round] = payload.stationLogs;
+          });
+        });
+        window.todayStationLogs = logs;
         applyPassingBadgesToSidebar();
       });
     };
@@ -99,7 +107,8 @@
     // 순번(stopIndex) 및 정류장명 2중 검증 뱃지 매칭
     window.applyPassingBadgesToSidebar = function() {
       if (!currentSelectedCourseKey || currentSelectedCourseKey === 'ALL') return;
-      const courseLogs = window.todayStationLogs[currentSelectedCourseKey] || {};
+      const courseLogKey = Object.keys(window.todayStationLogs || {}).find(k => window.normKey(k) === window.normKey(currentSelectedCourseKey));
+      const courseLogs = courseLogKey ? (window.todayStationLogs[courseLogKey] || {}) : {};
 
       document.querySelectorAll('.passed-time-badge').forEach(el => el.remove());
 
@@ -355,9 +364,19 @@
 
     // Firebase 실시간 수신 리스너 (1분 이상 갱신되지 않은 GPS는 지도에서 숨김)
     window.initRealtimeBusTracking = function() {
-      const liveBusRef = ref(db, 'liveBuses/');
-      onValue(liveBusRef, (snapshot) => {
-        const data = snapshot.val() || {};
+      // 승객 화면은 공개 전용 경로만 읽습니다. liveBuses 전체 조회는 하지 않습니다.
+      const publicRef = ref(db, 'publicLiveStatus/');
+      onValue(publicRef, (snapshot) => {
+        const publicData = snapshot.val() || {};
+        const data = {};
+        Object.entries(publicData).forEach(([course, rounds]) => {
+          if (!rounds || typeof rounds !== 'object') return;
+          data[course] = {};
+          Object.entries(rounds).forEach(([round, payload]) => {
+            const pos = payload && payload.busPosition;
+            if (pos && typeof pos === 'object') data[course][round] = { ...pos, round };
+          });
+        });
         window.latestGpsStore = {};
         window.gpsStatusStore = {};
         window.hasGpsData = {};
@@ -2467,40 +2486,11 @@
     };
 
     window.fetchHistoryData = async function() {
-      const dateStr = document.getElementById('historyDateInput').value;
-      const courseStr = document.getElementById('historyCourseSelect').value;
-      const rSelect = document.getElementById('historyRoundSelect');
       const area = document.getElementById('historyContentArea');
-
-      if (!dateStr || !courseStr) return;
-
-      area.innerHTML = '<p style="padding:30px; text-align:center; color:#64748b;">운행 기록을 불러오는 중입니다...</p>';
-
-      try {
-        const dbRef = window.firebaseRef(window.firebaseDb, `stationLogs/${dateStr}/${courseStr}`);
-        const snapshot = await window.firebaseGet(dbRef);
-        currentFetchedHistory = snapshot.val() || {};
-
-        rSelect.innerHTML = '';
-        const rounds = Object.keys(currentFetchedHistory);
-
-        if (rounds.length === 0) {
-          rSelect.innerHTML = '<option value="">운행 기록 없음</option>';
-          area.innerHTML = `<p style="padding:30px; text-align:center; color:#ef4444; font-weight:bold;">${dateStr} [${courseStr}] 노선의 저장된 운행 기록이 없습니다.</p>`;
-          return;
-        }
-
-        rounds.forEach(r => {
-          const opt = document.createElement('option');
-          opt.value = r;
-          opt.innerText = r;
-          rSelect.appendChild(opt);
-        });
-
-        renderHistoryTable();
-      } catch (e) {
-        area.innerHTML = `<p style="padding:30px; text-align:center; color:#ef4444;">조회 오류 발생: ${e.message}</p>`;
-      }
+      if (!area) return;
+      area.innerHTML = '<p style="padding:30px;text-align:center;color:#64748b;">이용자 화면에는 실시간 위치와 현재 정류장 현황만 표시됩니다. 과거 상세 운행 기록은 관리자 센터에서 조회해 주세요.</p>';
+      const rounds = document.getElementById('historyRoundSelect');
+      if (rounds) rounds.innerHTML = '<option value="">관리자 페이지에서 조회</option>';
     };
 
     window.renderHistoryTable = function() {
