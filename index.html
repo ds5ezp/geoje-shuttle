@@ -595,9 +595,22 @@
       }
 
       const themeColor = getCourseColor(courseName);
-      const tLat = latLng.getLat();
-      const tLng = latLng.getLng();
+      let tLat = latLng.getLat();
+      let tLng = latLng.getLng();
       const now = performance.now();
+
+      // GPS 미세 흔들림을 줄입니다. 저속일수록 새 좌표를 완만하게 반영합니다.
+      const previousState = window.busAnimStates[markerKey];
+      if (isGpsMode && previousState) {
+        const targetDistance = calcHaversineMeters(
+          previousState.targetLat, previousState.targetLng, tLat, tLng
+        );
+        const smoothing = speed <= 5 ? 0.45 : speed <= 20 ? 0.7 : 0.88;
+        if (Number.isFinite(targetDistance) && targetDistance < 120) {
+          tLat = previousState.targetLat + (tLat - previousState.targetLat) * smoothing;
+          tLng = previousState.targetLng + (tLng - previousState.targetLng) * smoothing;
+        }
+      }
 
       const labelText = isGpsMode 
         ? `<span class="live-gps-pill">LIVE GPS</span> ${courseName} (${busNum})` 
@@ -631,7 +644,8 @@
         st.targetHeading = rawHeading;
 
         st.startTime = now;
-        st.duration = Math.min(timeDiff, 4000);
+        // 다음 GPS 갱신 직전까지 부드럽게 이동하도록 전환 시간을 조금 여유 있게 둡니다.
+        st.duration = Math.max(1200, Math.min(timeDiff * 1.15, 2600));
         st.lastUpdate = now;
       }
 
