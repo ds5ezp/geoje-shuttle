@@ -38,6 +38,9 @@
     window.latestGpsStore = {};
     window.gpsStatusStore = {};
     window.todayStationLogs = {};
+    // 오늘 이미 GPS가 들어온 회차는 신호가 끊겨도 시간표 마커로 되돌리지 않습니다.
+    window.gpsSeenToday = {};
+    window.gpsSeenTodayDate = '';
 
     window.normKey = function(str) {
       if (!str) return '';
@@ -50,6 +53,14 @@
       const mo = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       return `${yr}-${mo}-${day}`;
+    }
+
+    function getKstDateString(timestamp = Date.now()) {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).formatToParts(new Date(timestamp));
+      const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+      return `${values.year}-${values.month}-${values.day}`;
     }
 
     // [3단계 신규 기능] Firebase 실시간 긴급 공지 감시 리스너
@@ -351,6 +362,11 @@
         window.gpsStatusStore = {};
         window.hasGpsData = {};
         const nowMs = Date.now();
+        const todayKst = getKstDateString(nowMs);
+        if (window.gpsSeenTodayDate !== todayKst) {
+          window.gpsSeenToday = {};
+          window.gpsSeenTodayDate = todayKst;
+        }
 
         Object.keys(data).forEach(courseName => {
           const val = data[courseName];
@@ -373,11 +389,22 @@
             const isFresh = ageMs >= -60000 && ageMs < 45000;
             const busNum = pos.busNumber || '운행차량';
             const round = pos.round || (subKey !== '단일' ? subKey : '');
+            const roundKey = window.normKey(round || subKey);
+            if (roundKey && getKstDateString(lastUpdated) === todayKst) {
+              window.gpsSeenToday[`${window.normKey(courseName)}|${roundKey}`] = true;
+            }
 
             if (isOperating && ageMs >= -60000 && ageMs < 1800000) {
               if (!window.gpsStatusStore[courseName]) window.gpsStatusStore[courseName] = {};
               window.gpsStatusStore[courseName][subKey] = {
-                busNum, round, speed: Math.round(Number(pos.speed) || 0), updatedAt: lastUpdated
+                busNum,
+                round,
+                speed: Math.round(Number(pos.speed) || 0),
+                updatedAt: lastUpdated,
+                lat,
+                lng,
+                heading: Number(pos.heading) || 0,
+                accuracyMeters: Number(pos.accuracyMeters) || null
               };
             }
 
@@ -416,9 +443,28 @@
               }
             } else {
               const markerKey = `${courseName}_${busNum}`;
-              if (window.realtimeBusMarkers[markerKey]) {
-                window.realtimeBusMarkers[markerKey].setMap(null);
-                delete window.realtimeBusMarkers[markerKey];
+              const isRecentStaleGps = isOperating && ageMs >= 45000 && ageMs < 1800000;
+              const isMatch = currentSelectedCourseKey === 'ALL' ||
+                window.normKey(currentSelectedCourseKey) === window.normKey(courseName);
+
+              if (isRecentStaleGps && isMatch && window.map) {
+                // 페이지를 GPS가 끊긴 뒤 열어도 마지막 수신 위치를 회색 마커로 보여줍니다.
+                if (!window.realtimeBusMarkers[markerKey]) {
+                  window.updateRealtimeBusMarker(
+                    markerKey, courseName, busNum, round || subKey,
+                    new kakao.maps.LatLng(lat, lng), Number(pos.heading) || 0,
+                    Math.round(Number(pos.speed) || 0), true
+                  );
+                }
+                if (window.markRealtimeBusMarkerStale) {
+                  window.markRealtimeBusMarkerStale(markerKey, ageMs);
+                }
+              } else {
+                if (window.realtimeBusMarkers[markerKey]) {
+                  window.realtimeBusMarkers[markerKey].setMap(null);
+                  delete window.realtimeBusMarkers[markerKey];
+                }
+                if (window.busAnimStates) delete window.busAnimStates[markerKey];
               }
             }
           });
@@ -442,13 +488,19 @@
         Object.keys(statuses).forEach(subKey => {
           const item = statuses[subKey];
           const age = now - item.updatedAt;
-          if (age >= 1800000) delete statuses[subKey];
-          if (age >= 45000) {
-            if (window.latestGpsStore[courseName]) delete window.latestGpsStore[courseName][subKey];
-            const markerKey = `${courseName}_${item.busNum}`;
+          const markerKey = `${courseName}_${item.busNum}`;
+          if (age >= 1800000) {
+            delete statuses[subKey];
             if (window.realtimeBusMarkers[markerKey]) {
               window.realtimeBusMarkers[markerKey].setMap(null);
               delete window.realtimeBusMarkers[markerKey];
+            }
+            if (window.busAnimStates) delete window.busAnimStates[markerKey];
+          } else if (age >= 45000) {
+            if (window.latestGpsStore[courseName]) delete window.latestGpsStore[courseName][subKey];
+            // 마지막 GPS 좌표에 정지한 채 수신 지연 상태를 표시합니다.
+            if (window.markRealtimeBusMarkerStale) {
+              window.markRealtimeBusMarkerStale(markerKey, age);
             }
           }
         });
@@ -504,6 +556,32 @@
       requestAnimationFrame(step);
     }
     startSmoothBusLoop();
+
+    window.markRealtimeBusMarkerStale = function(markerKey, ageMs) {
+      const overlay = window.realtimeBusMarkers && window.realtimeBusMarkers[markerKey];
+      const marker = overlay?.getContent();
+      if (!marker) return;
+
+      const ageSeconds = Math.max(0, Math.floor(Number(ageMs) / 1000));
+      const ageLabel = ageSeconds < 60
+        ? `${ageSeconds}초 전`
+        : `${Math.floor(ageSeconds / 60)}분 전`;
+      const title = marker.querySelector('.seocho-bus-title');
+      if (title) {
+        const badge = document.createElement('span');
+        badge.style.cssText = 'display:inline-block;padding:2px 6px;border-radius:999px;background:#64748b;color:#fff;font-size:11px;font-weight:900;';
+        badge.textContent = 'GPS 지연';
+        title.replaceChildren(badge, document.createTextNode(` 마지막 수신 ${ageLabel}`));
+        title.style.color = '#475569';
+      }
+
+      const body = marker.querySelector('.seocho-bus-body');
+      if (body) {
+        body.style.opacity = '0.82';
+        const busRect = body.querySelector('svg rect');
+        if (busRect) busRect.setAttribute('fill', '#64748b');
+      }
+    };
 
     window.updateRealtimeBusMarker = function(markerKey, courseName, busNum, roundLabel, latLng, rawHeading = 0, speed = 0, isGpsMode = false) {
       const targetMap = window.map || window.kakaoMapInstance;
@@ -617,6 +695,16 @@
 
         realBusOverlay.setMap(targetMap);
         window.realtimeBusMarkers[markerKey] = realBusOverlay;
+      }
+
+      const freshOverlay = window.realtimeBusMarkers[markerKey];
+      const freshElement = freshOverlay?.getContent();
+      const freshBody = freshElement?.querySelector('.seocho-bus-body');
+      if (freshElement) freshElement.style.opacity = '1';
+      if (freshBody) {
+        freshBody.style.opacity = '1';
+        const busRect = freshBody.querySelector('svg rect');
+        if (busRect) busRect.setAttribute('fill', themeColor);
       }
 
       window.lastActiveBusLatLng = latLng;
@@ -3415,12 +3503,28 @@
       }, 10000);
     }
 
-    function isCourseRunningGps(courseName) {
-      if (!window.hasGpsData) return false;
-      const targetNorm = window.normKey(courseName);
-      return Object.keys(window.hasGpsData).some(k => {
-        return window.normKey(k) === targetNorm && window.hasGpsData[k] === true;
-      });
+    function isCourseRunningGps(courseName, roundName) {
+      const courseNorm = window.normKey(courseName);
+      const roundNorm = window.normKey(roundName);
+      const seenKey = `${courseNorm}|${roundNorm}`;
+      const todayKst = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit'
+      }).format(new Date());
+
+      if (window.gpsSeenTodayDate !== todayKst) {
+        window.gpsSeenToday = {};
+        window.gpsSeenTodayDate = todayKst;
+      }
+      if (window.gpsSeenToday && window.gpsSeenToday[seenKey]) return true;
+
+      const statuses = window.gpsStatusStore || {};
+      return Object.keys(statuses).some(courseKey =>
+        window.normKey(courseKey) === courseNorm &&
+        Object.entries(statuses[courseKey] || {}).some(([key, item]) =>
+          (window.normKey(key) === roundNorm || window.normKey(item.round) === roundNorm) &&
+          Date.now() - Number(item.updatedAt || 0) < 1800000
+        )
+      );
     }
 
     function checkActiveBuses() {
@@ -3471,9 +3575,8 @@
           });
         });
 
-        const isLiveGpsActive = isCourseRunningGps(cName);
-
         Object.keys(rounds).forEach(roundName => {
+          const isLiveGpsActive = isCourseRunningGps(cName, roundName);
           const schedList = rounds[roundName].sort((a, b) => a.stopIndex - b.stopIndex);
           if (schedList.length < 2) return;
 
