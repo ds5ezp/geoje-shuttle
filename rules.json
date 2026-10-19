@@ -2,19 +2,16 @@
   "rules": {
     ".read": false,
     ".write": false,
-
     "admins": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('admins').child(auth.uid).child('active').val() === true)",
         ".write": "auth != null && (root.child('admins').child(auth.uid).child('active').val() === true || ($uid === 'KFSg3IGNBVfrblI8NGncLio1mEI2' && auth.uid === 'KFSg3IGNBVfrblI8NGncLio1mEI2' && auth.token.email === 'ds5ezp@gmail.com' && !root.child('admins').exists()))"
       }
     },
-
     "vehicles": {
       ".read": "auth != null && root.child('admins').child(auth.uid).child('active').val() === true",
       ".write": "auth != null && root.child('admins').child(auth.uid).child('active').val() === true"
     },
-
     "driverAnnouncements": {
       "$vehicle": {
         ".read": "auth != null && (root.child('admins').child(auth.uid).child('active').val() === true || root.child('vehicles').child($vehicle).child('uid').val() === auth.uid)",
@@ -23,19 +20,16 @@
         }
       }
     },
-
     "driverAnnouncementRegistry": {
       ".read": "auth != null && root.child('admins').child(auth.uid).child('active').val() === true",
       "$announcementId": {
         ".write": "auth != null && root.child('admins').child(auth.uid).child('active').val() === true"
       }
     },
-
     "urgentNotice": {
       ".read": true,
       ".write": "auth != null && root.child('admins').child(auth.uid).child('active').val() === true"
     },
-
     "publicLiveStatus": {
       ".read": true,
       "$course": {
@@ -45,13 +39,19 @@
           },
           "stationLogs": {
             "$stopKey": {
-              ".write": "auth != null && (root.child('admins').child(auth.uid).child('active').val() === true || (root.child('vehicles').child(data.parent().parent().child('busPosition').child('busNumber').val()).child('uid').val() === auth.uid && root.child('vehicles').child(data.parent().parent().child('busPosition').child('busNumber').val()).child('allowedCourses').child($course).val() === true))"
+              ".write": "auth != null && (root.child('admins').child(auth.uid).child('active').val() === true || (root.child('vehicles').child(root.child('publicLiveStatus').child($course).child($round).child('busPosition').child('busNumber').val()).child('uid').val() === auth.uid && root.child('vehicles').child(root.child('publicLiveStatus').child($course).child($round).child('busPosition').child('busNumber').val()).child('allowedCourses').child($course).val() === true))"
+            }
+          },
+          "etaStats": {
+            "$segment": {
+              "$hour": {
+                ".write": "auth != null && root.child('vehicles').child(root.child('publicLiveStatus').child($course).child($round).child('busPosition').child('busNumber').val()).child('uid').val() === auth.uid && root.child('vehicles').child(root.child('publicLiveStatus').child($course).child($round).child('busPosition').child('busNumber').val()).child('allowedCourses').child($course).val() === true"
+              }
             }
           }
         }
       }
     },
-
     "liveBuses": {
       ".read": "auth != null && root.child('admins').child(auth.uid).child('active').val() === true",
       "$course": {
@@ -60,20 +60,18 @@
         }
       }
     },
-
     "stationLogs": {
       ".read": "auth != null && root.child('admins').child(auth.uid).child('active').val() === true",
       "$date": {
         "$course": {
           "$round": {
             "$stopKey": {
-              ".write": "auth != null && (root.child('admins').child(auth.uid).child('active').val() === true || (newData.child('uid').val() === auth.uid && root.child('vehicles').child(newData.child('busNumber').val()).child('uid').val() === auth.uid && root.child('vehicles').child(newData.child('busNumber').val()).child('allowedCourses').child($course).val() === true))"
+              ".write": "auth != null && (root.child('admins').child(auth.uid).child('active').val() === true || (newData.child('uid').val() === auth.uid && root.child('vehicles').child(newData.child('busNumber').val()).child('uid').val() === auth.uid && root.child('vehicles').child(newData.child('busNumber').val()).child('allowedCourses').child($course).val() === true && (!data.exists() || data.child('uid').val() === auth.uid)))"
             }
           }
         }
       }
     },
-
     "traceLogs": {
       ".read": "auth != null && root.child('admins').child(auth.uid).child('active').val() === true",
       "$date": {
@@ -85,7 +83,15 @@
           }
         }
       }
+    },
+    "driverTripLogs": {
+      "$vehicle": {
+        ".read": "auth != null && (root.child('admins').child(auth.uid).child('active').val() === true || root.child('vehicles').child($vehicle).child('uid').val() === auth.uid)",
+        ".indexOn": ["endedAtMs"],
+        "$logId": {
+          ".write": "auth != null && root.child('vehicles').child($vehicle).child('uid').val() === auth.uid && newData.child('uid').val() === auth.uid && newData.child('vehicle').val() === $vehicle"
+        }
+      }
     }
   }
 }
-
