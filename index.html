@@ -63,6 +63,13 @@
       return `${values.year}-${values.month}-${values.day}`;
     }
 
+    // 공개 기록의 이벤트 시각을 한국 날짜 기준으로 검사합니다. 날짜 없는 구형 로그는 제외합니다.
+    function isTodayStationEvent(item) {
+      const eventAtMs = Number(item?.eventAtMs ?? item?.passedAtMs ?? item?.arrivalAtMs);
+      return Number.isFinite(eventAtMs) && eventAtMs > 0 &&
+        getKstDateString(eventAtMs) === getKstDateString();
+    }
+
     // [3단계 신규 기능] Firebase 실시간 긴급 공지 감시 리스너
     window.initUrgentNoticeWatcher = function() {
       const noticeRef = ref(db, 'urgentNotice');
@@ -96,7 +103,12 @@
           if (!rounds || typeof rounds !== 'object') return;
           logs[course] = {};
           Object.entries(rounds).forEach(([round, payload]) => {
-            if (payload && payload.stationLogs) logs[course][round] = payload.stationLogs;
+            if (payload && payload.stationLogs) {
+              const todayLogs = Object.fromEntries(
+                Object.entries(payload.stationLogs).filter(([, item]) => isTodayStationEvent(item))
+              );
+              if (Object.keys(todayLogs).length) logs[course][round] = todayLogs;
+            }
           });
         });
         window.todayStationLogs = logs;
@@ -116,7 +128,7 @@
         const roundData = courseLogs[roundKey] || {};
         Object.keys(roundData).forEach(stopKey => {
           const item = roundData[stopKey];
-          if (!item || item.stopIndex === undefined) return;
+          if (!item || item.stopIndex === undefined || !isTodayStationEvent(item)) return;
 
           const sIdx = parseInt(item.stopIndex, 10);
           let targetBadgeRow = document.getElementById(`badge-row-${sIdx - 1}`);
@@ -233,7 +245,7 @@
         const roundLogs = busRoundKey ? courseLogs[busRoundKey] : {};
         let lastPassedVisibleIdx = -1;
         Object.values(roundLogs).forEach(log => {
-          if (!log) return;
+          if (!log || !isTodayStationEvent(log)) return;
           let passedIdx = -1;
           const loggedName = window.normKey(log.stopName || '');
           const loggedStopNo = String(log.stopNo || '').replace(/\D/g, '');
