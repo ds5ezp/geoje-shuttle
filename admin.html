@@ -381,6 +381,34 @@
       }
     };
 
+    // 오래된 차량 경로 기록(traceLogs/날짜) 정리. 운행일지·정류장 통과 기록은 건드리지 않습니다.
+    // 날짜 목록만 가볍게 받기 위해 REST의 shallow 조회를 씁니다 (전체 경로를 내려받지 않음).
+    window.cleanupOldTraceLogs = async function() {
+      if (!window.adminVerified || !auth.currentUser) { alert('관리자 로그인이 필요합니다.'); return; }
+      const input = prompt('몇 개월보다 오래된 차량 경로 기록을 지울까요?\n(운행일지와 정류장 통과 기록은 지우지 않습니다)', '3');
+      if (input === null) return;
+      const months = parseInt(input, 10);
+      if (!Number.isFinite(months) || months < 1 || months > 36) { alert('1~36 사이의 개월 수를 입력해 주세요.'); return; }
+
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(cutoffDate.getMonth() - months);
+      const cutoff = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(cutoffDate);
+      try {
+        const token = await auth.currentUser.getIdToken();
+        const res = await fetch(`${firebaseConfig.databaseURL}/traceLogs.json?shallow=true&auth=${encodeURIComponent(token)}`);
+        if (!res.ok) throw new Error(`날짜 목록 조회 실패 (${res.status})`);
+        const dates = Object.keys((await res.json()) || {}).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d) && d < cutoff).sort();
+        if (!dates.length) { alert(`${cutoff} 이전의 경로 기록이 없습니다.`); return; }
+        if (!confirm(`${dates[0]} ~ ${dates[dates.length - 1]} (${dates.length}일치) 차량 경로 기록을 지울까요?\n지우면 되돌릴 수 없고, 그 날짜는 경로 조회가 되지 않습니다.`)) return;
+        const writes = {};
+        dates.forEach(d => { writes[`traceLogs/${d}`] = null; });
+        await update(ref(db), writes);
+        alert(`${dates.length}일치 경로 기록을 지웠습니다.`);
+      } catch (error) {
+        alert(`경로 기록 정리 실패: ${error.message}\nFirebase Rules의 traceLogs 에 관리자 쓰기 권한이 있는지 확인해 주세요.`);
+      }
+    };
+
     window.cancelDriverAnnouncement = async function(id) {
       if (!window.adminVerified || !auth.currentUser) { alert('관리자 로그인이 필요합니다.'); return; }
       const snap = await get(ref(db, `driverAnnouncementRegistry/${id}`));
@@ -589,6 +617,7 @@
           📢 긴급 공지 관리 <span id="topNoticeBadge" class="top-notice-badge inactive">공지 없음</span>
         </button>
         <button type="button" class="vehicle-admin-btn" onclick="openVehicleModal()">🚐 차량 등록·관리</button>
+        <button type="button" class="vehicle-admin-btn" onclick="cleanupOldTraceLogs()">🧹 오래된 경로 정리</button>
       </div>
 
       <div class="filter-group">
@@ -1272,4 +1301,3 @@
   </script>
 </body>
 </html>
-
